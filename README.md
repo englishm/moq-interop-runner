@@ -149,7 +149,7 @@ moq-interop-runner/
 - [quiche-moq](https://github.com/nicholasjackson/quiche-moq) - Google (C++)
 - [libquicr](https://github.com/Quicr/libquicr) - Cisco (C++)
 - [moqtransport](https://github.com/mengelbart/moqtransport) - TUM (Go)
-- [moq](https://github.com/moq-dev/moq) - Luke Curley (Go)
+- [moq](https://github.com/moq-dev/moq) - Luke Curley (Rust + TypeScript)
 - [imquic](https://github.com/meetecho/imquic) - Meetecho (C)
 - [moqtail](https://github.com/streaming-university/moqtail) - OzU (Python)
 
