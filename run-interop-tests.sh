@@ -1,11 +1,12 @@
 #!/bin/bash
-# run-interop-tests.sh - Run MoQT interop tests with client×relay version matching
+# run-interop-tests.sh - Run MoQT interop tests across client x relay pairs
 #
-# For each (client, relay) pair, selects a single version to test:
-#   1. Use the target version if both sides support it
-#   2. Otherwise, use the highest shared version below the target
-#   3. Otherwise, use the lowest shared version above the target
-#   4. Skip the pair if no shared version exists
+# For each (client, relay) pair, predicts the negotiated version as the newest
+# draft version both sides support. This matches wire behavior -- the runner
+# cannot control version negotiation.
+#
+# Pairs are classified relative to a target version (at / ahead / behind)
+# and can be filtered or sorted by that classification.
 #
 # Exit codes:
 #   0 - All tests passed (or no tests run)
@@ -38,15 +39,18 @@ fi
 DOCKER_ONLY=false
 REMOTE_ONLY=false
 LIST_ONLY=false
+DRY_RUN=false
 TRANSPORT_FILTER=""
 TARGET_VERSION=""  # Will be read from config if not specified
 RELAY_FILTER=""    # Filter to specific relay implementation
+CLASSIFICATION_FILTER=""  # "", "at", "ahead", or "behind"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --docker-only) DOCKER_ONLY=true; shift ;;
         --remote-only) REMOTE_ONLY=true; shift ;;
         --list) LIST_ONLY=true; shift ;;
+        --dry-run) DRY_RUN=true; shift ;;
         --transport)
             [[ -n "${2:-}" ]] || { echo "Error: --transport requires a value"; exit 1; }
             TRANSPORT_FILTER="$2"; shift 2
@@ -61,19 +65,26 @@ while [[ $# -gt 0 ]]; do
             [[ -n "${2:-}" ]] || { echo "Error: --relay requires a value"; exit 1; }
             RELAY_FILTER="$2"; shift 2
             ;;
+        --only-at-target) CLASSIFICATION_FILTER="at"; shift ;;
+        --only-ahead-of-target) CLASSIFICATION_FILTER="ahead"; shift ;;
+        --only-behind-target) CLASSIFICATION_FILTER="behind"; shift ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --docker-only        Only test Docker images"
-            echo "  --remote-only        Only test remote endpoints"
-            echo "  --transport TYPE     Filter by transport: quic or webtransport"
-            echo "  --quic-only          Only test raw QUIC endpoints (moqt://)"
-            echo "  --webtransport-only  Only test WebTransport endpoints (https://)"
-            echo "  --target-version VER Target draft version (default: from config)"
-            echo "  --relay NAME         Only test specific relay implementation"
-            echo "  --list               List available implementations and exit"
-            echo "  --help               Show this help"
+            echo "  --docker-only             Only test Docker images"
+            echo "  --remote-only             Only test remote endpoints"
+            echo "  --transport TYPE          Filter by transport: quic or webtransport"
+            echo "  --quic-only               Only test raw QUIC endpoints (moqt://)"
+            echo "  --webtransport-only       Only test WebTransport endpoints (https://)"
+            echo "  --target-version VER      Target draft version (default: from config)"
+            echo "  --relay NAME              Only test specific relay implementation"
+            echo "  --only-at-target          Only test pairs that negotiate the target version"
+            echo "  --only-ahead-of-target    Only test pairs negotiating ahead of the target"
+            echo "  --only-behind-target      Only test pairs negotiating behind the target"
+            echo "  --dry-run                 Show computed test plan without executing"
+            echo "  --list                    List available implementations and exit"
+            echo "  --help                    Show this help"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -91,6 +102,12 @@ if [ -z "$TARGET_VERSION" ]; then
     TARGET_VERSION=$(jq -r '.current_target // "draft-14"' "$CONFIG_FILE")
 fi
 
+# Validate target version format
+if ! [[ "$TARGET_VERSION" =~ ^draft-[0-9]+$ ]]; then
+    echo "Error: --target-version must be in format 'draft-NN' (got: $TARGET_VERSION)"
+    exit 1
+fi
+
 # List implementations with version info
 list_implementations() {
     echo -e "${BLUE}Available MoQT Implementations:${NC}"
@@ -105,8 +122,10 @@ if [ "$LIST_ONLY" = true ]; then
     exit 0
 fi
 
-# Create results directory
-mkdir -p "$RESULTS_DIR"
+# Create results directory (skip for dry run)
+if [ "$DRY_RUN" != true ]; then
+    mkdir -p "$RESULTS_DIR"
+fi
 
 #############################################################################
 # Helper Functions
@@ -118,38 +137,53 @@ get_impls_with_role() {
     jq -r --arg role "$role" '.implementations | to_entries[] | select(.value.roles[$role] != null) | .key' "$CONFIG_FILE"
 }
 
-# Select the best version to test a (client, relay) pair.
-# Returns the version string on stdout, or empty string if no shared version.
-#
-# Priority:
-#   1. Target version (if both support it)
-#   2. Highest shared version below target
-#   3. Lowest shared version above target
-select_version() {
+# Compute the version a (client, relay) pair will negotiate.
+# Returns the newest shared draft version, or empty string if none.
+compute_negotiated_version() {
     local client="$1"
     local relay="$2"
-    local target="$3"
-    jq -r --arg client "$client" --arg relay "$relay" --arg target "$target" '
-        (.implementations[$client].draft_versions) as $cv |
-        (.implementations[$relay].draft_versions) as $rv |
-        ($target | ltrimstr("draft-") | tonumber) as $tnum |
+    jq -r --arg client "$client" --arg relay "$relay" '
+        (.implementations[$client].draft_versions // []) as $cv |
+        (.implementations[$relay].draft_versions // []) as $rv |
         # Find shared versions
         [$cv[] | select(. as $v | $rv | index($v))] |
         if length == 0 then ""
-        # Prefer target if shared
-        elif index($target) then $target
         else
-            # Split into below and above target
-            ([ .[] | select((ltrimstr("draft-") | tonumber) < $tnum) ]
-                | sort_by(ltrimstr("draft-") | tonumber) | reverse) as $below |
-            ([ .[] | select((ltrimstr("draft-") | tonumber) > $tnum) ]
-                | sort_by(ltrimstr("draft-") | tonumber)) as $above |
-            if ($below | length) > 0 then $below[0]   # highest below target
-            elif ($above | length) > 0 then $above[0]  # lowest above target
-            else ""
-            end
+            # Return the newest (highest draft number)
+            sort_by(ltrimstr("draft-") | tonumber) | reverse | .[0]
         end
     ' "$CONFIG_FILE"
+}
+
+# Classify a version relative to the target.
+# Returns: "at", "ahead", "behind", or "none" (if version is empty)
+classify_version() {
+    local version="$1"
+    local target="$2"
+    if [ -z "$version" ]; then
+        echo "none"
+        return
+    fi
+    local v_num="${version#draft-}"
+    local t_num="${target#draft-}"
+    if [ "$v_num" -eq "$t_num" ]; then
+        echo "at"
+    elif [ "$v_num" -gt "$t_num" ]; then
+        echo "ahead"
+    else
+        echo "behind"
+    fi
+}
+
+# Format classification for display
+format_classification() {
+    local classification="$1"
+    case "$classification" in
+        at)     echo -e "${GREEN}at-target${NC}" ;;
+        ahead)  echo -e "${CYAN}ahead${NC}" ;;
+        behind) echo -e "${YELLOW}behind${NC}" ;;
+        *)      echo "none" ;;
+    esac
 }
 
 #############################################################################
@@ -160,18 +194,21 @@ TOTAL=0
 PASSED=0
 FAILED=0
 
-# Initialize summary JSON
-SUMMARY_FILE="$RESULTS_DIR/summary.json"
-jq -n --arg version "$TARGET_VERSION" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  '{runs: [], target_version: $version, timestamp: $ts}' > "$SUMMARY_FILE"
+# Initialize summary JSON (skip for dry run)
+if [ "$DRY_RUN" != true ]; then
+    SUMMARY_FILE="$RESULTS_DIR/summary.json"
+    jq -n --arg version "$TARGET_VERSION" --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      '{runs: [], target_version: $version, timestamp: $ts}' > "$SUMMARY_FILE"
+fi
 
 run_test() {
     local client="$1"
     local relay="$2"
     local version="$3"
-    local mode="$4"      # "docker" or "remote-quic" or "remote-webtransport"
-    local target="$5"    # image name or URL
-    local tls_disable="${6:-false}"
+    local classification="$4"  # "at", "ahead", or "behind"
+    local mode="$5"      # "docker" or "remote-quic" or "remote-webtransport"
+    local target="$6"    # image name or URL
+    local tls_disable="${7:-false}"
 
     TOTAL=$((TOTAL + 1))
 
@@ -221,11 +258,12 @@ run_test() {
     if jq --arg client "$client" \
           --arg relay "$relay" \
           --arg version "$version" \
+          --arg classification "$classification" \
           --arg mode "$mode" \
           --arg target "$target" \
           --arg status "$status" \
           --argjson exit_code "$exit_code" \
-          '.runs += [{"client": $client, "relay": $relay, "version": $version, "mode": $mode, "target": $target, "status": $status, "exit_code": $exit_code}]' \
+          '.runs += [{"client": $client, "relay": $relay, "version": $version, "classification": $classification, "mode": $mode, "target": $target, "status": $status, "exit_code": $exit_code}]' \
           "$SUMMARY_FILE" > "$tmp_file"; then
         mv "$tmp_file" "$SUMMARY_FILE"
     else
@@ -241,12 +279,13 @@ test_pair() {
     local client="$1"
     local relay="$2"
     local version="$3"
+    local classification="$4"
 
     # Docker test
     if [ "$REMOTE_ONLY" != true ]; then
         local docker_image=$(jq -r --arg relay "$relay" '.implementations[$relay].roles.relay.docker.image // empty' "$CONFIG_FILE")
         if [ -n "$docker_image" ]; then
-            run_test "$client" "$relay" "$version" "docker" "$docker_image"
+            run_test "$client" "$relay" "$version" "$classification" "docker" "$docker_image"
         fi
     fi
 
@@ -267,25 +306,31 @@ test_pair() {
                 continue
             fi
 
-            run_test "$client" "$relay" "$version" "remote-$transport" "$url" "$tls_disable"
+            run_test "$client" "$relay" "$version" "$classification" "remote-$transport" "$url" "$tls_disable"
         done
     fi
 }
 
 #############################################################################
-# Main Algorithm
+# Main: Plan, Filter, Sort, Execute
 #############################################################################
 
 echo -e "${BLUE}╔═══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║         MoQT Interop Tests - Version Matching                 ║${NC}"
+echo -e "${BLUE}║              MoQT Interop Tests                             ║${NC}"
 echo -e "${BLUE}╚═══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "Target version: ${CYAN}$TARGET_VERSION${NC}"
-echo -e "Results: $RESULTS_DIR"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "Mode: ${YELLOW}dry run${NC}"
+else
+    echo -e "Results: $RESULTS_DIR"
+fi
+if [ -n "$CLASSIFICATION_FILTER" ]; then
+    echo -e "Filter: only ${CLASSIFICATION_FILTER}-target pairs"
+fi
 echo ""
 
-# Get all clients and relays as arrays (avoids word-splitting issues)
-# Uses while-read instead of mapfile for Bash 3.2 (macOS) compatibility
+# Get all clients and relays
 CLIENTS_ARR=()
 while IFS= read -r line; do
     [ -n "$line" ] && CLIENTS_ARR+=("$line")
@@ -305,21 +350,87 @@ echo -e "${BLUE}Relays:${NC} ${RELAYS_ARR[*]}"
 echo ""
 
 #############################################################################
-# Version Selection and Test Execution
+# Phase 1: Compute test plan
 #############################################################################
+
+echo -e "${BLUE}── Test Plan ──${NC}"
+echo ""
+
+# Build plan as parallel arrays (Bash 3.2 compatible)
+PLAN_CLIENT=()
+PLAN_RELAY=()
+PLAN_VERSION=()
+PLAN_CLASS=()
 
 for client in "${CLIENTS_ARR[@]}"; do
     for relay in "${RELAYS_ARR[@]}"; do
-        version=$(select_version "$client" "$relay" "$TARGET_VERSION")
+        version=$(compute_negotiated_version "$client" "$relay")
+        classification=$(classify_version "$version" "$TARGET_VERSION")
 
-        if [ -z "$version" ]; then
-            echo -e "${YELLOW}Skipping $client → $relay (no shared version)${NC}"
+        if [ "$classification" = "none" ]; then
+            echo -e "  $client → $relay: ${YELLOW}no shared version, skipping${NC}"
             continue
         fi
 
-        echo -e "${YELLOW}Testing: $client → $relay (at $version)${NC}"
-        test_pair "$client" "$relay" "$version"
+        class_display=$(format_classification "$classification")
+        echo -e "  $client → $relay: $version ($class_display)"
+
+        # Apply classification filter
+        if [ -n "$CLASSIFICATION_FILTER" ] && [ "$classification" != "$CLASSIFICATION_FILTER" ]; then
+            echo -e "    ${YELLOW}^ filtered out (--only-${CLASSIFICATION_FILTER}-target)${NC}"
+            continue
+        fi
+
+        PLAN_CLIENT+=("$client")
+        PLAN_RELAY+=("$relay")
+        PLAN_VERSION+=("$version")
+        PLAN_CLASS+=("$classification")
     done
+done
+
+echo ""
+
+# Sort plan: at-target first, then ahead, then behind
+# Build index arrays for each classification, then concatenate
+SORTED_INDICES=()
+if [ ${#PLAN_CLASS[@]} -gt 0 ]; then
+    for class in at ahead behind; do
+        for i in $(seq 0 $((${#PLAN_CLASS[@]} - 1))); do
+            if [ "${PLAN_CLASS[$i]}" = "$class" ]; then
+                SORTED_INDICES+=("$i")
+            fi
+        done
+    done
+fi
+
+PLAN_COUNT=${#SORTED_INDICES[@]}
+echo -e "${BLUE}Pairs to test: $PLAN_COUNT${NC}"
+echo ""
+
+#############################################################################
+# Phase 2: Execute (or show dry-run summary)
+#############################################################################
+
+if [ "$DRY_RUN" = true ]; then
+    if [ "$PLAN_COUNT" -eq 0 ]; then
+        echo "No pairs to test."
+    else
+        echo -e "${BLUE}── Execution Order ──${NC}"
+        echo ""
+        local_n=1
+        for idx in "${SORTED_INDICES[@]}"; do
+            class_display=$(format_classification "${PLAN_CLASS[$idx]}")
+            echo -e "  $local_n. ${PLAN_CLIENT[$idx]} → ${PLAN_RELAY[$idx]}: ${PLAN_VERSION[$idx]} ($class_display)"
+            local_n=$((local_n + 1))
+        done
+        echo ""
+        echo "Run without --dry-run to execute."
+    fi
+    exit 0
+fi
+
+for idx in "${SORTED_INDICES[@]}"; do
+    test_pair "${PLAN_CLIENT[$idx]}" "${PLAN_RELAY[$idx]}" "${PLAN_VERSION[$idx]}" "${PLAN_CLASS[$idx]}"
 done
 
 #############################################################################
