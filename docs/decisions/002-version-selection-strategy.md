@@ -10,9 +10,9 @@ The interop runner needs to decide which draft version to test for each (client,
 
 ### How MoQT version negotiation works
 
-When two MoQT implementations connect, they negotiate the protocol version on the wire. The runner cannot inject a version preference into this process. In practice, the negotiated version is the newest draft version both sides support.
+When two MoQT implementations connect, they negotiate the protocol version on the wire. The runner cannot inject a version preference into this process. In practice, the negotiated version is *expected* to be the newest draft version both sides support -- though runtime flags, endpoint-specific constraints, or implementation quirks may cause a different outcome.
 
-This means the runner's "version selection" is really a *prediction* of what the pair will negotiate, used for labeling and filtering -- not a directive.
+This means the runner's "version selection" is really a *prediction* of what the pair will negotiate, used for labeling and filtering -- not a directive. The actual negotiated version may differ from the prediction.
 
 ### The MoQT implementation landscape
 
@@ -40,9 +40,13 @@ The ultimate goal is to get the MoQT draft to WGLC and published as an RFC, info
 
 The runner uses a simple, honest model:
 
-1. **For each (client, relay) pair, compute the newest shared draft version.** This is what the pair will negotiate on the wire. If no shared version exists, skip the pair.
+1. **For each (client, relay) pair, compute the newest shared draft version.** This is the predicted negotiated version. If no shared version exists, skip the pair.
 
-2. **Classify each pair relative to the target version:** at-target, ahead-of-target, or behind-target.
+2. **Classify each pair relative to the target version:** `at`, `ahead`, or `behind` (these are the values emitted in `summary.json`; displayed as "at-target", "ahead", "behind" in terminal output).
+
+**Caveat:** `draft_versions` is declared per-implementation, but individual endpoints (remote URLs, Docker images) may not all support every listed version. The prediction assumes all endpoints of an implementation share the same version support. If this becomes a real problem, per-endpoint `draft_versions` may be needed (see Future Directions).
+
+**Version format:** versions must follow the `draft-NN` format (e.g., `draft-14`). The runner validates `--target-version` and relies on this format for numeric sorting and classification.
 
 3. **By default, run all pairs** that have a shared version, sorted by classification (at-target first, then ahead, then behind).
 
@@ -69,7 +73,7 @@ Just compute newest-shared for every pair and run them all. This is close to wha
 
 ## Rationale
 
-- **Matches wire behavior.** The computed version is what the pair will actually negotiate. No false precision about "selecting" versions.
+- **Matches expected wire behavior.** The computed version is what the pair is expected to negotiate. No false precision about "selecting" versions.
 
 - **Default is maximal coverage.** Running all pairs by default means we don't miss interop signal. Filters exist for when you need to focus.
 
