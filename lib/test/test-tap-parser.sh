@@ -162,6 +162,49 @@ EOF
 parse_tap_file "$TMPDIR/empty.log" || true
 assert_eq "empty file: 0 total" "0" "$TAP_TOTAL"
 
+# ── Test: TAP14 with docker-compose prefix ────────────────────────────────
+
+cat > "$TMPDIR/docker-compose-tap.log" << 'EOF'
+ Container moq-interop-runner-relay-1  Recreate
+ Container moq-interop-runner-relay-1  Recreated
+Attaching to relay-1, test-client-1
+relay-1        | Starting moq-rs relay on port 4443
+test-client-1  | TAP version 14
+test-client-1  | 1..3
+test-client-1  | ok 1 - setup-only
+test-client-1  | not ok 2 - announce-only
+test-client-1  |   ---
+test-client-1  |   message: "timeout"
+test-client-1  |   ...
+test-client-1  | ok 3 - subscribe-error
+test-client-1 exited with code 1
+EOF
+
+parse_tap_file "$TMPDIR/docker-compose-tap.log"
+assert_eq "docker-compose TAP: format detected" "tap14" "$TAP_FORMAT"
+assert_eq "docker-compose TAP: 2 passed" "2" "$TAP_PASSED"
+assert_eq "docker-compose TAP: 1 failed" "1" "$TAP_FAILED"
+assert_eq "docker-compose TAP: 3 total" "3" "$TAP_TOTAL"
+
+# ── Test: Legacy checkmarks with docker-compose prefix ────────────────────
+
+cat > "$TMPDIR/docker-compose-legacy.log" << 'EOF'
+relay-1        | Starting moq-rs relay on port 4443
+test-client-1  | ✓ setup-only (24 ms) [CID: abc123]
+test-client-1  | ✓ announce-only (31 ms) [CID: def456]
+test-client-1  | ✗ subscribe-error (timeout after 2000 ms)
+test-client-1  | 
+test-client-1  | Results: 2 passed, 1 failed
+test-client-1  | MOQT_TEST_RESULT: FAILURE
+test-client-1 exited with code 1
+EOF
+
+parse_tap_file "$TMPDIR/docker-compose-legacy.log"
+assert_eq "docker-compose legacy: format detected" "legacy" "$TAP_FORMAT"
+assert_eq "docker-compose legacy: 2 passed" "2" "$TAP_PASSED"
+assert_eq "docker-compose legacy: 1 failed" "1" "$TAP_FAILED"
+assert_eq "docker-compose legacy: 3 total" "3" "$TAP_TOTAL"
+
 # ── Test: TAP13 also accepted ─────────────────────────────────────────────
 
 cat > "$TMPDIR/tap13.log" << 'EOF'

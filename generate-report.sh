@@ -15,6 +15,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RESULTS_BASE="$SCRIPT_DIR/results"
 INDEX_ONLY=false
 
+# Source shared TAP parser
+source "$SCRIPT_DIR/lib/tap-parser.sh"
+
 # Parse args
 if [ "${1:-}" = "--index" ]; then
     INDEX_ONLY=true
@@ -307,23 +310,17 @@ MATRIXHEAD
             
             if [ -n "$mode" ] && [ "$mode" != "null" ]; then
                 local log_file="$RESULTS_DIR/${client}_to_${relay}_${mode}.log"
-                if [ -f "$log_file" ]; then
-                    # Count pass/fail from log file
-                    local passed failed total
-                    passed=$(grep -c "^✓" "$log_file" 2>/dev/null) || passed=0
-                    failed=$(grep -c "^✗" "$log_file" 2>/dev/null) || failed=0
-                    total=$((passed + failed))
-                    
-                    if [ "$total" -gt 0 ]; then
-                        if [ "$failed" -eq 0 ]; then
-                            echo "                    <td><span class=\"status pass\">$passed/$total</span></td>" >> "$OUTPUT_FILE"
-                        elif [ "$passed" -eq 0 ]; then
-                            echo "                    <td><span class=\"status fail\">$passed/$total</span></td>" >> "$OUTPUT_FILE"
-                        else
-                            echo "                    <td><span class=\"status partial\">$passed/$total</span></td>" >> "$OUTPUT_FILE"
-                        fi
+                if parse_tap_file "$log_file" && [ "$TAP_TOTAL" -gt 0 ]; then
+                    local passed=$TAP_PASSED
+                    local failed=$TAP_FAILED
+                    local total=$TAP_TOTAL
+
+                    if [ "$failed" -eq 0 ]; then
+                        echo "                    <td><span class=\"status pass\">$passed/$total</span></td>" >> "$OUTPUT_FILE"
+                    elif [ "$passed" -eq 0 ]; then
+                        echo "                    <td><span class=\"status fail\">$passed/$total</span></td>" >> "$OUTPUT_FILE"
                     else
-                        echo "                    <td><span class=\"cell none\">-</span></td>" >> "$OUTPUT_FILE"
+                        echo "                    <td><span class=\"status partial\">$passed/$total</span></td>" >> "$OUTPUT_FILE"
                     fi
                 else
                     echo "                    <td><span class=\"cell none\">-</span></td>" >> "$OUTPUT_FILE"
@@ -364,23 +361,18 @@ MATRIXFOOT
         
         local log_file="$RESULTS_DIR/${client}_to_${relay}_${mode}.log"
         local test_display
-        
-        if [ -f "$log_file" ]; then
-            local passed failed total
-            passed=$(grep -c "^✓" "$log_file" 2>/dev/null) || passed=0
-            failed=$(grep -c "^✗" "$log_file" 2>/dev/null) || failed=0
-            total=$((passed + failed))
-            
-            if [ "$total" -gt 0 ]; then
-                if [ "$failed" -eq 0 ]; then
-                    test_display="<span class=\"status pass\">$passed/$total</span>"
-                elif [ "$passed" -eq 0 ]; then
-                    test_display="<span class=\"status fail\">$passed/$total</span>"
-                else
-                    test_display="<span class=\"status partial\">$passed/$total</span>"
-                fi
+
+        if parse_tap_file "$log_file" && [ "$TAP_TOTAL" -gt 0 ]; then
+            local passed=$TAP_PASSED
+            local failed=$TAP_FAILED
+            local total=$TAP_TOTAL
+
+            if [ "$failed" -eq 0 ]; then
+                test_display="<span class=\"status pass\">$passed/$total</span>"
+            elif [ "$passed" -eq 0 ]; then
+                test_display="<span class=\"status fail\">$passed/$total</span>"
             else
-                test_display="<span class=\"status $status\">${status^^}</span>"
+                test_display="<span class=\"status partial\">$passed/$total</span>"
             fi
         else
             test_display="<span class=\"status $status\">${status^^}</span>"

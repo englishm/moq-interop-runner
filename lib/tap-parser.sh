@@ -4,6 +4,9 @@
 # Extracts pass/fail/skip counts from TAP version 14 output.
 # Falls back to legacy checkmark (✓/✗) parsing if no TAP version line is found.
 #
+# Handles docker-compose log prefixes (e.g., "test-client-1  | ok 1 - name")
+# by stripping them before parsing.
+#
 # Usage:
 #   source lib/tap-parser.sh
 #   parse_tap_file "path/to/logfile.log"
@@ -28,12 +31,11 @@ parse_tap_file() {
     fi
 
     # Check if this is TAP output by looking for the version line.
-    # The version line may not be the very first line of the file since
-    # docker/make output may precede it, so scan the whole file.
-    if grep -q "^TAP version 1[34]" "$file" 2>/dev/null; then
+    # Use a relaxed grep that allows docker-compose prefixes.
+    if grep -q "TAP version 1[34]" "$file" 2>/dev/null; then
         TAP_FORMAT="tap14"
         _parse_tap "$file"
-    elif grep -q "^[✓✗]" "$file" 2>/dev/null; then
+    elif grep -q "✓\|✗" "$file" 2>/dev/null; then
         TAP_FORMAT="legacy"
         _parse_legacy "$file"
     else
@@ -44,16 +46,26 @@ parse_tap_file() {
     return 0
 }
 
-# Parse TAP14 (or TAP13) format
+# Strip docker-compose log prefixes.
+#
+# Docker compose prefixes lines with "container-name  | " (variable whitespace).
+# This function strips that prefix if present, yielding the raw test client output.
+_strip_docker_prefix() {
+    # Match: word chars, dashes, dots (container name), whitespace, pipe, space(s)
+    # e.g. "test-client-1  | ok 1 - test" -> "ok 1 - test"
+    sed 's/^[a-zA-Z0-9._-]*[[:space:]]*|[[:space:]]*//'
+}
+
+# Parse TAP14 (or TAP13) format.
+#
+# Pipes through _strip_docker_prefix, then classifies each line as PASS/FAIL/SKIP.
+# Uses a temp file to work around bash subshell variable scoping with pipes.
 _parse_tap() {
     local file="$1"
+    local tmpfile
+    tmpfile=$(mktemp "${TMPDIR:-/tmp}/tap-parser.XXXXXX")
 
-    # Count "ok" lines (pass or skip) and "not ok" lines (fail or todo)
-    # Only match top-level test points (not indented subtests).
-    # TAP lines: ^ok or ^not ok
-    # We need to separate SKIP and TODO directives.
-
-    while IFS= read -r line; do
+    _strip_docker_prefix < "$file" | while IFS= read -r line; do
         # Skip indented lines (subtests are 4-space indented)
         case "$line" in
             "    "*) continue ;;
@@ -62,26 +74,31 @@ _parse_tap() {
         if [[ "$line" =~ ^ok\ [0-9]+ ]] || [[ "$line" =~ ^ok\ -\  ]] || [[ "$line" =~ ^ok$ ]]; then
             # Check for SKIP directive (case-insensitive)
             if echo "$line" | grep -qi ' # SKIP'; then
-                TAP_SKIPPED=$((TAP_SKIPPED + 1))
+                echo "SKIP"
             else
-                TAP_PASSED=$((TAP_PASSED + 1))
+                echo "PASS"
             fi
         elif [[ "$line" =~ ^not\ ok ]]; then
-            # "not ok" with TODO directive counts as a todo, not a failure
+            # "not ok" with TODO directive counts as a todo, not a failure.
+            # Per TAP spec, TODO tests are expected to fail.
             if echo "$line" | grep -qi ' # TODO'; then
-                # TODO tests are not failures per TAP spec.
-                # Count them as passed for now (they're expected to fail).
-                TAP_PASSED=$((TAP_PASSED + 1))
+                echo "PASS"
             else
-                TAP_FAILED=$((TAP_FAILED + 1))
+                echo "FAIL"
             fi
         fi
-    done < "$file"
+    done > "$tmpfile"
+
+    TAP_PASSED=$(grep -c "^PASS$" "$tmpfile" 2>/dev/null) || TAP_PASSED=0
+    TAP_FAILED=$(grep -c "^FAIL$" "$tmpfile" 2>/dev/null) || TAP_FAILED=0
+    TAP_SKIPPED=$(grep -c "^SKIP$" "$tmpfile" 2>/dev/null) || TAP_SKIPPED=0
+    rm -f "$tmpfile"
 }
 
-# Parse legacy checkmark format (fallback)
+# Parse legacy checkmark format (fallback).
+# Uses relaxed matching (no ^ anchor) to handle docker-compose prefixed output.
 _parse_legacy() {
     local file="$1"
-    TAP_PASSED=$(grep -c "^✓" "$file" 2>/dev/null) || TAP_PASSED=0
-    TAP_FAILED=$(grep -c "^✗" "$file" 2>/dev/null) || TAP_FAILED=0
+    TAP_PASSED=$(grep -c "✓" "$file" 2>/dev/null) || TAP_PASSED=0
+    TAP_FAILED=$(grep -c "✗" "$file" 2>/dev/null) || TAP_FAILED=0
 }
