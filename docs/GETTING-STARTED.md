@@ -1,6 +1,6 @@
 # Getting Started
 
-This is the MoQ Interop Runner — a framework for automated interoperability testing between MoQT implementations. It replaces the manual testing process (ad-hoc commands, visual inspection, spreadsheet tracking) with a standard set of test cases, machine-parseable results, and a growing client x relay test matrix.
+MoQ Interop Runner automates MoQT interop testing with standard test cases, machine-parseable results, and a growing client x relay matrix.
 
 ## Prerequisites
 
@@ -31,9 +31,7 @@ Before you can run tests, you need a test client Docker image. Currently moq-rs 
 make build-moq-rs BUILD_ARGS="--target client"
 ```
 
-This clones the moq-rs repo and builds the `moq-test-client` Docker image. **Expect it to take a few minutes** the first time (it's compiling Rust). Subsequent builds are faster thanks to Docker layer caching.
-
-> **Why isn't this pre-built?** Build targets under `builds/` are intentionally opt-in. They pull external source code and run it, so we don't want that happening automatically or by surprise. The trade-off is this extra step up front. The `builds/` setup is also useful when you're iterating on local code changes — see `make build-moq-rs BUILD_ARGS="--local /path/to/moq-rs"`.
+Builds the `moq-test-client` image from source; first build is slow due to Rust compilation. Build targets under `builds/` are opt-in because they execute external code. For local iteration, use `make build-moq-rs BUILD_ARGS="--local /path/to/moq-rs"`.
 
 ### Run the tests
 
@@ -53,7 +51,7 @@ Run `make help` to see all available commands — it's the quickest way to disco
 
 ## Verify Your Implementation Entry
 
-**This is the single fastest way to contribute.** Every registered implementation has an entry in `implementations.json`. If your implementation is listed, please check that your entry is accurate — especially heading into the hackathon.
+The fastest way to contribute: check that your entry in `implementations.json` is accurate — especially heading into the hackathon.
 
 Here's what each field means and what to check:
 
@@ -109,15 +107,15 @@ If anything above is out of date, open a PR updating `implementations.json` or l
 
 ## Choose Your Path
 
-Different ways to engage, roughly ordered by time investment:
+Roughly ordered by time investment:
 
 | I want to... | Time | Where to start |
 |--------------|------|----------------|
-| Verify my implementation entry is accurate | 5 min | [See above](#verify-your-implementation-entry) |
-| Run tests against my public relay | 5 min | [Test Your Relay](#test-your-relay) below |
-| Register my implementation for the first time | 15 min | [Add Your Implementation](#add-your-implementation) below |
-| Build a test client for my MoQT stack | 2-4 hours | [Build a Test Client](#build-a-test-client) below |
-| Propose or spec new test cases | Varies | [docs/tests/TEST-CASES.md](./tests/TEST-CASES.md) |
+| Verify my implementation entry is accurate | 5 min | [Verify Your Implementation Entry](#verify-your-implementation-entry) |
+| Run tests against my public relay | 5 min | [Test Your Relay](#test-your-relay) |
+| Register my implementation for the first time | 15 min | [Add Your Implementation](#add-your-implementation) |
+| Build a test client for my MoQT stack | 2-4 hours | [Build a Test Client](#build-a-test-client) |
+| Propose or spec new test cases | — | [docs/tests/TEST-CASES.md](./tests/TEST-CASES.md) |
 
 ## Test Your Relay
 

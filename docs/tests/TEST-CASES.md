@@ -197,7 +197,7 @@ Each test case follows this structure:
 - Subscriber's SUBSCRIBE eventually succeeds (once publisher announces), **OR**
 - Subscriber receives SUBSCRIBE_ERROR (relay doesn't buffer pending subscriptions)
 
-Both outcomes are valid relay behaviors. The test verifies the relay handles this scenario gracefully without crashing or hanging.
+Either outcome is valid; the test checks for graceful handling.
 
 **Timeout**: 3.5 seconds total
 

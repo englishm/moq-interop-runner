@@ -18,9 +18,7 @@ This project is modeled on the [QUIC Interop Runner](https://github.com/quic-int
 
 ## Getting Started
 
-New to the project? See **[Getting Started](docs/GETTING-STARTED.md)** for a guided walkthrough — from running your first test to registering your implementation.
-
-Run `make help` to see all available commands.
+Start with **[Getting Started](docs/GETTING-STARTED.md)** for a guided walkthrough; run `make help` to discover commands.
 
 ## Prerequisites
 
@@ -50,7 +48,7 @@ make build-moq-rs BUILD_ARGS="--target client"
 make interop-remote
 ```
 
-To narrow to one relay: `make interop-remote RELAY=moxygen`. See [Getting Started](docs/GETTING-STARTED.md) for a fuller walkthrough, or run `make help` to see all commands.
+Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started](docs/GETTING-STARTED.md) for more, or `make help` for all commands.
 
 ## Registered Implementations
 
