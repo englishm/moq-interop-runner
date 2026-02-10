@@ -134,9 +134,9 @@ interop-all: _ensure-certs
 interop-docker: _ensure-certs
 	@./run-interop-tests.sh --docker-only
 
-# Run only remote endpoint tests
+# Run only remote endpoint tests (optionally filter by relay: make interop-remote RELAY=moxygen)
 interop-remote:
-	@./run-interop-tests.sh --remote-only
+	@./run-interop-tests.sh --remote-only $(if $(RELAY),--relay $(RELAY))
 
 # Run tests for specific relay implementation
 interop-relay:
@@ -221,7 +221,7 @@ help:
 	@echo "Interop Tests (config-driven from implementations.json):"
 	@echo "  interop-all           Run all tests (Docker + remote endpoints)"
 	@echo "  interop-docker        Run only Docker-based tests"
-	@echo "  interop-remote        Run only remote endpoint tests"
+	@echo "  interop-remote        Run only remote endpoint tests (RELAY=x to filter)"
 	@echo "  interop-relay         Test specific relay: make interop-relay RELAY=moxygen"
 	@echo "  interop-client        Test specific client: make interop-client CLIENT=moq-rs"
 	@echo "  interop-list          List available implementations"

@@ -50,9 +50,7 @@ make build-moq-rs BUILD_ARGS="--target client"
 make interop-remote
 ```
 
-To narrow to one relay's remote endpoints: `./run-interop-tests.sh --remote-only --relay moxygen`.
-
-See [Getting Started](docs/GETTING-STARTED.md) for a fuller walkthrough, or run `make help` to see all commands.
+To narrow to one relay: `make interop-remote RELAY=moxygen`. See [Getting Started](docs/GETTING-STARTED.md) for a fuller walkthrough, or run `make help` to see all commands.
 
 ## Registered Implementations
 

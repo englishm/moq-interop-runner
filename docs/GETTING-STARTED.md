@@ -43,13 +43,11 @@ make interop-remote
 
 This runs the test client against every public relay endpoint registered in `implementations.json` and prints TAP-format results as tests complete. It only tests remote endpoints — no relay Docker images are pulled or built.
 
-To narrow to a single relay's remote endpoints, add `--relay`:
+To narrow to a single relay's remote endpoints:
 
 ```bash
-./run-interop-tests.sh --remote-only --relay moxygen
+make interop-remote RELAY=moxygen
 ```
-
-Note: `make interop-relay RELAY=moxygen` (without `--remote-only`) will also attempt Docker-based tests if the relay has a Docker image configured, which may pull or build images you don't have yet. Stick with `make interop-remote` or the `--remote-only` flag when you're just getting started.
 
 Run `make help` to see all available commands — it's the quickest way to discover what the runner can do.
 
@@ -126,17 +124,12 @@ Different ways to engage, roughly ordered by time investment:
 If your implementation is already registered with remote endpoints:
 
 ```bash
-# Test your specific relay
-make interop-relay RELAY=your-impl
-
-# See the full test plan without running (dry run)
-./run-interop-tests.sh --relay your-impl --dry-run
+make interop-remote RELAY=your-impl
 ```
 
-If your relay isn't registered yet, you can still test it directly:
+If your relay isn't registered yet, you can still test it directly by URL:
 
 ```bash
-# Test any relay URL (requires a test client Docker image)
 make test-external RELAY_URL=https://your-relay:4443 TLS_DISABLE_VERIFY=true
 ```
 
