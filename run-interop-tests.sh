@@ -307,8 +307,17 @@ run_test() {
     local status="unknown"
     local exit_code=0
 
+    # Resolve client Docker image from implementations.json
+    local client_image
+    client_image=$(jq -r --arg c "$client" '.implementations[$c].roles.client.docker.image // empty' "$CONFIG_FILE")
+    if [ -z "$client_image" ]; then
+        echo -e "${RED}✗ SKIPPED (no client docker image configured for $client)${NC}"
+        FAILED=$((FAILED + 1))
+        return
+    fi
+
     if [[ "$mode" == "docker" ]]; then
-        if make test RELAY_IMAGE="$target" > "$result_file" 2>&1; then
+        if make test RELAY_IMAGE="$target" CLIENT_IMAGE="$client_image" > "$result_file" 2>&1; then
             status="pass"
             PASSED=$((PASSED + 1))
             echo -e "${GREEN}✓ PASSED${NC}"
@@ -320,7 +329,7 @@ run_test() {
         fi
     else
         # Build make arguments as array to avoid word splitting issues
-        local -a make_args=("test-external" "RELAY_URL=$target")
+        local -a make_args=("test-external" "RELAY_URL=$target" "CLIENT_IMAGE=$client_image")
         [ "$tls_disable" = "true" ] && make_args+=("TLS_DISABLE_VERIFY=1")
 
         if make "${make_args[@]}" > "$result_file" 2>&1; then
