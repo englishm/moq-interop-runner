@@ -295,6 +295,18 @@ generate_detail() {
         .matrix td:first-child { text-align: left; }
         .matrix .status { font-size: 0.875rem; }
         .cell.none { color: var(--muted); }
+        .matrix .version-tag {
+            font-size: 0.6rem;
+            vertical-align: super;
+            margin-left: 0.125rem;
+            opacity: 0.85;
+        }
+        .matrix .version-tag.at { color: var(--pass); }
+        .matrix .version-tag.ahead { color: #60a5fa; }
+        .matrix .version-tag.behind { color: #fbbf24; }
+        .matrix-link { color: inherit; text-decoration: none; }
+        .matrix-link:hover { text-decoration: none; opacity: 0.85; }
+        tr:target { background: rgba(96, 165, 250, 0.15); }
     </style>
 </head>
 <body>
@@ -358,6 +370,20 @@ MATRIXHEAD
                 continue
             fi
 
+            # Get the negotiated version and classification for this pair
+            local pair_version pair_classification version_tag=""
+            pair_version=$(jq -r --arg c "$client" --arg r "$relay" \
+                '[.runs[] | select(.client == $c and .relay == $r) | .version] | unique | .[0] // ""' "$SUMMARY_FILE")
+            if [ -n "$pair_version" ]; then
+                pair_classification=$(jq -r --arg c "$client" --arg r "$relay" \
+                    '[.runs[] | select(.client == $c and .relay == $r) | .classification] | unique | .[0] // ""' "$SUMMARY_FILE")
+                # Strip "draft-" prefix for compact display
+                local short_version="${pair_version#draft-}"
+                version_tag="<span class=\"version-tag ${pair_classification}\" title=\"Expected negotiated version: ${pair_version}\">${short_version}</span>"
+            fi
+
+            local anchor_id="detail-${client}_to_${relay}"
+
             # Aggregate TAP results across all endpoints for this pair
             local agg_passed=0 agg_failed=0 agg_total=0 any_parsed=false
             while IFS= read -r mode; do
@@ -373,11 +399,11 @@ MATRIXHEAD
 
             if [ "$any_parsed" = true ] && [ "$agg_total" -gt 0 ]; then
                 if [ "$agg_failed" -eq 0 ]; then
-                    echo "                    <td><span class=\"status pass\">$agg_passed/$agg_total</span></td>" >> "$OUTPUT_FILE"
+                    echo "                    <td><a href=\"#${anchor_id}\" class=\"matrix-link\"><span class=\"status pass\">$agg_passed/$agg_total</span>${version_tag}</a></td>" >> "$OUTPUT_FILE"
                 elif [ "$agg_passed" -eq 0 ]; then
-                    echo "                    <td><span class=\"status fail\">$agg_passed/$agg_total</span></td>" >> "$OUTPUT_FILE"
+                    echo "                    <td><a href=\"#${anchor_id}\" class=\"matrix-link\"><span class=\"status fail\">$agg_passed/$agg_total</span>${version_tag}</a></td>" >> "$OUTPUT_FILE"
                 else
-                    echo "                    <td><span class=\"status partial\">$agg_passed/$agg_total</span></td>" >> "$OUTPUT_FILE"
+                    echo "                    <td><a href=\"#${anchor_id}\" class=\"matrix-link\"><span class=\"status partial\">$agg_passed/$agg_total</span>${version_tag}</a></td>" >> "$OUTPUT_FILE"
                 fi
             else
                 echo "                    <td><span class=\"cell none\">-</span></td>" >> "$OUTPUT_FILE"
@@ -404,6 +430,9 @@ MATRIXHEAD
             </thead>
             <tbody>
 MATRIXFOOT
+
+    # Track which (client, relay) pairs have had their anchor emitted
+    _emitted_anchors=""
 
     # Helper to emit rows for a given classification group
     emit_detail_rows() {
@@ -454,10 +483,23 @@ MATRIXFOOT
                     test_display="<span class=\"status partial\">$passed/$total</span>"
                 fi
             else
-                test_display="<span class=\"status $status\">${status^^}</span>"
+                local status_upper
+                status_upper=$(echo "$status" | tr '[:lower:]' '[:upper:]')
+                test_display="<span class=\"status $status\">$status_upper</span>"
             fi
 
-            echo "<tr><td>$client</td><td>$relay</td><td><code class=\"$classification\" title=\"$version_tooltip\">$version</code></td><td>$mode</td><td>$test_display</td><td><a href=\"${client}_to_${relay}_${mode}.log\">log</a></td></tr>" >> "$OUTPUT_FILE"
+            # Add anchor id on the first detail row for each (client, relay) pair
+            local anchor_key="${client}_to_${relay}"
+            local row_id_attr=""
+            case ",$_emitted_anchors," in
+                *",$anchor_key,"*) ;;
+                *)
+                    row_id_attr=" id=\"detail-${anchor_key}\""
+                    _emitted_anchors="${_emitted_anchors:+$_emitted_anchors,}$anchor_key"
+                    ;;
+            esac
+
+            echo "<tr${row_id_attr}><td>$client</td><td>$relay</td><td><code class=\"$classification\" title=\"$version_tooltip\">$version</code></td><td>$mode</td><td>$test_display</td><td><a href=\"${client}_to_${relay}_${mode}.log\">log</a></td></tr>" >> "$OUTPUT_FILE"
         done < <(jq -c --arg cl "$class" \
             '.target_version as $tv |
             ($tv | ltrimstr("draft-") | tonumber) as $tn |
