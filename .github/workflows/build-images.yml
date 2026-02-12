@@ -12,6 +12,8 @@ on:
           - moq-rs-draft-16
           - moxygen
           - moq-dev-rs
+          - moq-dev-rs-client
+          - moq-dev-js-client
           - quiche-moq
       ref:
         description: 'Git ref for source builds (branch/tag/commit). Ignored for adapters.'
@@ -73,6 +75,18 @@ jobs:
               echo "build_command=docker build -t moq-dev-rs-interop:latest -f adapters/moq-dev-rs/Dockerfile.relay adapters/moq-dev-rs/" >> "$GITHUB_OUTPUT"
               echo 'images=[{"local":"moq-dev-rs-interop:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-dev-rs-interop"}]' >> "$GITHUB_OUTPUT"
               ;;
+            moq-dev-rs-client)
+              echo "build_type=build" >> "$GITHUB_OUTPUT"
+              echo "ref=" >> "$GITHUB_OUTPUT"
+              echo "build_command=./builds/moq-dev-rs/build.sh" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"moq-dev-rs-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-dev-rs-client"}]' >> "$GITHUB_OUTPUT"
+              ;;
+            moq-dev-js-client)
+              echo "build_type=build" >> "$GITHUB_OUTPUT"
+              echo "ref=" >> "$GITHUB_OUTPUT"
+              echo "build_command=./builds/moq-dev-js/build.sh" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"moq-dev-js-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-dev-js-client"}]' >> "$GITHUB_OUTPUT"
+              ;;
             *)
               echo "::error::Unknown implementation: $IMPL"
               exit 1
@@ -93,6 +107,8 @@ jobs:
           case "${{ inputs.implementation }}" in
             moq-rs|moq-rs-draft-16) IMPL_DIR="builds/moq-rs" ;;
             quiche-moq)             IMPL_DIR="builds/quiche-moq" ;;
+            moq-dev-rs-client)      IMPL_DIR="builds/moq-dev-rs" ;;
+            moq-dev-js-client)      IMPL_DIR="builds/moq-dev-js" ;;
           esac
 
           if [[ -f "$IMPL_DIR/.last-build.json" ]]; then
