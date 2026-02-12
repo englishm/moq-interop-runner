@@ -33,6 +33,6 @@ moq-test-client -r <RELAY_URL> [-t <TEST>] [--tls-disable-verify]
 - `TESTCASE` - Specific test (optional)
 - `TLS_DISABLE_VERIFY=1` - Skip cert verification (optional)
 
-**Exit codes**: 0 = success, 1 = failure
+**Exit codes**: 0 = success, 1 = failure, 127 = unsupported test
 
-**Output**: Must end with `MOQT_TEST_RESULT: SUCCESS` or `MOQT_TEST_RESULT: FAILURE`
+**Output**: TAP version 14 on stdout (see [TEST-CLIENT-INTERFACE.md](./TEST-CLIENT-INTERFACE.md))
