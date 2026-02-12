@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 0 * * *'  # Daily at midnight UTC
   workflow_dispatch:
+    inputs:
+      build_from_source:
+        description: 'Build source-based images from scratch instead of pulling pre-built from GHCR'
+        type: boolean
+        default: false
 
 
 permissions:
@@ -28,11 +33,37 @@ jobs:
           ref: gh-pages
           path: gh-pages-site
 
-      - name: Build test clients and relays (from source)
+      - name: Pull pre-built images from GHCR
+        if: "!inputs.build_from_source"
         working-directory: main
-        run: ./builds/moq-rs/build.sh
+        run: |
+          echo "Pulling pre-built source-build images from GHCR..."
+          jq -r '.implementations[].roles[].docker.image // empty' implementations.json \
+            | grep '^ghcr.io/' \
+            | sort -u \
+            | while read -r image; do
+                echo "Pulling $image..."
+                docker pull "$image" || echo "WARNING: Failed to pull $image"
+              done
 
-      - name: Build test clients and relays (with adapters)
+      - name: Build from source
+        if: inputs.build_from_source
+        working-directory: main
+        run: |
+          # Build moq-rs (draft-14)
+          ./builds/moq-rs/build.sh
+          # Re-tag to GHCR-qualified names that implementations.json expects
+          docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf:latest
+          docker tag moq-test-client:latest ghcr.io/englishm/moq-interop-runner-moq-test-client:latest
+
+          # Build moq-rs-draft-16
+          ./builds/moq-rs/build.sh \
+            --repo https://github.com/englishm-cloudflare/moq-rs-1 \
+            --ref me/draft-16-interop
+          docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-16:latest
+          docker tag moq-test-client:latest ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-16:latest
+
+      - name: Build adapters
         working-directory: main
         continue-on-error: true  # Adapter builds may fail (e.g., disk space) — run what we can
         run: make build-adapters

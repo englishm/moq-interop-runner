@@ -1,0 +1,175 @@
+name: Build & Push Docker Images to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      implementation:
+        description: 'Implementation to build'
+        required: true
+        type: choice
+        options:
+          - moq-rs
+          - moq-rs-draft-16
+          - moxygen
+          - moq-dev-rs
+          - quiche-moq
+      ref:
+        description: 'Git ref for source builds (branch/tag/commit). Ignored for adapters.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure build
+        id: config
+        run: |
+          IMPL="${{ inputs.implementation }}"
+          TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
+          echo "timestamp=$TIMESTAMP" >> "$GITHUB_OUTPUT"
+
+          case "$IMPL" in
+            moq-rs)
+              REF="${{ inputs.ref }}"
+              REF="${REF:-main}"
+              echo "build_type=build" >> "$GITHUB_OUTPUT"
+              echo "ref=$REF" >> "$GITHUB_OUTPUT"
+              echo "build_command=./builds/moq-rs/build.sh --ref $REF" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"moq-relay-ietf:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-relay-ietf"},{"local":"moq-test-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-test-client"}]' >> "$GITHUB_OUTPUT"
+              ;;
+            moq-rs-draft-16)
+              REF="${{ inputs.ref }}"
+              REF="${REF:-me/draft-16-interop}"
+              echo "build_type=build" >> "$GITHUB_OUTPUT"
+              echo "ref=$REF" >> "$GITHUB_OUTPUT"
+              echo "build_command=./builds/moq-rs/build.sh --repo https://github.com/englishm-cloudflare/moq-rs-1 --ref $REF" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"moq-relay-ietf:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-16"},{"local":"moq-test-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-16"}]' >> "$GITHUB_OUTPUT"
+              ;;
+            quiche-moq)
+              REF="${{ inputs.ref }}"
+              REF="${REF:-main}"
+              echo "build_type=build" >> "$GITHUB_OUTPUT"
+              echo "ref=$REF" >> "$GITHUB_OUTPUT"
+              echo "build_command=./builds/quiche-moq/build.sh --ref $REF" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"quiche-moq-relay:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-quiche-moq-relay"}]' >> "$GITHUB_OUTPUT"
+              ;;
+            moxygen)
+              echo "build_type=adapter" >> "$GITHUB_OUTPUT"
+              echo "ref=" >> "$GITHUB_OUTPUT"
+              echo "build_command=docker build -t moxygen-interop:latest -f adapters/moxygen/Dockerfile.relay adapters/moxygen/" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"moxygen-interop:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moxygen-interop"}]' >> "$GITHUB_OUTPUT"
+              ;;
+            moq-dev-rs)
+              echo "build_type=adapter" >> "$GITHUB_OUTPUT"
+              echo "ref=" >> "$GITHUB_OUTPUT"
+              echo "build_command=docker build -t moq-dev-rs-interop:latest -f adapters/moq-dev-rs/Dockerfile.relay adapters/moq-dev-rs/" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"moq-dev-rs-interop:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-dev-rs-interop"}]' >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::Unknown implementation: $IMPL"
+              exit 1
+              ;;
+          esac
+
+      - name: Build images
+        run: |
+          echo "Building ${{ inputs.implementation }} (type: ${{ steps.config.outputs.build_type }})..."
+          ${{ steps.config.outputs.build_command }}
+
+      - name: Get source commit (build-pattern only)
+        id: source
+        if: steps.config.outputs.build_type == 'build'
+        run: |
+          # Extract source commit from the build provenance
+          IMPL_DIR=""
+          case "${{ inputs.implementation }}" in
+            moq-rs|moq-rs-draft-16) IMPL_DIR="builds/moq-rs" ;;
+            quiche-moq)             IMPL_DIR="builds/quiche-moq" ;;
+          esac
+
+          if [[ -f "$IMPL_DIR/.last-build.json" ]]; then
+            COMMIT=$(jq -r '.source.commit' "$IMPL_DIR/.last-build.json")
+            SHORT_SHA="${COMMIT:0:7}"
+            echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+            echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+            echo "Source commit: $COMMIT ($SHORT_SHA)"
+          else
+            echo "::warning::No build provenance found — skipping commit-based tags"
+            echo "commit=" >> "$GITHUB_OUTPUT"
+            echo "short_sha=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Tag images for GHCR
+        run: |
+          TIMESTAMP="${{ steps.config.outputs.timestamp }}"
+          SHORT_SHA="${{ steps.source.outputs.short_sha }}"
+          BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+
+          echo '${{ steps.config.outputs.images }}' | jq -c '.[]' | while read -r entry; do
+            LOCAL=$(echo "$entry" | jq -r '.local')
+            GHCR=$(echo "$entry" | jq -r '.ghcr')
+
+            echo "Tagging $LOCAL -> $GHCR"
+
+            docker tag "$LOCAL" "$GHCR:latest"
+            docker tag "$LOCAL" "$GHCR:$TIMESTAMP"
+
+            if [[ "$BUILD_TYPE" == "build" && -n "$SHORT_SHA" ]]; then
+              docker tag "$LOCAL" "$GHCR:$SHORT_SHA"
+            fi
+          done
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push images to GHCR
+        run: |
+          echo '${{ steps.config.outputs.images }}' | jq -c '.[]' | while read -r entry; do
+            GHCR=$(echo "$entry" | jq -r '.ghcr')
+            echo "Pushing all tags for $GHCR..."
+            docker push --all-tags "$GHCR"
+          done
+
+      - name: Summary
+        run: |
+          TIMESTAMP="${{ steps.config.outputs.timestamp }}"
+          SHORT_SHA="${{ steps.source.outputs.short_sha }}"
+          BUILD_TYPE="${{ steps.config.outputs.build_type }}"
+
+          echo "## Build & Push Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Implementation | \`${{ inputs.implementation }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Build type | \`$BUILD_TYPE\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Timestamp tag | \`$TIMESTAMP\` |" >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$BUILD_TYPE" == "build" && -n "$SHORT_SHA" ]]; then
+            echo "| Source ref | \`${{ steps.config.outputs.ref }}\` |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Source commit | \`$SHORT_SHA\` |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Images pushed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          echo '${{ steps.config.outputs.images }}' | jq -c '.[]' | while read -r entry; do
+            GHCR=$(echo "$entry" | jq -r '.ghcr')
+            echo "- \`$GHCR:latest\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- \`$GHCR:$TIMESTAMP\`" >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$BUILD_TYPE" == "build" && -n "$SHORT_SHA" ]]; then
+              echo "- \`$GHCR:$SHORT_SHA\`" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
