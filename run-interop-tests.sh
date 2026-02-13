@@ -220,6 +220,26 @@ classify_version() {
     fi
 }
 
+# Check if a Docker image exists locally.
+# Returns 0 if the image is available, 1 otherwise.
+image_exists() {
+    local image="$1"
+    docker image inspect "$image" &>/dev/null
+}
+
+# Track images that were referenced but not available.
+# Accumulated during planning, printed as a consolidated warning at the end.
+MISSING_IMAGES=()
+
+# Record a missing image (deduplicated).
+record_missing_image() {
+    local image="$1"
+    for existing in "${MISSING_IMAGES[@]+"${MISSING_IMAGES[@]}"}"; do
+        [ "$existing" = "$image" ] && return
+    done
+    MISSING_IMAGES+=("$image")
+}
+
 # List runnable endpoints for a relay, one per line.
 # Output format: mode|target|tls_disable
 # Respects DOCKER_ONLY, REMOTE_ONLY, and TRANSPORT_FILTER.
@@ -230,7 +250,12 @@ list_endpoints() {
     if [ "$REMOTE_ONLY" != true ]; then
         local docker_image=$(jq -r --arg relay "$relay" '.implementations[$relay].roles.relay.docker.image // empty' "$CONFIG_FILE")
         if [ -n "$docker_image" ]; then
-            echo "docker|$docker_image|false"
+            if image_exists "$docker_image"; then
+                echo "docker|$docker_image|false"
+            else
+                record_missing_image "$docker_image"
+                echo "docker-skip|$docker_image|false"
+            fi
         fi
     fi
 
@@ -276,6 +301,7 @@ format_classification() {
 TOTAL=0
 PASSED=0
 FAILED=0
+SKIPPED=0
 
 # Initialize summary JSON (skip for dry run)
 if [ "$DRY_RUN" != true ]; then
@@ -295,14 +321,49 @@ run_test() {
 
     TOTAL=$((TOTAL + 1))
 
-    local test_id="${client}_to_${relay}_${mode}"
+    # Determine display mode (strip -skip suffix for display)
+    local display_mode="${mode%-skip}"
+    local test_id="${client}_to_${relay}_${display_mode}"
     local result_file="$RESULTS_DIR/${test_id}.log"
 
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BLUE}Test: $client → $relay${NC}"
-    echo -e "Version: $version | Mode: $mode"
+    echo -e "Version: $version | Mode: $display_mode"
     echo -e "Target: $target"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+    # Handle skipped tests (image unavailable)
+    if [[ "$mode" == *-skip ]]; then
+        local skip_reason
+        if [[ "$mode" == "docker-skip" ]]; then
+            skip_reason="relay image unavailable: $target"
+        else
+            local skip_client_image
+            skip_client_image=$(jq -r --arg c "$client" '.implementations[$c].roles.client.docker.image // empty' "$CONFIG_FILE")
+            skip_reason="client image unavailable: $skip_client_image"
+        fi
+        echo -e "${YELLOW}⊘ SKIP ($skip_reason)${NC}"
+        SKIPPED=$((SKIPPED + 1))
+        echo ""
+
+        # Record skip in summary
+        local tmp_file
+        tmp_file=$(mktemp "${SUMMARY_FILE}.XXXXXX")
+        if jq --arg client "$client" \
+              --arg relay "$relay" \
+              --arg version "$version" \
+              --arg classification "$classification" \
+              --arg mode "$display_mode" \
+              --arg target "$target" \
+              --arg skip_reason "$skip_reason" \
+              '.runs += [{"client": $client, "relay": $relay, "version": $version, "classification": $classification, "mode": $mode, "target": $target, "status": "skip", "exit_code": 0, "skip_reason": $skip_reason}]' \
+              "$SUMMARY_FILE" > "$tmp_file"; then
+            mv "$tmp_file" "$SUMMARY_FILE"
+        else
+            rm -f "$tmp_file"
+        fi
+        return
+    fi
 
     local status="unknown"
     local exit_code=0
@@ -311,8 +372,8 @@ run_test() {
     local client_image
     client_image=$(jq -r --arg c "$client" '.implementations[$c].roles.client.docker.image // empty' "$CONFIG_FILE")
     if [ -z "$client_image" ]; then
-        echo -e "${RED}✗ SKIPPED (no client docker image configured for $client)${NC}"
-        FAILED=$((FAILED + 1))
+        echo -e "${YELLOW}⊘ SKIP (no client docker image configured for $client)${NC}"
+        SKIPPED=$((SKIPPED + 1))
         return
     fi
 
@@ -443,6 +504,14 @@ for client in "${CLIENTS_ARR[@]}"; do
             continue
         fi
 
+        # Check client image availability (applies to all endpoints for this client)
+        client_image=$(jq -r --arg c "$client" '.implementations[$c].roles.client.docker.image // empty' "$CONFIG_FILE")
+        client_image_missing=false
+        if [ -n "$client_image" ] && ! image_exists "$client_image"; then
+            client_image_missing=true
+            record_missing_image "$client_image"
+        fi
+
         # Enumerate runnable endpoints for this pair
         endpoints=$(list_endpoints "$relay")
         if [ -z "$endpoints" ]; then
@@ -453,12 +522,23 @@ for client in "${CLIENTS_ARR[@]}"; do
         echo -e "  $client → $relay: $version ($class_display)"
         while IFS='|' read -r mode target tls_disable; do
             [ -z "$mode" ] && continue
-            echo -e "    $mode  $target"
+
+            # Determine if this test will be skipped
+            effective_mode="$mode"
+            if [ "$mode" = "docker-skip" ]; then
+                echo -e "    ${YELLOW}docker  $target  [SKIP: relay image unavailable]${NC}"
+            elif [ "$client_image_missing" = true ]; then
+                effective_mode="${mode}-skip"
+                echo -e "    ${YELLOW}$mode  $target  [SKIP: client image unavailable ($client_image)]${NC}"
+            else
+                echo -e "    $mode  $target"
+            fi
+
             PLAN_CLIENT+=("$client")
             PLAN_RELAY+=("$relay")
             PLAN_VERSION+=("$version")
             PLAN_CLASS+=("$classification")
-            PLAN_MODE+=("$mode")
+            PLAN_MODE+=("$effective_mode")
             PLAN_TARGET+=("$target")
             PLAN_TLS+=("$tls_disable")
         done <<< "$endpoints"
@@ -496,7 +576,12 @@ if [ "$DRY_RUN" = true ]; then
         local_n=1
         for idx in "${SORTED_INDICES[@]}"; do
             class_display=$(format_classification "${PLAN_CLASS[$idx]}")
-            echo -e "  $local_n. ${PLAN_CLIENT[$idx]} → ${PLAN_RELAY[$idx]}  ${PLAN_VERSION[$idx]} ($class_display)  ${PLAN_MODE[$idx]}  ${PLAN_TARGET[$idx]}"
+            dry_mode="${PLAN_MODE[$idx]}"
+            if [[ "$dry_mode" == *-skip ]]; then
+                echo -e "  $local_n. ${PLAN_CLIENT[$idx]} → ${PLAN_RELAY[$idx]}  ${PLAN_VERSION[$idx]} ($class_display)  ${dry_mode%-skip}  ${PLAN_TARGET[$idx]}  ${YELLOW}[SKIP: image unavailable]${NC}"
+            else
+                echo -e "  $local_n. ${PLAN_CLIENT[$idx]} → ${PLAN_RELAY[$idx]}  ${PLAN_VERSION[$idx]} ($class_display)  $dry_mode  ${PLAN_TARGET[$idx]}"
+            fi
             local_n=$((local_n + 1))
         done
         echo ""
@@ -521,7 +606,25 @@ echo ""
 echo -e "Total:   $TOTAL"
 echo -e "${GREEN}Passed:  $PASSED${NC}"
 echo -e "${RED}Failed:  $FAILED${NC}"
+if [ "$SKIPPED" -gt 0 ]; then
+    echo -e "${YELLOW}Skipped: $SKIPPED${NC}"
+fi
 echo ""
+
+# Print consolidated missing images warning
+if [ ${#MISSING_IMAGES[@]} -gt 0 ]; then
+    echo -e "${YELLOW}══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}  WARNING: ${#MISSING_IMAGES[@]} Docker image(s) not found — $SKIPPED test(s) skipped${NC}"
+    echo -e "${YELLOW}══════════════════════════════════════════════════════════════${NC}"
+    for img in "${MISSING_IMAGES[@]}"; do
+        echo -e "${YELLOW}    - $img${NC}"
+    done
+    echo ""
+    echo -e "  To build adapter images:  ${CYAN}make build-adapters${NC}"
+    echo -e "  To build from source:     ${CYAN}make build-impl IMPL=<name>${NC}"
+    echo ""
+fi
+
 echo -e "Results saved to: $RESULTS_DIR"
 echo -e "Summary JSON: $SUMMARY_FILE"
 

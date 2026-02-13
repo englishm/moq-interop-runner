@@ -99,6 +99,7 @@ generate_index() {
         .stat-label { font-size: 0.75rem; color: var(--muted); }
         .pass { color: var(--pass); }
         .fail { color: var(--fail); }
+        .skip { color: var(--muted); }
     </style>
 </head>
 <body>
@@ -125,6 +126,12 @@ INDEXHEAD
             local total=$(jq '.runs | length' "$summary")
             local passed=$(jq '[.runs[] | select(.status == "pass")] | length' "$summary")
             local failed=$(jq '[.runs[] | select(.status == "fail")] | length' "$summary")
+            local skipped=$(jq '[.runs[] | select(.status == "skip")] | length' "$summary")
+
+            local skip_stat=""
+            if [ "$skipped" -gt 0 ]; then
+                skip_stat="<div class=\"stat\"><div class=\"stat-value skip\">$skipped</div><div class=\"stat-label\">Skip</div></div>"
+            fi
 
             cat >> "$INDEX_FILE" << EOF
             <div class="run">
@@ -135,6 +142,7 @@ INDEXHEAD
                 <div class="run-stats">
                     <div class="stat"><div class="stat-value pass">$passed</div><div class="stat-label">Pass</div></div>
                     <div class="stat"><div class="stat-value fail">$failed</div><div class="stat-label">Fail</div></div>
+                    $skip_stat
                     <div class="stat"><div class="stat-value">$total</div><div class="stat-label">Total</div></div>
                 </div>
             </div>
@@ -172,6 +180,7 @@ generate_detail() {
     local TOTAL=$(jq '.runs | length' "$SUMMARY_FILE")
     local PASSED=$(jq '[.runs[] | select(.status == "pass")] | length' "$SUMMARY_FILE")
     local FAILED=$(jq '[.runs[] | select(.status == "fail")] | length' "$SUMMARY_FILE")
+    local SKIPPED_COUNT=$(jq '[.runs[] | select(.status == "skip")] | length' "$SUMMARY_FILE")
 
     # Classification counts (backward compat: compute from version vs target_version if absent)
     local classify_expr='
@@ -260,6 +269,7 @@ generate_detail() {
         .status.pass { background: rgba(34, 197, 94, 0.2); color: var(--pass); }
         .status.fail { background: rgba(239, 68, 68, 0.2); color: var(--fail); }
         .status.partial { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .status.skip { background: rgba(148, 163, 184, 0.2); color: var(--muted); }
         .section-header td {
             padding-top: 1.5rem;
             font-weight: 600;
@@ -330,6 +340,13 @@ HEADER
                 <div class="stat-value fail">$FAILED</div>
                 <div class="stat-label">Failed</div>
             </div>
+$([ "$SKIPPED_COUNT" -gt 0 ] && cat << SKIPSTAT
+            <div class="stat">
+                <div class="stat-value" style="color: var(--muted);">$SKIPPED_COUNT</div>
+                <div class="stat-label">Skipped</div>
+            </div>
+SKIPSTAT
+)
         </div>
         <p class="classification-summary">
             Version breakdown:
@@ -386,8 +403,18 @@ MATRIXHEAD
 
             # Aggregate TAP results across all endpoints for this pair
             local agg_passed=0 agg_failed=0 agg_total=0 any_parsed=false
+            local all_skipped=true any_skipped=false
             while IFS= read -r mode; do
                 [ -z "$mode" ] || [ "$mode" = "null" ] && continue
+                # Check if this mode was skipped
+                local mode_status
+                mode_status=$(jq -r --arg c "$client" --arg r "$relay" --arg m "$mode" \
+                    '[.runs[] | select(.client == $c and .relay == $r and .mode == $m) | .status] | .[0] // ""' "$SUMMARY_FILE")
+                if [ "$mode_status" = "skip" ]; then
+                    any_skipped=true
+                    continue
+                fi
+                all_skipped=false
                 local log_file="$RESULTS_DIR/${client}_to_${relay}_${mode}.log"
                 if parse_tap_file "$log_file" && [ "$TAP_TOTAL" -gt 0 ]; then
                     agg_passed=$((agg_passed + TAP_PASSED))
@@ -397,7 +424,9 @@ MATRIXHEAD
                 fi
             done <<< "$modes"
 
-            if [ "$any_parsed" = true ] && [ "$agg_total" -gt 0 ]; then
+            if [ "$all_skipped" = true ] && [ "$any_skipped" = true ]; then
+                echo "                    <td><a href=\"#${anchor_id}\" class=\"matrix-link\"><span class=\"status skip\" title=\"Docker image unavailable\">SKIP</span>${version_tag}</a></td>" >> "$OUTPUT_FILE"
+            elif [ "$any_parsed" = true ] && [ "$agg_total" -gt 0 ]; then
                 if [ "$agg_failed" -eq 0 ]; then
                     echo "                    <td><a href=\"#${anchor_id}\" class=\"matrix-link\"><span class=\"status pass\">$agg_passed/$agg_total</span>${version_tag}</a></td>" >> "$OUTPUT_FILE"
                 elif [ "$agg_passed" -eq 0 ]; then
@@ -499,7 +528,15 @@ MATRIXFOOT
                     ;;
             esac
 
-            echo "<tr${row_id_attr}><td>$client</td><td>$relay</td><td><code class=\"$classification\" title=\"$version_tooltip\">$version</code></td><td>$mode</td><td>$test_display</td><td><a href=\"${client}_to_${relay}_${mode}.log\">log</a></td></tr>" >> "$OUTPUT_FILE"
+            local log_link
+            if [ "$status" = "skip" ]; then
+                local skip_reason
+                skip_reason=$(echo "$run" | jq -r '.skip_reason // "image unavailable"')
+                log_link="<span style=\"color: var(--muted);\" title=\"$skip_reason\">n/a</span>"
+            else
+                log_link="<a href=\"${client}_to_${relay}_${mode}.log\">log</a>"
+            fi
+            echo "<tr${row_id_attr}><td>$client</td><td>$relay</td><td><code class=\"$classification\" title=\"$version_tooltip\">$version</code></td><td>$mode</td><td>$test_display</td><td>$log_link</td></tr>" >> "$OUTPUT_FILE"
         done < <(jq -c --arg cl "$class" \
             '.target_version as $tv |
             ($tv | ltrimstr("draft-") | tonumber) as $tn |
