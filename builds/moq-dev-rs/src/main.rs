@@ -2,6 +2,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::Context;
 use clap::Parser;
+use moq_native::moq_lite;
 use moq_lite::*;
 
 #[derive(Parser)]
