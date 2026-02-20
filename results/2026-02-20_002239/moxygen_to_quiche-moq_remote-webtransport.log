@@ -1,0 +1,54 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://quichemoq.dev:443...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm \
+	--network host \
+	-e RELAY_URL=https://quichemoq.dev:443 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://quichemoq.dev:443
+# Transport: WebTransport
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 240
+  info: SETUP exchange completed successfully
+  ...
+E0220 00:27:21.328523     1 MoQSession.cpp:2573] proxygen::WebTransport::Exception: session terminated with error=386759528 id=4 sess=0x55a772f338e0
+E0220 00:27:21.660668     1 MoQRelaySession.cpp:681] PublishNamespaceDone for unknown publishNamespace, sess=0x55a772f5b910
+E0220 00:27:21.660867     1 MoQSession.cpp:2573] proxygen::WebTransport::Exception: session terminated with error=386759528 id=4 sess=0x55a772f5b910
+ok 2 - announce-only
+  ---
+  duration_ms: 332
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 336
+  info: Subscribe correctly returned error: Session closed
+  ...
+E0220 00:27:21.997708     1 MoQSession.cpp:2573] proxygen::WebTransport::Exception: session terminated with error=386759528 id=4 sess=0x55a772ee1170
+E0220 00:27:22.660085     1 MoQSession.cpp:2573] proxygen::WebTransport::Exception: session terminated with error=386759528 id=4 sess=0x55a772f646d0
+E0220 00:27:22.660176     1 MoQSession.cpp:2573] proxygen::WebTransport::Exception: session terminated with error=386759528 id=4 sess=0x55a772f51f50
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 662
+  error: Subscribe failed: Session closed
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 328
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E0220 00:27:22.989165     1 MoQSession.cpp:2573] proxygen::WebTransport::Exception: session terminated with error=386759528 id=4 sess=0x55a772eec5d0
+E0220 00:27:23.335221     1 MoQSession.cpp:2573] proxygen::WebTransport::Exception: session terminated with error=386759528 id=4 sess=0x55a772f4db40
+E0220 00:27:24.038097     1 MoQSession.cpp:2573] proxygen::WebTransport::Exception: session terminated with error=386759528 id=4 sess=0x55a772f6a9a0
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 1048
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Session closed
+  ...
+make[1]: *** [Makefile:91: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
