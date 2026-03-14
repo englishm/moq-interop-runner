@@ -45,9 +45,12 @@ case "$ROLE" in
       exit 1
     fi
 
-    # xquic moq_demo_server expects server.crt and server.key in CWD
-    ln -sf "$CERT" /app/server.crt
-    ln -sf "$KEY"  /app/server.key
+    # xquic expects server.crt and server.key in CWD.
+    # Copy to /tmp since the container may run as non-root without
+    # write access to /app.
+    cp "$CERT" /tmp/server.crt
+    cp "$KEY"  /tmp/server.key
+    cd /tmp
 
     # Build CLI arguments
     ARGS="-p $PORT -l $LOG_LEVEL"
