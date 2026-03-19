@@ -63,7 +63,7 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 | moqtransport | TUM | 13 | relay | (no persistent relay) |
 | moqtail | OzU | 14 | relay | `https://relay.moqtail.dev` |
 | libquicr | Cisco | 14 | relay | `https://us-west-2.relay.quicr.org:33437/relay` |
-| imquic | Meetecho | 11-16 | relay | `https://lminiero.it:9000` |
+| imquic | Meetecho | 16-17 | relay | `https://lminiero.it:9000` |
 
 This table is a snapshot — run `make interop-list` or see [`implementations.json`](./implementations.json) for the current state. See [IMPLEMENTATIONS.md](./IMPLEMENTATIONS.md) for how to add your implementation.
 
