@@ -122,14 +122,23 @@
       "notes": "C++ relay built on moxygen. Supports multiple draft versions via version negotiation.",
       "roles": {
         "relay": {
+          "docker": {
+            "image": "moqx-interop:latest",
+            "build": {
+              "dockerfile": "adapters/moqx/Dockerfile.relay",
+              "context": "adapters/moqx"
+            },
+            "upstream_image": "ghcr.io/openmoq/moqx:latest",
+            "notes": "Adapter wraps upstream image with /certs convention"
+          },
           "remote": [
             {
-              "url": "https://moqx-000.ci.openmoq.org:4433/moq-relay",
+              "url": "https://moqx-main.ci.openmoq.org:4433/moq-relay",
               "transport": "webtransport",
               "notes": "CI-deployed relay"
             },
             {
-              "url": "moqt://moqx-000.ci.openmoq.org:4433",
+              "url": "moqt://moqx-main.ci.openmoq.org:4433",
               "transport": "quic",
               "notes": "CI-deployed relay"
             }
@@ -139,6 +148,20 @@
           "docker": {
             "image": "ghcr.io/openmoq/moqx-interop-client:latest"
           }
+        },
+        "publisher": {
+          "remote": [
+            {
+              "url": "https://moqx-main.ci.openmoq.org:4433/moq-relay",
+              "transport": "webtransport",
+              "notes": "CI-deployed relay; subscribe target for moq-test/interop namespace"
+            },
+            {
+              "url": "moqt://moqx-main.ci.openmoq.org:4433",
+              "transport": "quic",
+              "notes": "CI-deployed relay; subscribe target for moq-test/interop namespace"
+            }
+          ]
         }
       }
     },
