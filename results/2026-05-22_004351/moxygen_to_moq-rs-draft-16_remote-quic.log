@@ -1,0 +1,51 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against moqt://draft-16-manish.cloudflare.mediaoverquic.com:443...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://draft-16-manish.cloudflare.mediaoverquic.com:443 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://draft-16-manish.cloudflare.mediaoverquic.com:443
+# Transport: QUIC
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 113
+  info: SETUP exchange completed successfully
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 90
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E0522 00:49:02.821547     1 MoQRelaySession.cpp:712] PublishNamespaceDone for unknown publishNamespace, sess=0x564833221220
+ok 3 - subscribe-error
+  ---
+  duration_ms: 181
+  info: Subscribe correctly returned error: not found: Track not found [error:14ca4b12-4d9c-4478-aab2-7487b51e6996]
+  ...
+E0522 00:49:03.409446     1 MoQCodec.cpp:95] Frame underflow -> parse error
+E0522 00:49:03.409470     1 MoQCodec.cpp:126] Conn error=3
+E0522 00:49:03.409473     1 MoQSession.cpp:4641] MoQCodec control stream parse error err=3
+E0522 00:49:03.409561     1 MoQSession.cpp:4987] publishDone for invalid id=1 sess=0x5648331d0040
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 406
+  error: Subscribe failed: Session closed
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 127
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 650
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): not found: Track not found [error:050ad31a-6eec-4e80-92d1-e92b06529a06]
+  ...
+make[1]: *** [Makefile:121: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
