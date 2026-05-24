@@ -1,0 +1,51 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against moqt://lminiero.it:9000...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://lminiero.it:9000 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://lminiero.it:9000
+# Transport: QUIC
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 352
+  info: SETUP exchange completed successfully
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 475
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E0524 00:49:41.363664     1 MoQRelaySession.cpp:712] PublishNamespaceDone for unknown publishNamespace, sess=0x556ddac99850
+ok 3 - subscribe-error
+  ---
+  duration_ms: 495
+  info: Subscribe correctly returned error: Namespace not found
+  ...
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 1112
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+E0524 00:49:42.971937     1 MoQSession.cpp:5007] publishDone for invalid id=1 sess=0x556ddacca6c0
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 482
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E0524 00:49:48.291354     1 MoQSession.cpp:4893] subscribeFuture exception=folly::OperationCancelled: coroutine operation cancelled
+not ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 4836
+  error: Timed out during subscribe-before-announce test
+  ...
+E20260524 00:49:49.292682     1 EventHandler.cpp:90] EventBase: failed to register event handler for fd 11: No such file or directory
+E20260524 00:49:49.293747     1 EventHandler.cpp:90] EventBase: failed to register event handler for fd 9: No such file or directory
+make[1]: *** [Makefile:121: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
