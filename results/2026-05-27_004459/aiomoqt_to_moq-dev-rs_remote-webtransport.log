@@ -1,0 +1,106 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://cdn.moq.dev/anon...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://cdn.moq.dev/anon \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+2026-05-27 01:03:13.856 ERROR: handle_control_message: error handling control message: BufferReadError: BufferReadError('read out of bounds')
+2026-05-27 01:03:13.857 ERROR: handle_control_message: traceback:
+Traceback (most recent call last):
+  File "/app/aiomoqt/protocol.py", line 399, in _moqt_handle_control_message
+    msg_len = buf.pull_uint16()
+              ^^^^^^^^^^^^^^^^^
+  File "src/aiopquic/_binding/_buffer.pyx", line 131, in aiopquic._binding._buffer.Buffer.pull_uint16
+  File "src/aiopquic/_binding/_buffer.pyx", line 133, in aiopquic._binding._buffer.Buffer.pull_uint16
+aiopquic._binding._buffer.BufferReadError: read out of bounds
+
+ERROR asyncio: Exception in callback _Dispatcher._drain()
+handle: <Handle _Dispatcher._drain()>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/usr/local/lib/python3.12/site-packages/aiopquic/asyncio/webtransport.py", line 622, in _drain
+    session._on_event(ev)
+  File "/app/aiomoqt/protocol.py", line 2497, in _on_event
+    self.quic_event_received(_SD(stream_id=sid, data=data,
+  File "/app/aiomoqt/protocol.py", line 1064, in quic_event_received
+    msg = self._moqt_handle_control_message(msg_buf)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/aiomoqt/protocol.py", line 399, in _moqt_handle_control_message
+    msg_len = buf.pull_uint16()
+              ^^^^^^^^^^^^^^^^^
+  File "src/aiopquic/_binding/_buffer.pyx", line 131, in aiopquic._binding._buffer.Buffer.pull_uint16
+  File "src/aiopquic/_binding/_buffer.pyx", line 133, in aiopquic._binding._buffer.Buffer.pull_uint16
+aiopquic._binding._buffer.BufferReadError: read out of bounds
+2026-05-27 01:03:13.858 ERROR: MOQT control: truncated msg type=0x0 msg_len=256 tell=3 buf_len=3 head_hex=000100
+2026-05-27 01:03:13.859 ERROR: MOQT error: control stream: parsing failed at position: 3 of 3 bytes
+2026-05-27 01:03:13.859 ERROR: MOQT error: closing: control stream: parsing failed at position: 3 of 3 bytes (3)
+  [FAIL] announce-only: Failed: TimeoutError
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  [FAIL] subscribe-error: Non-conformant: expected TRACK_DOES_NOT_EXIST (d14=0x04 / d16=0x10), got code=404
+2026-05-27 01:03:15.987 ERROR: MOQT error: control task failed with exception: control stream not intialized (1)
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+2026-05-27 01:03:16.041 ERROR: MOQT error: control task failed with exception: control stream not intialized (1)
+2026-05-27 01:03:16.041 ERROR: MOQT error: control task failed with exception: control stream not intialized (1)
+  [FAIL] subscribe-before-announce: Non-conformant error: expected a benign code (TRACK_DOES_NOT_EXIST / UNAUTHORIZED / TIMEOUT / NOT_SUPPORTED), got code=404
+Received a connection close request
+Received a connection close request
+Received a connection close request
+Received a connection close request
+Received a connection close request
+Received a connection close request
+Received a connection close request
+Received a connection close request
+TAP version 14
+# date: 2026-05-27T01:03:13Z
+# ended: 2026-05-27T01:03:16Z
+# target: https://cdn.moq.dev/anon
+# version: aiomoqt/0.9.5
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 375.0
+  connection_id: unknown
+  message: SERVER_SETUP received with compatible version
+  ...
+not ok 2 - announce-only
+  ---
+  duration_ms: 2002.6
+  message: Failed: TimeoutError
+  expected: PUBLISH_NAMESPACE_OK
+  received: TimeoutError
+  ...
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 127.2
+  connection_id: unknown
+  message: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+not ok 4 - subscribe-error
+  ---
+  duration_ms: 27.1
+  connection_id: unknown
+  message: Non-conformant: expected TRACK_DOES_NOT_EXIST (d14=0x04 / d16=0x10), got code=404
+  expected: SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST
+  received: SUBSCRIBE_ERROR code=404
+  ...
+ok 5 - announce-subscribe
+  ---
+  duration_ms: 53.4
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: SUBSCRIBE_OK received — relay routed subscription
+  ...
+not ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 549.3
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: Non-conformant error: expected a benign code (TRACK_DOES_NOT_EXIST / UNAUTHORIZED / TIMEOUT / NOT_SUPPORTED), got code=404
+  ...
+make[1]: *** [Makefile:121: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
