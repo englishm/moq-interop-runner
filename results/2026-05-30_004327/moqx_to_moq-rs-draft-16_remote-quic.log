@@ -1,0 +1,50 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against moqt://draft-16-manish.cloudflare.mediaoverquic.com:443...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://draft-16-manish.cloudflare.mediaoverquic.com:443 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://draft-16-manish.cloudflare.mediaoverquic.com:443
+# Transport: QUIC
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 231
+  info: SETUP exchange completed successfully
+  ...
+E0530 00:50:32.295803     1 MoQRelaySession.cpp:864] PublishNamespaceDone for unknown publishNamespace, sess=0x5636978e1990
+ok 2 - announce-only
+  ---
+  duration_ms: 213
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 200
+  info: Subscribe correctly returned error: not found: Track not found [error:ce1222db-d96a-439b-9ed2-92628380703e]
+  ...
+E0530 00:50:32.821511     1 MoQCodec.cpp:95] Frame underflow -> parse error
+E0530 00:50:32.821541     1 MoQCodec.cpp:126] Conn error=3
+E0530 00:50:32.821545     1 MoQSession.cpp:4735] MoQCodec control stream parse error err=3
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 325
+  error: Subscribe failed: Session closed
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 212
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 794
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): not found: Track not found [error:6c634e5d-d883-4bfe-a4c2-4eb0b8c483bb]
+  ...
+make[1]: *** [Makefile:121: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
