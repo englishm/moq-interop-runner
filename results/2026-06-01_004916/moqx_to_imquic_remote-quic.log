@@ -1,0 +1,49 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against moqt://lminiero.it:9000...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://lminiero.it:9000 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://lminiero.it:9000
+# Transport: QUIC
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 255
+  info: SETUP exchange completed successfully
+  ...
+E0601 00:57:23.356400     1 MoQRelaySession.cpp:864] PublishNamespaceDone for unknown publishNamespace, sess=0x55ddda141e80
+ok 2 - announce-only
+  ---
+  duration_ms: 333
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 337
+  info: Subscribe correctly returned error: Namespace not found
+  ...
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 804
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+E0601 00:57:24.499025     1 MoQSession.cpp:5099] publishDone for invalid id=1 sess=0x55ddda176c00
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 336
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E0601 00:57:29.563596     1 MoQSession.cpp:4985] subscribeFuture exception=folly::OperationCancelled: coroutine operation cancelled
+not ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 4728
+  error: Timed out during subscribe-before-announce test
+  ...
+make[1]: *** [Makefile:121: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
