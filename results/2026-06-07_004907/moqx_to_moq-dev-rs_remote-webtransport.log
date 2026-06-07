@@ -1,0 +1,50 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://cdn.moq.dev/anon...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://cdn.moq.dev/anon \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://cdn.moq.dev/anon
+# Transport: WebTransport
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 454
+  info: SETUP exchange completed successfully
+  ...
+E0607 01:18:42.687313     1 MoQRelaySession.cpp:1358] Invalid unsub publishNamespace requestID=3
+ok 2 - announce-only
+  ---
+  duration_ms: 141
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E0607 01:18:42.687411     1 MoQRelaySession.cpp:864] PublishNamespaceDone for unknown publishNamespace, sess=0x5602e69b97f0
+ok 3 - subscribe-error
+  ---
+  duration_ms: 141
+  info: Subscribe correctly returned error: Session closed
+  ...
+E0607 01:18:42.971165     1 MoQRelaySession.cpp:1358] Invalid unsub publishNamespace requestID=3
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 283
+  error: Subscribe failed: Session closed
+  ...
+E0607 01:18:43.254366     1 MoQRelaySession.cpp:1358] Invalid unsub publishNamespace requestID=1
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 141
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 746
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Session closed
+  ...
+make[1]: *** [Makefile:121: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
