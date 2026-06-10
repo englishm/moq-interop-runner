@@ -1,0 +1,67 @@
+# syntax=docker/dockerfile:1
+# Dockerfile for imquic-moq-interop-test
+#
+# This Dockerfile is used by the moq-interop-runner builds framework.
+# It expects to be run with the imquic repository root as the build context.
+#
+# Usage (via build.sh):
+#   ./builds/imquic/build.sh --target client
+#   ./builds/imquic/build.sh --local ~/git/imquic --target client
+
+FROM debian:bookworm-slim AS builder
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        build-essential git cmake make autoconf automake libtool \
+        libglib2.0-dev libssl-dev libjansson-dev ca-certificates pkg-config && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy source from build context (provided by build.sh)
+COPY . /build/imquic
+
+# Build picoquic dependency, then imquic
+RUN cd /build/imquic && \
+    git clone https://github.com/private-octopus/picoquic /build/imquic/picoquic && \
+    cd /build/imquic/picoquic && \
+    cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DPICOQUIC_FETCH_PTLS=Y . && \
+    make -j$(nproc) && \
+    cd /build/imquic && \
+    ./autogen.sh && \
+    ./configure --prefix=/build/imquic --enable-moq-examples --enable-qlog && \
+    make -j$(nproc) install
+
+# Runtime image
+FROM debian:bookworm-slim AS runtime
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    ca-certificates libglib2.0-0 libssl3 libjansson4 && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy binary and library
+COPY --from=builder /build/imquic/bin/imquic-moq-interop-test /app/imquic-moq-interop-test
+COPY --from=builder /build/imquic/lib/libimquic.so* /app/
+
+RUN ldconfig
+
+# Copy entrypoint script (maintained separately for linting and testing)
+# Note: This file is part of the moq-interop-runner builds, not the imquic source
+COPY entrypoint-client.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Create mlog directory
+RUN mkdir -p /mlog
+
+# Environment variables with defaults
+ENV RELAY_URL=https://relay:4443
+ENV TLS_DISABLE_VERIFY=0
+ENV LD_LIBRARY_PATH=/app:/usr/lib
+
+RUN useradd -r -u 1000 -g nogroup moq
+USER moq
+
+ENTRYPOINT ["/app/entrypoint.sh"]
