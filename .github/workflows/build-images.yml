@@ -19,6 +19,8 @@ on:
           - xquic-client
           - imquic-relay
           - imquic-client
+          - moq-rs-draft-18-relay
+          - moq-rs-draft-18-client
       ref:
         description: 'Git ref for source builds (branch/tag/commit). Ignored for adapters.'
         required: false
@@ -118,7 +120,23 @@ jobs:
               echo "ref=" >> "$GITHUB_OUTPUT"
               echo "build_command=./builds/imquic/build.sh --target client" >> "$GITHUB_OUTPUT"
               echo 'images=[{"local":"imquic-moq-interop-test:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-imquic-moq-interop-test"}]' >> "$GITHUB_OUTPUT"
-              ;;  
+              ;;
+            moq-rs-draft-18-relay)
+              REF="${{ inputs.ref }}"
+              REF="${REF:-draft-18-dev}"
+              echo "build_type=build" >> "$GITHUB_OUTPUT"
+              echo "ref=$REF" >> "$GITHUB_OUTPUT"
+              echo "build_command=./builds/moq-rs-draft-18/build.sh --ref $REF --target relay" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"moq-relay-ietf:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-18"}]' >> "$GITHUB_OUTPUT"
+              ;;
+            moq-rs-draft-18-client)
+              REF="${{ inputs.ref }}"
+              REF="${REF:-draft-18-dev}"
+              echo "build_type=build" >> "$GITHUB_OUTPUT"
+              echo "ref=$REF" >> "$GITHUB_OUTPUT"
+              echo "build_command=./builds/moq-rs-draft-18/build.sh --ref $REF --target client" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"moq-test-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-18"}]' >> "$GITHUB_OUTPUT"
+              ;;
             *)
               echo "::error::Unknown implementation: $IMPL"
               exit 1
@@ -143,6 +161,7 @@ jobs:
             moq-dev-js-client)      IMPL_DIR="builds/moq-dev-js" ;;
             xquic-relay|xquic-client) IMPL_DIR="builds/xquic" ;;
             imquic-relay|imquic-client) IMPL_DIR="builds/imquic" ;;
+            moq-rs-draft-18-relay|moq-rs-draft-18-client) IMPL_DIR="builds/moq-rs-draft-18" ;;
           esac
 
           if [[ -f "$IMPL_DIR/.last-build.json" ]]; then
