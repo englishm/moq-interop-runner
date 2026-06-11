@@ -1,0 +1,79 @@
+# syntax=docker/dockerfile:1
+# Dockerfile for moq-relay-ietf
+#
+# This Dockerfile is used by the moq-interop-runner builds framework.
+# It expects to be run with the moq-rs repository root as the build context.
+#
+# Usage (via build.sh):
+#   ./builds/moq-rs/build.sh --target relay
+#   ./builds/moq-rs/build.sh --local ~/git/moq-rs --target relay
+#
+# If your network uses TLS inspection, place your CA certificate at
+# builds/moq-rs/extra-ca.pem and it will be trusted during the build.
+
+FROM rust:1.87-bookworm AS builder
+
+# Support for networks with TLS inspection - trust additional CA if provided
+RUN --mount=type=secret,id=ca_cert,target=/tmp/extra-ca.pem \
+    if [ -f /tmp/extra-ca.pem ]; then \
+      cat /tmp/extra-ca.pem >> /etc/ssl/certs/ca-certificates.crt && \
+      echo "Added extra CA certificate"; \
+    fi
+
+WORKDIR /build
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY moq-transport ./moq-transport
+COPY moq-relay-ietf ./moq-relay-ietf
+COPY moq-native-ietf ./moq-native-ietf
+COPY moq-api ./moq-api
+COPY moq-pub ./moq-pub
+COPY moq-sub ./moq-sub
+COPY moq-clock-ietf ./moq-clock-ietf
+COPY moq-catalog ./moq-catalog
+COPY moq-test-client ./moq-test-client
+
+# Build release binary
+RUN --mount=type=secret,id=ca_cert,target=/tmp/extra-ca.pem \
+    if [ -f /tmp/extra-ca.pem ]; then \
+      cat /tmp/extra-ca.pem >> /etc/ssl/certs/ca-certificates.crt; \
+    fi && \
+    cargo build --release --bin moq-relay-ietf
+
+# Runtime image
+FROM debian:bookworm-slim AS runtime
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    iproute2 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy binary
+COPY --from=builder /build/target/release/moq-relay-ietf /app/moq-relay-ietf
+
+# Copy entrypoint script (maintained separately for linting and testing)
+# Note: This file is part of the moq-interop-runner builds, not the moq-rs source
+COPY entrypoint-relay.sh /app/run_endpoint.sh
+RUN chmod +x /app/run_endpoint.sh
+
+# Create directories for mounts
+RUN mkdir -p /mlog /certs
+
+# Environment variables (following QUIC interop runner conventions)
+ENV MOQT_ROLE=relay
+ENV MOQT_PORT=4443
+
+EXPOSE 4443/udp
+
+# Healthcheck verifies the relay is listening on the configured port
+# Uses shell form to enable environment variable expansion at runtime
+HEALTHCHECK --interval=5s --timeout=3s --start-period=5s \
+  CMD sh -c 'ss -uln | grep -q ":${MOQT_PORT:-4443}" || exit 1'
+
+RUN useradd -r -u 1000 -g nogroup moq
+USER moq
+
+ENTRYPOINT ["/app/run_endpoint.sh"]

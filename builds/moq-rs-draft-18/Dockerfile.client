@@ -1,0 +1,71 @@
+# syntax=docker/dockerfile:1
+# Dockerfile for moq-test-client
+#
+# This Dockerfile is used by the moq-interop-runner builds framework.
+# It expects to be run with the moq-rs repository root as the build context.
+#
+# Usage (via build.sh):
+#   ./builds/moq-rs/build.sh --target client
+#   ./builds/moq-rs/build.sh --local ~/git/moq-rs --target client
+#
+# If your network uses TLS inspection, place your CA certificate at
+# builds/moq-rs/extra-ca.pem and it will be trusted during the build.
+
+FROM rust:1.87-bookworm AS builder
+
+# Support for networks with TLS inspection - trust additional CA if provided
+RUN --mount=type=secret,id=ca_cert,target=/tmp/extra-ca.pem \
+    if [ -f /tmp/extra-ca.pem ]; then \
+      cat /tmp/extra-ca.pem >> /etc/ssl/certs/ca-certificates.crt && \
+      echo "Added extra CA certificate"; \
+    fi
+
+WORKDIR /build
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY moq-transport ./moq-transport
+COPY moq-relay-ietf ./moq-relay-ietf
+COPY moq-native-ietf ./moq-native-ietf
+COPY moq-api ./moq-api
+COPY moq-pub ./moq-pub
+COPY moq-sub ./moq-sub
+COPY moq-clock-ietf ./moq-clock-ietf
+COPY moq-catalog ./moq-catalog
+COPY moq-test-client ./moq-test-client
+
+# Build release binary
+RUN --mount=type=secret,id=ca_cert,target=/tmp/extra-ca.pem \
+    if [ -f /tmp/extra-ca.pem ]; then \
+      cat /tmp/extra-ca.pem >> /etc/ssl/certs/ca-certificates.crt; \
+    fi && \
+    cargo build --release --bin moq-test-client
+
+# Runtime image
+FROM debian:bookworm-slim AS runtime
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy binary
+COPY --from=builder /build/target/release/moq-test-client /app/moq-test-client
+
+# Copy entrypoint script (maintained separately for linting and testing)
+# Note: This file is part of the moq-interop-runner builds, not the moq-rs source
+COPY entrypoint-client.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Create mlog directory
+RUN mkdir -p /mlog
+
+# Environment variables with defaults
+ENV RELAY_URL=https://relay:4443
+ENV TLS_DISABLE_VERIFY=0
+
+RUN useradd -r -u 1000 -g nogroup moq
+USER moq
+
+ENTRYPOINT ["/app/entrypoint.sh"]
