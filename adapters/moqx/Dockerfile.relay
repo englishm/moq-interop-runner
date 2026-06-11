@@ -1,0 +1,27 @@
+# moqx adapter for MoQT interop testing
+#
+# Wraps the published moqx relay image with standard interop conventions:
+# - Reads certs from /certs/cert.pem and /certs/priv.key
+# - Listens on UDP 4443 (runner convention) with endpoint path "/"
+# - moqx-specific env vars (MOQX_*) are documented in moqx/docker/entrypoint.sh
+#
+# Build:
+#   docker build -t moqx-interop:latest -f adapters/moqx/Dockerfile.relay adapters/moqx/
+#
+# Usage:
+#   docker run -v ./certs:/certs -p 4443:4443/udp moqx-interop:latest
+
+FROM ghcr.io/openmoq/moqx:latest
+
+ENV MOQX_PORT=4443
+ENV MOQX_BIND_ADDR=0.0.0.0
+ENV MOQX_CERT=/certs/cert.pem
+ENV MOQX_KEY=/certs/priv.key
+ENV MOQX_ENDPOINT=/
+
+EXPOSE 4443/udp
+
+# Custom healthcheck — the slim runtime image doesn't ship ss/netstat.
+# Probe /proc/net/udp{,6} for hex port 0x115B (= 4443).
+HEALTHCHECK --interval=2s --timeout=5s --start-period=5s --retries=10 \
+    CMD grep -qi ":115B" /proc/net/udp6 || grep -qi ":115B" /proc/net/udp || exit 1

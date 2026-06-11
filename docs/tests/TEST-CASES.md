@@ -4,9 +4,9 @@
 
 This document defines interoperability test cases for Media over QUIC Transport (MoQT). These specifications are designed to be implementation-neutral and precise enough that any MoQT implementation can build a compatible test client.
 
-**Protocol Reference**: [draft-ietf-moq-transport-14](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html)
+**Protocol Reference**: [draft-ietf-moq-transport-18](https://www.ietf.org/archive/id/draft-ietf-moq-transport-18.html)
 
-> **Note**: Section references (e.g., "MoQT-14 §9.3") refer to the draft version above. These will be updated as the protocol evolves.
+> **Note**: Section references (e.g., "MoQT-18 §10.3") refer to the draft version above. Message names use the current draft-18 terminology. Where the draft defines request-specific aliases such as `PUBLISH_NAMESPACE_OK`, those aliases refer to a `REQUEST_OK` response.
 
 ## Test Case Format
 
@@ -25,18 +25,18 @@ Each test case follows this structure:
 
 ### `setup-only`
 
-**Protocol References**: MoQT-14 §3.3 (Session initialization), §9.3 (CLIENT_SETUP and SERVER_SETUP)
+**Protocol References**: MoQT-18 §3.3 (Session initialization), §10.3 (SETUP)
 
 **Procedure**:
 
 1. Connect to relay via WebTransport (or raw QUIC)
-2. Send CLIENT_SETUP with supported versions
-3. Receive SERVER_SETUP with selected version
+2. Send SETUP on the control stream
+3. Receive the peer's SETUP message
 4. Close connection gracefully
 
 **Success Criteria**:
 
-- SERVER_SETUP received with compatible version
+- Peer SETUP received successfully
 - Connection closes without error
 
 **Timeout**: 2 seconds
@@ -54,20 +54,20 @@ Each test case follows this structure:
 
 ### `announce-only`
 
-**Protocol References**: MoQT-14 §6.2 (Publishing Namespaces), §9.23 (PUBLISH_NAMESPACE), §9.24 (PUBLISH_NAMESPACE_OK)
+**Protocol References**: MoQT-18 §6.2 (Publishing Namespaces), §10.15 (PUBLISH_NAMESPACE), §10.5 (REQUEST_OK / `PUBLISH_NAMESPACE_OK` alias)
 
 **Procedure**:
 
 1. Connect and complete SETUP exchange
 2. Send PUBLISH_NAMESPACE for test namespace
-3. Wait for PUBLISH_NAMESPACE_OK
+3. Wait for REQUEST_OK (`PUBLISH_NAMESPACE_OK`)
 4. Close connection gracefully
 
 **Test Namespace**: `moq-test/interop`
 
 **Success Criteria**:
 
-- PUBLISH_NAMESPACE_OK received
+- REQUEST_OK (`PUBLISH_NAMESPACE_OK`) received
 - No error response
 
 **Timeout**: 2 seconds after sending PUBLISH_NAMESPACE
@@ -83,22 +83,22 @@ Each test case follows this structure:
 
 ### `publish-namespace-done`
 
-**Protocol References**: MoQT-14 §6.2 (Publishing Namespaces), §9.26 (PUBLISH_NAMESPACE_DONE)
+**Protocol References**: MoQT-18 §6.2 (Publishing Namespaces), §10.15 (PUBLISH_NAMESPACE), §10.5 (REQUEST_OK / `PUBLISH_NAMESPACE_OK` alias), §3.3.2 (Request Cancellation and Rejection)
 
 **Procedure**:
 
 1. Connect and complete SETUP exchange
 2. Send PUBLISH_NAMESPACE for test namespace
-3. Wait for PUBLISH_NAMESPACE_OK
-4. Send PUBLISH_NAMESPACE_DONE (unpublish)
+3. Wait for REQUEST_OK (`PUBLISH_NAMESPACE_OK`)
+4. Withdraw the namespace by cancelling the request stream
 5. Close connection gracefully
 
 **Test Namespace**: `moq-test/interop`
 
 **Success Criteria**:
 
-- PUBLISH_NAMESPACE_OK received
-- PUBLISH_NAMESPACE_DONE sent without error
+- REQUEST_OK (`PUBLISH_NAMESPACE_OK`) received
+- Request stream cancelled cleanly to withdraw the namespace
 - Clean disconnection
 
 **Timeout**: 2 seconds after sending PUBLISH_NAMESPACE
@@ -109,13 +109,13 @@ Each test case follows this structure:
 
 ### `subscribe-error`
 
-**Protocol References**: MoQT-14 §5.1 (Subscriptions), §9.7 (SUBSCRIBE), §9.9 (SUBSCRIBE_ERROR)
+**Protocol References**: MoQT-18 §5.1 (Subscriptions), §10.7 (SUBSCRIBE), §10.6 (REQUEST_ERROR)
 
 **Procedure**:
 
 1. Connect and complete SETUP exchange
 2. Send SUBSCRIBE for non-existent namespace/track
-3. Expect SUBSCRIBE_ERROR response
+3. Expect REQUEST_ERROR response
 4. Close connection gracefully
 
 **Test Namespace**: `nonexistent/namespace`  
@@ -123,7 +123,7 @@ Each test case follows this structure:
 
 **Success Criteria**:
 
-- SUBSCRIBE_ERROR received (this is the expected behavior)
+- REQUEST_ERROR received (this is the expected behavior)
 - Exit code 0 (the error was expected and correctly handled)
 
 **Timeout**: 2 seconds
@@ -139,7 +139,7 @@ Each test case follows this structure:
 
 ### `announce-subscribe`
 
-**Protocol References**: MoQT-14 §5.1 (Subscriptions), §6.2 (Publishing Namespaces), §9.7-9.8 (SUBSCRIBE/SUBSCRIBE_OK), §9.23-9.24 (PUBLISH_NAMESPACE/PUBLISH_NAMESPACE_OK)
+**Protocol References**: MoQT-18 §5.1 (Subscriptions), §6.2 (Publishing Namespaces), §10.7-10.8 (SUBSCRIBE/SUBSCRIBE_OK), §10.15 (PUBLISH_NAMESPACE), §10.5 (REQUEST_OK / `PUBLISH_NAMESPACE_OK` alias)
 
 **Topology**: Two concurrent connections (publisher + subscriber)
 
@@ -147,14 +147,14 @@ Each test case follows this structure:
 
 1. Connect and complete SETUP exchange
 2. Send PUBLISH_NAMESPACE for test namespace
-3. Wait for PUBLISH_NAMESPACE_OK
+3. Wait for REQUEST_OK (`PUBLISH_NAMESPACE_OK`)
 4. Wait for subscription or timeout
 
 **Subscriber Procedure**:
 
 1. Connect and complete SETUP exchange
 2. Send SUBSCRIBE for test namespace/track
-3. Wait for SUBSCRIBE_OK or SUBSCRIBE_ERROR
+3. Wait for SUBSCRIBE_OK or REQUEST_ERROR
 
 **Test Namespace**: `moq-test/interop`  
 **Test Track**: `test-track`
@@ -162,7 +162,7 @@ Each test case follows this structure:
 **Success Criteria**:
 
 - Both connections complete SETUP
-- Publisher receives PUBLISH_NAMESPACE_OK
+- Publisher receives REQUEST_OK (`PUBLISH_NAMESPACE_OK`)
 - Subscriber receives SUBSCRIBE_OK (relay routes subscription to publisher)
 
 **Timeout**: 3 seconds total
@@ -173,7 +173,7 @@ Each test case follows this structure:
 
 ### `subscribe-before-announce`
 
-**Protocol References**: MoQT-14 §5.1 (Subscriptions), §6.2 (Publishing Namespaces)
+**Protocol References**: MoQT-18 §5.1 (Subscriptions), §6.2 (Publishing Namespaces), §10.7 (SUBSCRIBE), §10.6 (REQUEST_ERROR), §10.15 (PUBLISH_NAMESPACE), §10.5 (REQUEST_OK / `PUBLISH_NAMESPACE_OK` alias)
 
 **Topology**: Two connections, subscriber connects first
 
@@ -187,7 +187,7 @@ Each test case follows this structure:
 
 1. Connect and complete SETUP exchange
 2. Send PUBLISH_NAMESPACE for test namespace
-3. Wait for PUBLISH_NAMESPACE_OK
+3. Wait for REQUEST_OK (`PUBLISH_NAMESPACE_OK`)
 
 **Test Namespace**: `moq-test/interop`  
 **Test Track**: `test-track`
@@ -195,7 +195,7 @@ Each test case follows this structure:
 **Success Criteria**:
 
 - Subscriber's SUBSCRIBE eventually succeeds (once publisher announces), **OR**
-- Subscriber receives SUBSCRIBE_ERROR (relay doesn't buffer pending subscriptions)
+- Subscriber receives REQUEST_ERROR (relay doesn't buffer pending subscriptions)
 
 Either outcome is valid; the test checks for graceful handling.
 

@@ -368,6 +368,10 @@ run_test() {
     local status="unknown"
     local exit_code=0
 
+    # Per-test timeout in seconds (default: 120s).
+    # A hanging client (e.g. blocked on handshake) will be killed after this.
+    local test_timeout="${TEST_TIMEOUT:-120}"
+
     # Resolve client Docker image from implementations.json
     local client_image
     client_image=$(jq -r --arg c "$client" '.implementations[$c].roles.client.docker.image // empty' "$CONFIG_FILE")
@@ -378,30 +382,42 @@ run_test() {
     fi
 
     if [[ "$mode" == "docker" ]]; then
-        if make test RELAY_IMAGE="$target" CLIENT_IMAGE="$client_image" > "$result_file" 2>&1; then
+        if timeout "$test_timeout" make test RELAY_IMAGE="$target" CLIENT_IMAGE="$client_image" > "$result_file" 2>&1; then
             status="pass"
             PASSED=$((PASSED + 1))
             echo -e "${GREEN}✓ PASSED${NC}"
         else
             exit_code=$?
-            status="fail"
-            FAILED=$((FAILED + 1))
-            echo -e "${RED}✗ FAILED (exit code: $exit_code)${NC}"
+            if [ "$exit_code" -eq 124 ]; then
+                status="timeout"
+                FAILED=$((FAILED + 1))
+                echo -e "${RED}⧖ TIMEOUT (killed after ${test_timeout}s)${NC}"
+            else
+                status="fail"
+                FAILED=$((FAILED + 1))
+                echo -e "${RED}✗ FAILED (exit code: $exit_code)${NC}"
+            fi
         fi
     else
         # Build make arguments as array to avoid word splitting issues
         local -a make_args=("test-external" "RELAY_URL=$target" "CLIENT_IMAGE=$client_image")
         [ "$tls_disable" = "true" ] && make_args+=("TLS_DISABLE_VERIFY=1")
 
-        if make "${make_args[@]}" > "$result_file" 2>&1; then
+        if timeout "$test_timeout" make "${make_args[@]}" > "$result_file" 2>&1; then
             status="pass"
             PASSED=$((PASSED + 1))
             echo -e "${GREEN}✓ PASSED${NC}"
         else
             exit_code=$?
-            status="fail"
-            FAILED=$((FAILED + 1))
-            echo -e "${RED}✗ FAILED (exit code: $exit_code)${NC}"
+            if [ "$exit_code" -eq 124 ]; then
+                status="timeout"
+                FAILED=$((FAILED + 1))
+                echo -e "${RED}⧖ TIMEOUT (killed after ${test_timeout}s)${NC}"
+            else
+                status="fail"
+                FAILED=$((FAILED + 1))
+                echo -e "${RED}✗ FAILED (exit code: $exit_code)${NC}"
+            fi
         fi
     fi
 

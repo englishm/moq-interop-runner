@@ -34,6 +34,29 @@ CLIENT_IMAGE ?= moq-test-client:latest
 # For test-external (direct URL, not docker-compose)
 RELAY_URL ?= https://relay:4443
 TLS_DISABLE_VERIFY ?= false
+# Optional extra args for `docker run` in test-external.
+# Example: EXTRA_DOCKER_RUN_ARGS="--add-host local.nokiaresearch.com:host-gateway"
+EXTRA_DOCKER_RUN_ARGS ?=
+
+# Track whether RELAY_URL was set by user (command line or environment)
+RELAY_URL_ORIGIN := $(origin RELAY_URL)
+
+# Resolve relay URL for docker-compose tests.
+# Priority:
+# 1) Explicit RELAY_URL from CLI/environment
+# 2) Matched implementations.json roles.relay.docker.url for RELAY_IMAGE
+# 3) RELAY_URL default value from this Makefile
+define RESOLVE_RELAY_URL
+resolved_relay_url="$(RELAY_URL)"; \
+if [ "$(RELAY_URL_ORIGIN)" = "file" ] || [ "$(RELAY_URL_ORIGIN)" = "default" ] || [ "$(RELAY_URL_ORIGIN)" = "undefined" ]; then \
+	if command -v jq >/dev/null 2>&1; then \
+		config_relay_url=$$(jq -r --arg image "$(RELAY_IMAGE)" '.implementations | to_entries[] | select(.value.roles.relay?.docker?.image? == $$image) | .value.roles.relay.docker.url // empty' implementations.json | head -n1); \
+		if [ -n "$$config_relay_url" ]; then \
+			resolved_relay_url="$$config_relay_url"; \
+		fi; \
+	fi; \
+fi
+endef
 
 #############################################################################
 # Certificate Generation (following QUIC interop runner conventions)
@@ -59,27 +82,33 @@ _ensure-certs:
 
 # Run tests with configured images (requires Docker images to exist)
 test: _ensure-certs mlog-clean
-	@echo "Running interop tests..."
-	@echo "  Relay:  $(RELAY_IMAGE)"
-	@echo "  Client: $(CLIENT_IMAGE)"
-	RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
+	@$(RESOLVE_RELAY_URL); \
+	echo "Running interop tests..."; \
+	echo "  Relay:  $(RELAY_IMAGE)"; \
+	echo "  Client: $(CLIENT_IMAGE)"; \
+	echo "  URL:    $$resolved_relay_url"; \
+	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
 		docker compose -f docker-compose.test.yml up --abort-on-container-exit
 	@echo ""
 	@echo "Test results in mlog/"
 
 test-verbose: _ensure-certs mlog-clean
-	@echo "Running interop tests (verbose)..."
-	@echo "  Relay:  $(RELAY_IMAGE)"
-	@echo "  Client: $(CLIENT_IMAGE)"
-	RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) VERBOSE=1 \
+	@$(RESOLVE_RELAY_URL); \
+	echo "Running interop tests (verbose)..."; \
+	echo "  Relay:  $(RELAY_IMAGE)"; \
+	echo "  Client: $(CLIENT_IMAGE)"; \
+	echo "  URL:    $$resolved_relay_url"; \
+	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) VERBOSE=1 \
 		docker compose -f docker-compose.test.yml up --abort-on-container-exit
 
 # Run a specific test
 test-single:
-	@echo "Running test: $(TESTCASE)"
-	@echo "  Relay:  $(RELAY_IMAGE)"
-	@echo "  Client: $(CLIENT_IMAGE)"
-	RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
+	@$(RESOLVE_RELAY_URL); \
+	echo "Running test: $(TESTCASE)"; \
+	echo "  Relay:  $(RELAY_IMAGE)"; \
+	echo "  Client: $(CLIENT_IMAGE)"; \
+	echo "  URL:    $$resolved_relay_url"; \
+	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
 		docker compose -f docker-compose.test.yml run --rm \
 		-e TESTCASE=$(TESTCASE) \
 		test-client
@@ -88,7 +117,9 @@ test-single:
 test-external:
 	@echo "Running tests against $(RELAY_URL)..."
 	@echo "  Client: $(CLIENT_IMAGE)"
+	@if [ -n "$(EXTRA_DOCKER_RUN_ARGS)" ]; then echo "  Extra docker args: $(EXTRA_DOCKER_RUN_ARGS)"; fi
 	docker run --rm \
+		$(EXTRA_DOCKER_RUN_ARGS) \
 		--network host \
 		-e RELAY_URL=$(RELAY_URL) \
 		-e TLS_DISABLE_VERIFY=$(TLS_DISABLE_VERIFY) \

@@ -2,15 +2,153 @@
   "$schema": "./implementations.schema.json",
   "version": "1.1",
   "description": "MoQT implementation registry for interop testing",
-
-  "current_target": "draft-16",
-
+  "current_target": "draft-18",
   "implementations": {
+    "aiomoqt": {
+      "name": "aiomoqt",
+      "organization": "MarzResearch",
+      "repository": "https://github.com/gmarzot/aiomoqt",
+      "draft_versions": [
+        "draft-14",
+        "draft-16"
+      ],
+      "notes": "Python asyncio implementation of MoQT. Supports draft-14 and draft-16 via version negotiation.",
+      "roles": {
+        "client": {
+          "docker": {
+            "image": "ghcr.io/gmarzot/aiomoqt:latest",
+            "notes": "Pre-built on GHCR from the upstream repo (see Dockerfile at the repo root). Available in :latest and :<version> tags."
+          }
+        }
+      }
+    },
+    "imquic": {
+      "name": "imquic",
+      "organization": "Meetecho",
+      "repository": "https://github.com/meetecho/imquic",
+      "draft_versions": [
+        "draft-18",
+        "draft-17",
+        "draft-16"
+      ],
+      "notes": "C implementation. Supports draft-18, draft-17, and draft-16 via version negotiation. Draft-18 support added June 2026.",
+      "roles": {
+        "relay": {
+          "remote": [
+            {
+              "url": "https://lminiero.it:9000",
+              "transport": "webtransport"
+            },
+            {
+              "url": "moqt://lminiero.it:9000",
+              "transport": "quic"
+            }
+          ],
+          "docker": {
+            "image": "imquic-moq-relay",
+            "notes": "Build from source: ./builds/imquic/build.sh --target relay"
+          }
+        },
+        "client": {
+          "docker": {
+            "image": "imquic-moq-interop-test",
+            "notes": "Build from source: ./builds/imquic/build.sh --target client"
+          }
+        }
+      }
+    },
+    "libquicr": {
+      "name": "libquicr",
+      "organization": "Cisco",
+      "repository": "https://github.com/Quicr/libquicr",
+      "draft_versions": [
+        "draft-14"
+      ],
+      "notes": "C++ implementation",
+      "roles": {
+        "relay": {
+          "remote": [
+            {
+              "url": "https://us-west-2.relay.quicr.org:33437/relay",
+              "transport": "webtransport",
+              "tls_disable_verify": true,
+              "notes": "WebTransport endpoint"
+            },
+            {
+              "url": "moqt://us-west-2.relay.quicr.org:33437",
+              "transport": "quic",
+              "tls_disable_verify": true,
+              "notes": "Raw QUIC endpoint"
+            }
+          ]
+        }
+      }
+    },
+    "moq-dev-js": {
+      "name": "moq (moq-dev, JS)",
+      "organization": "Luke Curley",
+      "repository": "https://github.com/moq-dev/moq",
+      "draft_versions": [
+        "draft-14",
+        "draft-15",
+        "draft-16",
+        "draft-17"
+      ],
+      "notes": "Bun/TypeScript test client using @moq/lite npm package with @moq/web-transport polyfill. Supports multiple draft versions via version negotiation.",
+      "roles": {
+        "client": {
+          "docker": {
+            "image": "ghcr.io/englishm/moq-interop-runner-moq-dev-js-client:latest",
+            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-dev-js/build.sh && docker tag moq-dev-js-client:latest ghcr.io/englishm/moq-interop-runner-moq-dev-js-client:latest"
+          }
+        }
+      }
+    },
+    "moq-dev-rs": {
+      "name": "moq (moq-dev)",
+      "organization": "Luke Curley",
+      "repository": "https://github.com/moq-dev/moq",
+      "draft_versions": [
+        "draft-14",
+        "draft-15",
+        "draft-16",
+        "draft-17"
+      ],
+      "notes": "Rust implementation by kixelated, supports moq-lite and IETF MoQT. Supports multiple draft versions via version negotiation.",
+      "roles": {
+        "relay": {
+          "docker": {
+            "image": "moq-dev-rs-interop:latest",
+            "build": {
+              "dockerfile": "adapters/moq-dev-rs/Dockerfile.relay",
+              "context": "adapters/moq-dev-rs"
+            },
+            "upstream_image": "docker.io/kixelated/moq-relay",
+            "notes": "Adapter wraps upstream image with /certs convention"
+          },
+          "remote": [
+            {
+              "url": "https://cdn.moq.dev/anon",
+              "transport": "webtransport",
+              "notes": "Public relay"
+            }
+          ]
+        },
+        "client": {
+          "docker": {
+            "image": "ghcr.io/englishm/moq-interop-runner-moq-dev-rs-client:latest",
+            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-dev-rs/build.sh && docker tag moq-dev-rs-client:latest ghcr.io/englishm/moq-interop-runner-moq-dev-rs-client:latest"
+          }
+        }
+      }
+    },
     "moq-rs": {
       "name": "moq-rs",
       "organization": "Cloudflare",
       "repository": "https://github.com/cloudflare/moq-rs",
-      "draft_versions": ["draft-14"],
+      "draft_versions": [
+        "draft-14"
+      ],
       "notes": "Rust implementation. Test client reference implementation.",
       "roles": {
         "relay": {
@@ -39,25 +177,217 @@
         }
       }
     },
-
     "moq-rs-draft-16": {
       "name": "moq-rs (draft-16)",
       "organization": "Cloudflare",
-      "repository": "https://github.com/englishm-cloudflare/moq-rs-1",
-      "draft_versions": ["draft-16"],
-      "notes": "Rust implementation. Draft-16 interop branch (WIP, based on https://github.com/cloudflare/moq-rs/pull/131).",
+      "repository": "https://github.com/itzmanish/moq-rs",
+      "draft_versions": [
+        "draft-16"
+      ],
+      "notes": "Rust implementation. Draft-16 branch from itzmanish (Manish Pandit), based on https://github.com/cloudflare/moq-rs/pull/131.",
       "roles": {
         "relay": {
           "docker": {
             "image": "ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-16:latest",
-            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs/build.sh --repo https://github.com/englishm-cloudflare/moq-rs-1 --ref me/draft-16-interop --target relay && docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-16:latest"
-          }
+            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs/build.sh --repo https://github.com/itzmanish/moq-rs --ref draft-16 --target relay && docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-16:latest"
+          },
+          "remote": [
+            {
+              "url": "moqt://draft-16-manish.cloudflare.mediaoverquic.com:443",
+              "transport": "quic",
+              "notes": "Raw QUIC endpoint"
+            },
+            {
+              "url": "https://draft-16-manish.cloudflare.mediaoverquic.com:443/moq",
+              "transport": "webtransport",
+              "notes": "WebTransport endpoint"
+            }
+          ]
         },
         "client": {
           "docker": {
             "image": "ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-16:latest",
-            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs/build.sh --repo https://github.com/englishm-cloudflare/moq-rs-1 --ref me/draft-16-interop --target client && docker tag moq-test-client:latest ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-16:latest"
+            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs/build.sh --repo https://github.com/itzmanish/moq-rs --ref draft-16 --target client && docker tag moq-test-client:latest ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-16:latest"
           }
+        }
+      }
+    },
+
+    "moq-rs-draft-18": {
+      "name": "moq-rs (draft-18)",
+      "organization": "Cloudflare",
+      "repository": "https://github.com/cloudflare/moq-rs",
+      "draft_versions": ["draft-18"],
+      "notes": "Rust implementation. Deployed as a single instance relay for interop testing, tracking the draft-18-dev branch.",
+      "roles": {
+        "relay": {
+          "docker": {
+            "image": "ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-18:latest",
+            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs-draft-18/build.sh --target relay && docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-18:latest"
+          },
+          "remote": [
+            {
+              "url": "moqt://draft-18-interop.cloudflare.mediaoverquic.com:443",
+              "transport": "quic",
+              "notes": "Raw QUIC endpoint"
+            },
+            {
+              "url": "https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq",
+              "transport": "webtransport",
+              "notes": "WebTransport endpoint"
+            }
+          ]
+        },
+        "client": {
+          "docker": {
+            "image": "ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-18:latest",
+            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs-draft-18/build.sh --target client && docker tag moq-test-client:latest ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-18:latest"
+          }
+        }
+      }
+    },
+
+    "moqlivemock": {
+      "name": "moqlivemock",
+      "organization": "Eyevinn",
+      "repository": "https://github.com/Eyevinn/moqlivemock",
+      "draft_versions": [
+        "draft-14",
+        "draft-16"
+      ],
+      "notes": "Go implementation. Test client and live CMAF publisher. Publisher announces the moq-test/interop namespace for interop testing.",
+      "roles": {
+        "client": {
+          "docker": {
+            "image": "ghcr.io/eyevinn/mlmtest:latest",
+            "notes": "Published from Eyevinn/moqlivemock CI. Supports RELAY_URL, TESTCASE, TLS_DISABLE_VERIFY, DRAFT env vars."
+          }
+        },
+        "publisher": {
+          "remote": [
+            {
+              "url": "https://moqlivemock.demo.osaas.io:443/moq",
+              "transport": "webtransport",
+              "notes": "Live CMAF publisher (video + audio + subtitles)"
+            },
+            {
+              "url": "moqt://moqlivemock.demo.osaas.io:443",
+              "transport": "quic",
+              "notes": "Live CMAF publisher (video + audio + subtitles)"
+            }
+          ]
+        }
+      }
+    },
+    "moqtail": {
+      "name": "moqtail",
+      "organization": "OzU",
+      "repository": "https://github.com/moqtail/moqtail",
+      "draft_versions": [
+        "draft-16"
+      ],
+      "notes": "Rust implementation.",
+      "roles": {
+        "relay": {
+          "remote": [
+            {
+              "url": "https://relay.moqtail.dev",
+              "transport": "webtransport"
+            }
+          ]
+        }
+      }
+    },
+    "moqtransport": {
+      "name": "moqtransport",
+      "organization": "Mathis Engelbart (TUM)",
+      "repository": "https://github.com/mengelbart/moqtransport",
+      "draft_versions": [
+        "draft-13"
+      ],
+      "notes": "Go implementation. No persistent public relay.",
+      "roles": {
+        "relay": {}
+      }
+    },
+    "moqt-nr": {
+      "name": "moqt-nokiaresearch",
+      "organization": "Nokia",
+      "repository": "",
+      "draft_versions": ["draft-18"],
+      "notes": "Support native QUIC and WebTransport",
+      "roles": {
+        "relay": {
+           "remote": [
+            {
+              "url": "moqt://moqt.nokiaresearch.com:4443/moq",
+              "transport": "quic",
+              "tls_disable_verify": false,
+              "notes": "Raw QUIC endpoint"
+            },
+            {
+              "url": "https://moqt.nokiaresearch.com:4443/moq",
+              "transport": "webtransport",
+              "tls_disable_verify": false,
+              "notes": "WebTransport endpoint"
+            }
+          ]
+        }
+      }
+    },
+
+    "moqx": {
+      "name": "moqx",
+      "organization": "OpenMOQ",
+      "repository": "https://github.com/openmoq/moqx",
+      "draft_versions": [
+        "draft-14",
+        "draft-15",
+        "draft-16"
+      ],
+      "notes": "C++ relay built on moxygen. Supports multiple draft versions via version negotiation.",
+      "roles": {
+        "relay": {
+          "docker": {
+            "image": "moqx-interop:latest",
+            "build": {
+              "dockerfile": "adapters/moqx/Dockerfile.relay",
+              "context": "adapters/moqx"
+            },
+            "upstream_image": "ghcr.io/openmoq/moqx:latest",
+            "notes": "Adapter wraps upstream image with /certs convention"
+          },
+          "remote": [
+            {
+              "url": "https://moqx-main.ci.openmoq.org:4433/moq-relay",
+              "transport": "webtransport",
+              "notes": "CI-deployed relay"
+            },
+            {
+              "url": "moqt://moqx-main.ci.openmoq.org:4433",
+              "transport": "quic",
+              "notes": "CI-deployed relay"
+            }
+          ]
+        },
+        "client": {
+          "docker": {
+            "image": "ghcr.io/openmoq/moqx-interop-client:latest"
+          }
+        },
+        "publisher": {
+          "remote": [
+            {
+              "url": "https://moqx-main.ci.openmoq.org:4433/moq-relay",
+              "transport": "webtransport",
+              "notes": "CI-deployed relay; subscribe target for moq-test/interop namespace"
+            },
+            {
+              "url": "moqt://moqx-main.ci.openmoq.org:4433",
+              "transport": "quic",
+              "notes": "CI-deployed relay; subscribe target for moq-test/interop namespace"
+            }
+          ]
         }
       }
     },
@@ -66,7 +396,10 @@
       "name": "moxygen",
       "organization": "Meta",
       "repository": "https://github.com/facebookexperimental/moxygen",
-      "draft_versions": ["draft-14", "draft-16"],
+      "draft_versions": [
+        "draft-14",
+        "draft-16"
+      ],
       "notes": "C++ implementation. Supports multiple draft versions simultaneously via version negotiation.",
       "roles": {
         "relay": {
@@ -101,73 +434,13 @@
         }
       }
     },
-
-    "moq-dev-rs": {
-      "name": "moq (moq-dev)",
-      "organization": "Luke Curley",
-      "repository": "https://github.com/moq-dev/moq",
-      "draft_versions": ["draft-14", "draft-15", "draft-16", "draft-17", "draft-18"],
-      "notes": "Rust implementation by kixelated, supports moq-lite and IETF MoQT. Test client built on moq-net/moq-native. Supports all moq-transport draft versions 14+ via version negotiation.",
-      "roles": {
-        "relay": {
-          "docker": {
-            "image": "moq-dev-rs-interop:latest",
-            "build": {
-              "dockerfile": "adapters/moq-dev-rs/Dockerfile.relay",
-              "context": "adapters/moq-dev-rs"
-            },
-            "upstream_image": "docker.io/moqdev/moq-relay",
-            "notes": "Adapter wraps upstream image with /certs convention"
-          },
-          "remote": [
-            {
-              "url": "https://cdn.moq.dev/anon",
-              "transport": "webtransport",
-              "notes": "Public relay"
-            }
-          ]
-        },
-        "client": {
-          "docker": {
-            "image": "ghcr.io/englishm/moq-interop-runner-moq-dev-rs-client:latest",
-            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-dev-rs/build.sh && docker tag moq-dev-rs-client:latest ghcr.io/englishm/moq-interop-runner-moq-dev-rs-client:latest"
-          }
-        }
-      }
-    },
-
-    "moq-dev-js": {
-      "name": "moq (moq-dev, JS)",
-      "organization": "Luke Curley",
-      "repository": "https://github.com/moq-dev/moq",
-      "draft_versions": ["draft-14", "draft-15", "draft-16", "draft-17", "draft-18"],
-      "notes": "Bun/TypeScript test client using @moq/net npm package. Supports all moq-transport draft versions 14+ via version negotiation.",
-      "roles": {
-        "client": {
-          "docker": {
-            "image": "ghcr.io/englishm/moq-interop-runner-moq-dev-js-client:latest",
-            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-dev-js/build.sh && docker tag moq-dev-js-client:latest ghcr.io/englishm/moq-interop-runner-moq-dev-js-client:latest"
-          }
-        }
-      }
-    },
-
-    "moqtransport": {
-      "name": "moqtransport",
-      "organization": "Mathis Engelbart (TUM)",
-      "repository": "https://github.com/mengelbart/moqtransport",
-      "draft_versions": ["draft-13"],
-      "notes": "Go implementation. No persistent public relay.",
-      "roles": {
-        "relay": {}
-      }
-    },
-
     "quiche-moq": {
       "name": "quiche-moq",
       "organization": "Google",
       "repository": "https://github.com/google/quiche",
-      "draft_versions": ["draft-16"],
+      "draft_versions": [
+        "draft-16"
+      ],
       "notes": "C++ implementation",
       "roles": {
         "relay": {
@@ -184,81 +457,38 @@
         }
       }
     },
-
-    "moqtail": {
-      "name": "moqtail",
-      "organization": "OzU",
-      "repository": "https://github.com/moqtail/moqtail",
-      "draft_versions": ["draft-14"],
-      "notes": "Rust implementation.",
+    "xquic": {
+      "name": "xquic",
+      "organization": "Alibaba",
+      "repository": "https://github.com/alibaba/xquic",
+      "draft_versions": [
+        "draft-14"
+      ],
+      "notes": "C implementation. Raw QUIC transport only (moqt://).",
       "roles": {
         "relay": {
-          "remote": [
-            {
-              "url": "https://relay.moqtail.dev",
-              "transport": "webtransport"
-            }
-          ]
-        }
-      }
-    },
-
-    "imquic": {
-      "name": "imquic",
-      "organization": "Meetecho",
-      "repository": "https://github.com/meetecho/imquic",
-      "draft_versions": ["draft-16", "draft-15", "draft-14", "draft-13", "draft-12", "draft-11"],
-      "notes": "C implementation. Supports multiple draft versions via negotiation.",
-      "roles": {
-        "relay": {
-          "remote": [
-            {
-              "url": "https://lminiero.it:9000",
-              "transport": "webtransport"
-            },
-            {
-              "url": "moqt://lminiero.it:9000",
-              "transport": "quic"
-            }
-          ]
-        }
-      }
-    },
-
-    "libquicr": {
-      "name": "libquicr",
-      "organization": "Cisco",
-      "repository": "https://github.com/Quicr/libquicr",
-      "draft_versions": ["draft-14"],
-      "notes": "C++ implementation",
-      "roles": {
-        "relay": {
-          "remote": [
-            {
-              "url": "https://us-west-2.relay.quicr.org:33437/relay",
-              "transport": "webtransport",
-              "tls_disable_verify": true,
-              "notes": "WebTransport endpoint"
-            },
-            {
-              "url": "moqt://us-west-2.relay.quicr.org:33437",
-              "transport": "quic",
-              "tls_disable_verify": true,
-              "notes": "Raw QUIC endpoint"
-            }
-          ]
+          "docker": {
+            "image": "ghcr.io/englishm/moq-interop-runner-xquic-moq-relay:latest",
+            "url": "moqt://relay:4443",
+            "notes": "Pre-built on GHCR (amd64). To build from source: ./builds/xquic/build.sh --target relay"
+          }
+        },
+        "client": {
+          "docker": {
+            "image": "ghcr.io/englishm/moq-interop-runner-xquic-moq-client:latest",
+            "notes": "Pre-built on GHCR (amd64). To build from source: ./builds/xquic/build.sh --target client"
+          }
         }
       }
     }
   },
-
   "_comment_how_to_add": [
     "To add a new implementation:",
     "1. Add a new key under 'implementations' with a unique ID",
     "2. Fill in metadata: name, organization, repository, draft_versions",
     "3. Add 'roles' object with supported roles (relay, client, publisher, subscriber)",
     "4. For each role, specify either/both:",
-    "   - 'docker': image name, build info, and any adapter needed",
+    "   - 'docker': image name, optional relay 'url' override, build info, and any adapter needed",
     "   - 'remote': array of endpoints with transport type (quic or webtransport)",
     "5. Transport types:",
     "   - 'quic': Raw QUIC (moqt:// URL scheme)",

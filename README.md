@@ -14,7 +14,7 @@ This project is modeled on the [QUIC Interop Runner](https://github.com/quic-int
 
 **Adversarial/negative testing.** Our test cases follow scenarios that occur between valid MoQT implementations. We don't require test clients to produce malformed messages or violate the protocol to test error handling. That kind of negative testing requires purpose-built tools capable of representing illegal protocol states - not something we expect from production MoQT implementations.
 
-**Browser-based implementations (for now).** The current Docker-based flow assumes CLI execution. Browser-only implementations (TypeScript/WebTransport) can't plug in directly today. Playwright-based automation is a potential future direction.
+**Browser-based implementations (for now).** The current Docker-based flow assumes CLI execution. Non-browser TypeScript/Bun clients work via WebTransport polyfills (e.g. moq-dev-js), but browser-only implementations can't plug in directly today.
 
 ## Getting Started
 
@@ -54,14 +54,16 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 
 | Implementation | Organization | Draft Versions | Roles | Public Endpoints |
 |----------------|--------------|----------------|-------|------------------|
-| moq-rs | Cloudflare | draft-14 | relay, client | `https://draft-14.cloudflare.mediaoverquic.com:443/moq` |
-| moxygen | Meta | draft-12-14 | relay | `https://fb.mvfst.net:9448/moq-relay` |
-| moqtransport | TUM | draft-13 | relay | (no persistent relay) |
-| quiche-moq | Google | draft-14 | relay | `https://quichemoq.dev:443` |
-| moqtail | OzU | draft-14 | relay | `https://relay.moqtail.dev` |
-| libquicr | Cisco | draft-14 | relay | `https://us-west-2.relay.quicr.org:33437/relay` |
-| imquic | Meetecho | draft-13-14 | relay | `https://lminiero.it:9000` |
-| moq (moq-dev) | Luke Curley | draft-14 | relay | `https://cdn.moq.dev/anon` |
+| moq-rs | Cloudflare | 14 | relay, client | `https://draft-14.cloudflare.mediaoverquic.com:443/moq` |
+| moq-rs (draft-16) | Cloudflare | 16 | relay, client | |
+| moxygen | Meta | 14, 16 | relay, client | `https://fb.mvfst.net:9448/moq-relay` |
+| moq (moq-dev) | Luke Curley | 14-17 | relay, client | `https://cdn.moq.dev/anon` |
+| moq (moq-dev, JS) | Luke Curley | 14-17 | client | |
+| quiche-moq | Google | 16 | relay | `https://quichemoq.dev:443` |
+| moqtransport | TUM | 13 | relay | (no persistent relay) |
+| MOQtail | OzU | 16 | relay | `https://relay.moqtail.dev` |
+| libquicr | Cisco | 14 | relay | `https://us-west-2.relay.quicr.org:33437/relay` |
+| imquic | Meetecho | 16-18 | relay, client | `https://lminiero.it:9000` |
 
 This table is a snapshot — run `make interop-list` or see [`implementations.json`](./implementations.json) for the current state. See [IMPLEMENTATIONS.md](./IMPLEMENTATIONS.md) for how to add your implementation.
 
@@ -118,12 +120,12 @@ See [docs/tests/TEST-CASES.md](./docs/tests/TEST-CASES.md) for detailed specific
 
 - [moq-rs](https://github.com/cloudflare/moq-rs) - Cloudflare (Rust)
 - [moxygen](https://github.com/facebookexperimental/moxygen) - Meta (C++)
-- [quiche-moq](https://github.com/nicholasjackson/quiche-moq) - Google (C++)
+- [quiche-moq](https://github.com/google/quiche) - Google (C++)
 - [libquicr](https://github.com/Quicr/libquicr) - Cisco (C++)
 - [moqtransport](https://github.com/mengelbart/moqtransport) - TUM (Go)
 - [moq](https://github.com/moq-dev/moq) - Luke Curley (Rust + TypeScript)
 - [imquic](https://github.com/meetecho/imquic) - Meetecho (C)
-- [moqtail](https://github.com/streaming-university/moqtail) - OzU (Python)
+- [MOQtail](https://github.com/moqtail/moqtail) - OzU (Rust + TypeScript)
 
 ### Inspiration
 
