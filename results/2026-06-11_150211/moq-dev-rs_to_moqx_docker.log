@@ -1,0 +1,59 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+rm -rf mlog/
+mkdir -p mlog/relay mlog/client
+Running interop tests...
+  Relay:  moqx-interop:latest
+  Client: ghcr.io/englishm/moq-interop-runner-moq-dev-rs-client:latest
+  URL:    https://relay:4443
+time="2026-06-11T15:11:55Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-06-11T15:11:55Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-06-11T15:11:55Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-06-11T15:11:55Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+time="2026-06-11T15:11:55Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+ Container main-relay-1  Recreate
+ Container main-relay-1  Recreated
+Attaching to relay-1, test-client-1
+relay-1        | I0611 15:11:56.145719     1 main.cpp:145] Admin server listening on 0.0.0.0:8000
+relay-1        | W20260611 15:11:56.145820     1 QuicServerWorker.cpp:1363] HostId is already set to 0
+relay-1        | I0611 15:11:56.145983     9 QuicReuseportSteering.cpp:152] quic reuseport BPF steering: attached for group 0.0.0.0:4443
+relay-1        | W0611 15:11:56.146134     1 MoQServer.cpp:161] UDP send buffer for fd 27 is 425984 bytes (expected 2097152)
+test-client-1  | TAP version 14
+test-client-1  | # moq-dev-rs-client v0.1.0
+test-client-1  | # Relay: https://relay:4443
+test-client-1  | 1..6
+test-client-1  | ok 1 - setup-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 45
+test-client-1  |   ...
+relay-1        | E0611 15:12:01.781860     9 MoQServer.h:166] proxygen::HTTPException: Got error=ApplicationError: 91141958510811, Server closed by peer reason=cancelled
+relay-1        | E20260611 15:12:01.782068     9 HQSession.cpp:558] Connection closed with error err=91141958510811 msg=Server closed by peer reason=cancelled proto=h3, UA=, client CID=850e9d26ec949ee2, server CID=40000009ea3914ec, downstream=172.18.0.3:57968, 0.0.0.0:4443=local, drain=none
+relay-1        | E0611 15:12:02.285126     9 MoQServer.h:166] proxygen::HTTPException: Got error=ApplicationError: 91141958510811, Server closed by peer reason=cancelled
+test-client-1  | ok 2 - announce-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 503
+test-client-1  |   ...
+relay-1        | E20260611 15:12:02.285548     9 HQSession.cpp:558] Connection closed with error err=91141958510811 msg=Server closed by peer reason=cancelled proto=h3, UA=, client CID=1234423478ea5273, server CID=4000000c257c558e, downstream=172.18.0.3:57968, 0.0.0.0:4443=local, drain=none
+test-client-1  | ok 3 - publish-namespace-done
+test-client-1  |   ---
+test-client-1  |   duration_ms: 705
+test-client-1  |   ...
+test-client-1  | ok 4 - subscribe-error # SKIP moq-lite API requires announcement before subscribe
+relay-1        | E0611 15:12:02.990907     9 MoQServer.h:166] proxygen::HTTPException: Got error=ApplicationError: 91141958510811, Server closed by peer reason=cancelled
+relay-1        | E20260611 15:12:02.991111     9 HQSession.cpp:558] Connection closed with error err=91141958510811 msg=Server closed by peer reason=cancelled proto=h3, UA=, client CID=dd75b8115c484af0, server CID=4000001d557ee0de, downstream=172.18.0.3:57968, 0.0.0.0:4443=local, drain=none
+test-client-1  | not ok 5 - announce-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 1806
+test-client-1  |   message: "timeout waiting for announcement"
+test-client-1  |   ...
+test-client-1  | ok 6 - subscribe-before-announce # SKIP moq-lite API requires announcement before subscribe
+relay-1        | E0611 15:12:04.797404     9 MoQServer.h:166] proxygen::HTTPException: Got error=ApplicationError: 91141958510811, Server closed by peer reason=dropped
+relay-1        | E20260611 15:12:04.797511     9 HQSession.cpp:558] Connection closed with error err=91141958510811 msg=Server closed by peer reason=dropped proto=h3, UA=, client CID=4f2a2d22ce1523b2, server CID=4000001c9bc08547, downstream=172.18.0.3:57968, 0.0.0.0:4443=local, drain=none
+[Ktest-client-1 exited with code 1
+Aborting on container exit...
+ Container main-test-client-1  Stopping
+ Container main-test-client-1  Stopped
+ Container main-relay-1  Stopping
+ Container main-relay-1  Stopped
+
+make[1]: *** [Makefile:85: test] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
