@@ -1,0 +1,56 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://draft-14.cloudflare.mediaoverquic.com:443/moq...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://draft-14.cloudflare.mediaoverquic.com:443/moq \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://draft-14.cloudflare.mediaoverquic.com:443/moq
+# Transport: WebTransport
+1..6
+W0613 01:24:59.687486     1 MoQWebTransportClient.cpp:176] WebTransport: No WT-Protocol header in response, will use legacy version negotiation
+ok 1 - setup-only
+  ---
+  duration_ms: 72
+  info: SETUP exchange completed successfully
+  ...
+W0613 01:24:59.738037     1 MoQWebTransportClient.cpp:176] WebTransport: No WT-Protocol header in response, will use legacy version negotiation
+not ok 2 - announce-only
+  ---
+  duration_ms: 155
+  error: done
+  ...
+W0613 01:24:59.896771     1 MoQWebTransportClient.cpp:176] WebTransport: No WT-Protocol header in response, will use legacy version negotiation
+E0613 01:25:01.911572     1 MoQSession.cpp:5443] subscribeFuture exception=folly::OperationCancelled: coroutine operation cancelled
+not ok 3 - subscribe-error
+  ---
+  duration_ms: 2052
+  error: Timed out waiting for SUBSCRIBE response
+  ...
+W0613 01:25:01.944631     1 MoQWebTransportClient.cpp:176] WebTransport: No WT-Protocol header in response, will use legacy version negotiation
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 158
+  error: PUBLISH_NAMESPACE failed: done
+  ...
+W0613 01:25:02.101789     1 MoQWebTransportClient.cpp:176] WebTransport: No WT-Protocol header in response, will use legacy version negotiation
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 163
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+W0613 01:25:02.289881     1 MoQWebTransportClient.cpp:176] WebTransport: No WT-Protocol header in response, will use legacy version negotiation
+W0613 01:25:02.838657     1 MoQWebTransportClient.cpp:176] WebTransport: No WT-Protocol header in response, will use legacy version negotiation
+E0613 01:25:04.324878     1 MoQWebTransportClient.cpp:201] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 2091
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Session closed
+  ...
+E20260613 01:25:04.339082     1 HQSession.cpp:558] Connection closed with error err=91141958510811 msg=Client closed by peer reason=stream closed proto=h3, client CID=, server CID=dd4cd79049144bc6, local=10.1.0.185:47779, 162.159.207.5:443=upstream, drain=done
+make[1]: *** [Makefile:121: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
