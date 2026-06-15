@@ -1,0 +1,70 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against moqt://lminiero.it:9000...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://lminiero.it:9000 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+  [FAIL] setup-only: Failed: TimeoutError
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  [PASS] subscribe-error: Error received (expected): code=16
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+  [FAIL] subscribe-before-announce: Failed: TimeoutError
+ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-14' coro=<_MOQTSessionMixin._await_response() done, defined at /app/aiomoqt/protocol.py:250> exception=MOQTRequestError('request error: code=16 reason=Namespace not found')>
+Traceback (most recent call last):
+  File "/app/aiomoqt/protocol.py", line 276, in _await_response
+    raise MOQTRequestError(
+aiomoqt.types.MOQTRequestError: request error: code=16 reason=Namespace not found
+TAP version 14
+# date: 2026-06-15T00:59:26Z
+# ended: 2026-06-15T00:59:41Z
+# target: moqt://lminiero.it:9000
+# version: aiomoqt/0.9.8
+1..6
+not ok 1 - setup-only
+  ---
+  duration_ms: 5006.6
+  message: Failed: TimeoutError
+  expected: SERVER_SETUP received
+  received: TimeoutError
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 510.3
+  connection_id: unknown
+  message: PUBLISH_NAMESPACE_OK received
+  ...
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 613.2
+  connection_id: unknown
+  message: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 4 - subscribe-error
+  ---
+  duration_ms: 508.0
+  connection_id: unknown
+  message: Error received (expected): code=16
+  expected: SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST
+  ...
+ok 5 - announce-subscribe
+  ---
+  duration_ms: 1148.1
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: SUBSCRIBE_OK received — relay routed subscription
+  ...
+not ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 7007.4
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: Failed: TimeoutError
+  received: TimeoutError
+  ...
+make[1]: *** [Makefile:121: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
