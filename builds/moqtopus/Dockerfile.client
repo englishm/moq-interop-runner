@@ -1,0 +1,53 @@
+# syntax=docker/dockerfile:1
+
+FROM ubuntu:24.04 AS builder
+
+ARG VCPKG_REF=7fb558b02523aaa5f1f297e12d695962ce15fc92
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        build-essential ca-certificates cmake curl git ninja-build pkg-config \
+        tar unzip zip && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN git init /opt/vcpkg && \
+    git -C /opt/vcpkg remote add origin https://github.com/microsoft/vcpkg.git && \
+    git -C /opt/vcpkg fetch --depth 1 origin "${VCPKG_REF}" && \
+    git -C /opt/vcpkg checkout --detach FETCH_HEAD && \
+    /opt/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+
+WORKDIR /build
+COPY . .
+
+ENV VCPKG_ROOT=/opt/vcpkg
+RUN sed -i \
+        -e 's/"kind": "git"/"kind": "builtin"/' \
+        -e '/"baseline":/s/,$//' \
+        -e '\|"repository": "https://github.com/microsoft/vcpkg"$|d' \
+        vcpkg-configuration.json && \
+    cmake --preset=vcpkg -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build --target moqtopus_interop_client && \
+    mkdir -p /runtime-libs && \
+    cp -a build/vcpkg_installed/*-linux/lib/libmsquic.so* /runtime-libs/
+
+FROM ubuntu:24.04 AS runtime
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ca-certificates libatomic1 libnuma1 && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=builder /build/build/moqtopus_interop_client /app/moqtopus-interop-client
+COPY --from=builder /runtime-libs/ /usr/local/lib/
+COPY moqtopus-interop-entrypoint.sh /app/entrypoint.sh
+
+RUN chmod +x /app/entrypoint.sh && \
+    mkdir -p /mlog && \
+    chmod 0777 /mlog && \
+    ldconfig
+
+ENV RELAY_URL=moqt://relay:4443
+ENV TLS_DISABLE_VERIFY=0
+
+ENTRYPOINT ["/app/entrypoint.sh"]

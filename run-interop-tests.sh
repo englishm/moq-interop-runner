@@ -220,6 +220,56 @@ classify_version() {
     fi
 }
 
+# Run a command with a wall-clock timeout.
+#
+# GNU coreutils installs this as `timeout` on Linux and commonly as
+# `gtimeout` on macOS. The watchdog fallback keeps the runner usable with the
+# default macOS toolchain and Bash 3.2.
+run_with_timeout() {
+    local seconds="$1"
+    shift
+
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$seconds" "$@"
+        return $?
+    fi
+    if command -v gtimeout >/dev/null 2>&1; then
+        gtimeout "$seconds" "$@"
+        return $?
+    fi
+
+    local timeout_marker
+    timeout_marker=$(mktemp "${TMPDIR:-/tmp}/moq-interop-timeout.XXXXXX")
+    rm -f "$timeout_marker"
+
+    "$@" &
+    local command_pid=$!
+
+    (
+        sleep "$seconds"
+        if kill -0 "$command_pid" 2>/dev/null; then
+            : > "$timeout_marker"
+            kill -TERM "$command_pid" 2>/dev/null || true
+            sleep 2
+            kill -KILL "$command_pid" 2>/dev/null || true
+        fi
+    ) &
+    local watchdog_pid=$!
+
+    local command_status=0
+    wait "$command_pid" || command_status=$?
+    kill "$watchdog_pid" 2>/dev/null || true
+    wait "$watchdog_pid" 2>/dev/null || true
+
+    if [ -f "$timeout_marker" ]; then
+        rm -f "$timeout_marker"
+        return 124
+    fi
+
+    rm -f "$timeout_marker"
+    return "$command_status"
+}
+
 # Check if a Docker image exists locally.
 # Returns 0 if the image is available, 1 otherwise.
 image_exists() {
@@ -382,7 +432,7 @@ run_test() {
     fi
 
     if [[ "$mode" == "docker" ]]; then
-        if timeout "$test_timeout" make test RELAY_IMAGE="$target" CLIENT_IMAGE="$client_image" > "$result_file" 2>&1; then
+        if run_with_timeout "$test_timeout" make test RELAY_IMAGE="$target" CLIENT_IMAGE="$client_image" > "$result_file" 2>&1; then
             status="pass"
             PASSED=$((PASSED + 1))
             echo -e "${GREEN}✓ PASSED${NC}"
@@ -403,7 +453,7 @@ run_test() {
         local -a make_args=("test-external" "RELAY_URL=$target" "CLIENT_IMAGE=$client_image")
         [ "$tls_disable" = "true" ] && make_args+=("TLS_DISABLE_VERIFY=1")
 
-        if timeout "$test_timeout" make "${make_args[@]}" > "$result_file" 2>&1; then
+        if run_with_timeout "$test_timeout" make "${make_args[@]}" > "$result_file" 2>&1; then
             status="pass"
             PASSED=$((PASSED + 1))
             echo -e "${GREEN}✓ PASSED${NC}"
