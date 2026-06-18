@@ -1,13 +1,11 @@
 # aiomoqt adapter for MoQT interop testing (relay role)
 #
-# EXPERIMENTAL control-plane-only interop relay: no data forwarding, no
-# auth, no scale handling. It exists to exercise the 6 standard interop
-# cases (SETUP / PUBLISH_NAMESPACE / SUBSCRIBE + errors). Use moxygen or
-# moq-rs for real workloads.
+# aiomoqt server-side control plane over WebTransport (draft-16):
+# SETUP, PUBLISH_NAMESPACE, SUBSCRIBE. No object forwarding.
 #
-# Wraps the prebuilt aiomoqt image (which carries the MOQT_ROLE switch)
-# and pins relay mode + draft-16 WebTransport on the /certs convention
-# (cert.pem / priv.key). Serves on UDP/4443.
+# Wraps the prebuilt aiomoqt image (MOQT_ROLE switch), pinning relay
+# mode + draft-16 WebTransport on the /certs convention (cert.pem /
+# priv.key). Serves on UDP/4443.
 #
 # Build:
 #   docker build -t aiomoqt-interop-relay:latest \
@@ -27,6 +25,6 @@ ENV MOQT_DRAFT=16
 EXPOSE 4443/udp
 
 # The python:slim base lacks ss/netstat; check /proc/net/udp(6) for port
-# 4443 (0x115B). Mirrors the moxygen / moq-dev-rs adapters.
+# 4443 (0x115B).
 HEALTHCHECK --interval=2s --timeout=5s --start-period=5s --retries=10 \
     CMD grep -qi ":115B" /proc/net/udp6 || grep -qi ":115B" /proc/net/udp || exit 1
