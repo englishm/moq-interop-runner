@@ -21,6 +21,7 @@ on:
           - imquic-client
           - moq-rs-draft-18-relay
           - moq-rs-draft-18-client
+          - moq-go
       ref:
         description: 'Git ref for source builds (branch/tag/commit). Ignored for adapters.'
         required: false
@@ -136,6 +137,14 @@ jobs:
               echo "ref=$REF" >> "$GITHUB_OUTPUT"
               echo "build_command=./builds/moq-rs-draft-18/build.sh --ref $REF --target client" >> "$GITHUB_OUTPUT"
               echo 'images=[{"local":"moq-test-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-18"}]' >> "$GITHUB_OUTPUT"
+              ;;
+            moq-go)
+              REF="${{ inputs.ref }}"
+              REF="${REF:-draft-18}"
+              echo "build_type=build" >> "$GITHUB_OUTPUT"
+              echo "ref=$REF" >> "$GITHUB_OUTPUT"
+              echo "build_command=./builds/moq-go/build.sh --ref $REF" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"moq-go-relay:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-go-relay"},{"local":"moq-go-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-go-client"}]' >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "::error::Unknown implementation: $IMPL"
