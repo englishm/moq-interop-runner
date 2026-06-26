@@ -1,0 +1,42 @@
+name: PR Registration Validation
+
+# Default checks for PRs that add/remove/edit a client or relay registration.
+# Read-only and push-free: it validates the registration, shows the test plan
+# that WOULD run, and checks that the registered image exists. It never runs
+# the interop suite (that is the maintainer-gated live run) and never publishes.
+on:
+  pull_request:
+    paths:
+      - 'implementations.json'
+      - 'implementations.schema.json'
+      - 'validate-registration.sh'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-registration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          # Full history + the base branch so we can diff to find changed impls.
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch --no-tags --quiet origin "${{ github.base_ref }}"
+
+      - name: Install schema validator
+        run: python3 -m pip install --quiet jsonschema
+
+      - name: Validate registration
+        run: |
+          ./validate-registration.sh \
+            --base "origin/${{ github.base_ref }}" \
+            --summary "$GITHUB_STEP_SUMMARY"
