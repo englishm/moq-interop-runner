@@ -104,7 +104,11 @@ jobs:
           cp -r main/lib gh-pages-site/
 
           cd gh-pages-site
-          ./generate-report.sh
+          # Additive: only (re)generate the index + the detail report for the
+          # new run. Old detail reports are immutable and already committed, so
+          # regenerating all ~150 of them every night was the main cause of the
+          # Publish step blowing past the 60-min job timeout.
+          ./generate-report.sh "results/$TIMESTAMP"
 
           mv results/index.html index.html
           # Safer replacement: only modify hrefs that look like dates (YYYY-)
