@@ -9,20 +9,44 @@ on:
         description: 'Build source-based images from scratch instead of pulling pre-built from GHCR'
         type: boolean
         default: false
+      dry_run:
+        description: 'Validate the report/publish path without pushing to gh-pages (artifact + summary only)'
+        type: boolean
+        default: false
+  pull_request:
+    # Self-validation for changes to the report/publish machinery (like this
+    # one). Path-scoped to reporter/workflow files so it runs on harness PRs
+    # but NOT on the common contributor registration PR (implementations.json),
+    # which gets its own schema gate in a later PR.
+    paths:
+      - '.github/workflows/interop-report.yml'
+      - 'generate-report.sh'
+      - 'lib/**'
 
 
+# Least privilege by default: read-only. Only the nightly publish job is
+# granted write access (below), so the dry-run job can never push to gh-pages.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: interop-report
+  # Separate group per ref so dry-runs never queue behind / cancel the nightly
+  # (which always runs on the default branch).
+  group: interop-report-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   test-and-publish:
-    if: github.repository == 'englishm/moq-interop-runner'
+    # Publishes for effect: nightly schedule, or a maintainer dispatch that is
+    # NOT a dry-run. Never on pull_request.
+    if: >-
+      github.repository == 'englishm/moq-interop-runner' &&
+      github.event_name != 'pull_request' &&
+      !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: write  # publishes to gh-pages
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -104,7 +128,11 @@ jobs:
           cp -r main/lib gh-pages-site/
 
           cd gh-pages-site
-          ./generate-report.sh
+          # Additive: only (re)generate the index + the detail report for the
+          # new run. Old detail reports are immutable and already committed, so
+          # regenerating all ~150 of them every night was the main cause of the
+          # Publish step blowing past the 60-min job timeout.
+          ./generate-report.sh "results/$TIMESTAMP"
 
           mv results/index.html index.html
           # Safer replacement: only modify hrefs that look like dates (YYYY-)
@@ -121,4 +149,94 @@ jobs:
           git add .
           git commit -m "Add interop results for $TIMESTAMP"
           git push origin gh-pages
+
+  dry-run-report:
+    # Validates the report/publish path without touching the live site. It
+    # exercises the real nightly publish logic (index + one new detail) against
+    # the already-published results, ASSERTS the additive property (no existing
+    # detail report is rewritten — the regression that caused the timeout),
+    # reports generation time + a result summary inline, and uploads the
+    # rendered site as an artifact. Read-only: it can never push to gh-pages.
+    #
+    # Runs automatically on reporter/workflow PRs, and on a maintainer
+    # `workflow_dispatch` with dry_run=true (dispatch requires write access).
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && inputs.dry_run)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout ref
+        uses: actions/checkout@v4
+        with:
+          path: main
+
+      - name: Checkout gh-pages (published results)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-site
+
+      - name: Regenerate report and validate additive behavior
+        working-directory: gh-pages-site
+        run: |
+          set -euo pipefail
+          cp ../main/generate-report.sh .
+          cp -r ../main/lib .
+
+          LATEST=$(ls -1d results/*/ 2>/dev/null | sort | tail -1 | xargs -r basename || true)
+          if [ -z "${LATEST:-}" ]; then
+            echo "No published results to render — nothing to validate." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Synthesize a fresh run from the latest one so we exercise the real
+          # nightly path: generate the index + ONE new detail report.
+          NEWTS="dryrun-preview"
+          rm -rf "results/$NEWTS"
+          cp -r "results/$LATEST" "results/$NEWTS"
+
+          start=$(date +%s)
+          ./generate-report.sh "results/$NEWTS"
+          elapsed=$(( $(date +%s) - start ))
+
+          mv results/index.html index.html
+          sed -i 's|href="\([0-9]\{4\}-\)|href="results/\1|g' index.html
+          sed -i 's|href="../index.html"|href="../../index.html"|g' results/*/report.html
+          rm generate-report.sh
+          rm -rf lib
+
+          # Assert additive: no PRE-EXISTING detail report may be modified.
+          modified_existing=$(git diff --name-only -- 'results/**/report.html' \
+            | { grep -v "results/$NEWTS/" || true; } | wc -l | tr -d ' ')
+          scanned=$(ls -1d results/*/ | { grep -v "results/$NEWTS/" || true; } | wc -l | tr -d ' ')
+
+          {
+            echo "## Interop report — additive publish dry-run"
+            echo ""
+            echo "| Check | Value |"
+            echo "|---|---|"
+            echo "| Published runs scanned | $scanned |"
+            echo "| Generation time (index + 1 new detail) | ${elapsed}s |"
+            echo "| Pre-existing detail reports modified | $modified_existing (expected 0) |"
+            echo ""
+            if [ "$modified_existing" -eq 0 ]; then
+              echo "✅ **Additive** — regenerating touched only the new run + index."
+            else
+              echo "❌ **Not additive** — $modified_existing existing report(s) rewritten. This is the regression that stalls the nightly."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          [ "$modified_existing" -eq 0 ]
+
+      - name: Upload rendered site
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-preview
+          path: |
+            gh-pages-site
+            !gh-pages-site/.git
+          retention-days: 7
 
