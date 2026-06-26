@@ -1,0 +1,51 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against moqt://lminiero.it:9000...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://lminiero.it:9000 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://lminiero.it:9000
+# Transport: QUIC
+1..6
+not ok 1 - setup-only
+  ---
+  duration_ms: 4000
+  error: Timed out waiting for SETUP exchange
+  ...
+E0626 22:58:41.042339     1 MoQRelaySession.cpp:880] PublishNamespaceDone for unknown publishNamespace, sess=0x5587ea6573b0
+ok 2 - announce-only
+  ---
+  duration_ms: 518
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 1024
+  info: Subscribe correctly returned error: Namespace not found
+  ...
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 1669
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+E0626 22:58:43.737186     1 MoQSession.cpp:5667] publishDone for invalid id=1 sess=0x5587ea653930
+not ok 5 - publish-namespace-done
+  ---
+  duration_ms: 512
+  error: PUBLISH_NAMESPACE failed: Namespace already published
+  ...
+E0626 22:58:49.603478     1 MoQSession.cpp:5539] subscribeFuture exception=folly::OperationCancelled: coroutine operation cancelled
+not ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 5353
+  error: Timed out during subscribe-before-announce test
+  ...
+E20260626 22:58:50.604478     1 EventHandler.cpp:90] EventBase: failed to register event handler for fd 9: Resource temporarily unavailable
+E20260626 22:58:50.605576     1 EventHandler.cpp:90] EventBase: failed to register event handler for fd 12: Resource temporarily unavailable
+make[1]: *** [Makefile:121: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
