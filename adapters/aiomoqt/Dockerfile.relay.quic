@@ -1,0 +1,29 @@
+# aiomoqt adapter for MoQT interop testing (relay role, raw QUIC)
+#
+# Same control-plane relay as Dockerfile.relay, but served over raw QUIC
+# (moqt://) instead of WebTransport. aiopquic can't dual-ALPN one UDP
+# port, so QUIC and WT are separate single-transport instances; this one
+# sets MOQT_QUIC=1 so the entrypoint passes --quic (raw QUIC on the
+# primary port). draft-16 + draft-18. No object forwarding.
+#
+# Build:
+#   docker build -t aiomoqt-interop-relay-quic:latest \
+#     -f adapters/aiomoqt/Dockerfile.relay.quic adapters/aiomoqt/
+#
+# Usage:
+#   docker run -v ./certs:/certs -p 4443:4443/udp aiomoqt-interop-relay-quic:latest
+FROM ghcr.io/gmarzot/aiomoqt:latest
+
+# Entrypoint (docker-entrypoint.sh): relay role, raw QUIC (MOQT_QUIC set
+# → --quic), draft-16/18. Certs default to /certs/cert.pem + /certs/priv.key.
+ENV MOQT_ROLE=relay
+ENV MOQT_PORT=4443
+ENV MOQT_DRAFT=16,18
+ENV MOQT_QUIC=1
+
+EXPOSE 4443/udp
+
+# The python:slim base lacks ss/netstat; check /proc/net/udp(6) for port
+# 4443 (0x115B).
+HEALTHCHECK --interval=2s --timeout=5s --start-period=5s --retries=10 \
+    CMD grep -qi ":115B" /proc/net/udp6 || grep -qi ":115B" /proc/net/udp || exit 1

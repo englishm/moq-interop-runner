@@ -10,9 +10,10 @@
       "repository": "https://github.com/gmarzot/aiomoqt",
       "draft_versions": [
         "draft-14",
-        "draft-16"
+        "draft-16",
+        "draft-18"
       ],
-      "notes": "Python asyncio implementation of MoQT. Supports draft-14 and draft-16 via version negotiation.",
+      "notes": "Python asyncio implementation of MoQT. Supports draft-14, draft-16, and draft-18. The client self-selects the wire version per relay via a preference-ordered SETUP probe (16 -> 14 -> 18), pinning the first that completes, so a single image prefers draft-16 against draft-16-capable relays while still reaching draft-18-only relays.",
       "roles": {
         "client": {
           "docker": {
@@ -27,19 +28,45 @@
       "organization": "MarzResearch",
       "repository": "https://github.com/gmarzot/aiomoqt",
       "draft_versions": [
-        "draft-16"
+        "draft-16",
+        "draft-18"
       ],
-      "notes": "aiomoqt server-side control plane over WebTransport (draft-16): SETUP, PUBLISH_NAMESPACE, SUBSCRIBE. No object forwarding.",
+      "notes": "aiomoqt server-side control plane over WebTransport (draft-16/18): SETUP, PUBLISH_NAMESPACE, SUBSCRIBE. No object forwarding.",
       "roles": {
         "relay": {
           "docker": {
             "image": "aiomoqt-interop-relay:latest",
+            "url": "https://relay:4443",
             "build": {
               "dockerfile": "adapters/aiomoqt/Dockerfile.relay",
               "context": "adapters/aiomoqt"
             },
             "upstream_image": "ghcr.io/gmarzot/aiomoqt:latest",
-            "notes": "Adapter pins relay mode + draft-16 WebTransport on the /certs convention (MOQT_ROLE=relay)."
+            "notes": "Adapter pins relay mode + draft-16/18 WebTransport on the /certs convention (MOQT_ROLE=relay)."
+          }
+        }
+      }
+    },
+    "aiomoqt-relay-quic": {
+      "name": "aiomoqt (relay, raw QUIC)",
+      "organization": "MarzResearch",
+      "repository": "https://github.com/gmarzot/aiomoqt",
+      "draft_versions": [
+        "draft-16",
+        "draft-18"
+      ],
+      "notes": "Same aiomoqt control-plane relay over raw QUIC (moqt://) instead of WebTransport. aiopquic can't dual-ALPN one UDP port, so QUIC is a separate single-transport instance (MOQT_QUIC=1). No object forwarding.",
+      "roles": {
+        "relay": {
+          "docker": {
+            "image": "aiomoqt-interop-relay-quic:latest",
+            "url": "moqt://relay:4443",
+            "build": {
+              "dockerfile": "adapters/aiomoqt/Dockerfile.relay.quic",
+              "context": "adapters/aiomoqt"
+            },
+            "upstream_image": "ghcr.io/gmarzot/aiomoqt:latest",
+            "notes": "Adapter pins relay mode + raw QUIC (MOQT_QUIC=1) + draft-16/18 on the /certs convention."
           }
         }
       }

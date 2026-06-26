@@ -1,10 +1,10 @@
 # aiomoqt adapter for MoQT interop testing (relay role)
 #
-# aiomoqt server-side control plane over WebTransport (draft-16):
+# aiomoqt server-side control plane over WebTransport (draft-16/18):
 # SETUP, PUBLISH_NAMESPACE, SUBSCRIBE. No object forwarding.
 #
 # Wraps the prebuilt aiomoqt image (MOQT_ROLE switch), pinning relay
-# mode + draft-16 WebTransport on the /certs convention (cert.pem /
+# mode + draft-16/18 WebTransport on the /certs convention (cert.pem /
 # priv.key). Serves on UDP/4443.
 #
 # Build:
@@ -16,11 +16,12 @@
 FROM ghcr.io/gmarzot/aiomoqt:latest
 
 # The image's entrypoint reads these (docker-entrypoint.sh): relay role,
-# draft-16, WebTransport (no MOQT_QUIC). Certs default to
-# /certs/cert.pem + /certs/priv.key.
+# draft-16 + draft-18 (advertises both WT-protocols, server negotiates),
+# WebTransport (no MOQT_QUIC). Certs default to /certs/cert.pem +
+# /certs/priv.key.
 ENV MOQT_ROLE=relay
 ENV MOQT_PORT=4443
-ENV MOQT_DRAFT=16
+ENV MOQT_DRAFT=16,18
 
 EXPOSE 4443/udp
 
