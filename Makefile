@@ -17,7 +17,7 @@ SHELL := /bin/bash
 .PHONY: test test-verbose test-single test-external clean mlog-clean certs \
         interop-all interop-docker interop-remote interop-relay interop-client interop-list \
         relay-start relay-stop logs logs-relay logs-client \
-        build-adapters build-moxygen-adapter build-impl build-moq-rs report help _ensure-certs
+        build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report help _ensure-certs
 
 #############################################################################
 # Image Configuration
@@ -228,6 +228,10 @@ build-impl:
 build-moq-rs:
 	@./builds/moq-rs/build.sh $(BUILD_ARGS)
 
+# Convenience target for moq-go
+build-moq-go:
+	@./builds/moq-go/build.sh $(BUILD_ARGS)
+
 #############################################################################
 # Report Generation
 #############################################################################
@@ -267,6 +271,7 @@ help:
 	@echo "  build-adapters        Build all adapter images"
 	@echo "  build-impl            Build from source: make build-impl IMPL=moq-rs"
 	@echo "  build-moq-rs          Convenience target for moq-rs"
+	@echo "  build-moq-go          Convenience target for moq-go"
 	@echo ""
 	@echo "  BUILD_ARGS examples:"
 	@echo "    --local ~/git/moq-rs    Use local checkout"

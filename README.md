@@ -64,6 +64,7 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 | MOQtail | OzU | 16 | relay | `https://relay.moqtail.dev` |
 | libquicr | Cisco | 14 | relay | `https://us-west-2.relay.quicr.org:33437/relay` |
 | imquic | Meetecho | 16-18 | relay, client | `https://lminiero.it:9000` |
+| moq-go | Vsevolod Strukchinsky | 18 | relay, client |  |
 
 This table is a snapshot — run `make interop-list` or see [`implementations.json`](./implementations.json) for the current state. See [IMPLEMENTATIONS.md](./IMPLEMENTATIONS.md) for how to add your implementation.
 
@@ -126,6 +127,7 @@ See [docs/tests/TEST-CASES.md](./docs/tests/TEST-CASES.md) for detailed specific
 - [moq](https://github.com/moq-dev/moq) - Luke Curley (Rust + TypeScript)
 - [imquic](https://github.com/meetecho/imquic) - Meetecho (C)
 - [MOQtail](https://github.com/moqtail/moqtail) - OzU (Rust + TypeScript)
+- [moq-go](https://github.com/floatdrop/moq-go) - Vsevolod Strukchinsky (Go)
 
 ### Inspiration
 
