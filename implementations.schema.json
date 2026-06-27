@@ -96,6 +96,18 @@
           "items": {
             "$ref": "#/definitions/remote_endpoint"
           }
+        },
+        "versions": {
+          "type": "object",
+          "description": "Per-draft config overlays for version-pinned testing, keyed by draft-NN. Overlay an image/flags/env/remote for that draft on top of the base docker/remote config.",
+          "propertyNames": { "pattern": "^draft-\\d+$" },
+          "additionalProperties": { "$ref": "#/definitions/version_layer" }
+        },
+        "peer_overrides": {
+          "type": "object",
+          "description": "Optional pairwise compatibility overlays for this impl's own container, keyed by peer implementation id, or 'peer-id@draft-NN' for a peer+draft combination.",
+          "propertyNames": { "pattern": "^[a-z][a-z0-9-]*(@draft-\\d+)?$" },
+          "additionalProperties": { "$ref": "#/definitions/override_layer" }
         }
       },
       "additionalProperties": false
@@ -108,6 +120,10 @@
         "image": {
           "type": "string",
           "description": "Docker image name:tag"
+        },
+        "flags": {
+          "$ref": "#/definitions/flags_map",
+          "description": "Base CLI flags passed to the launched binary (overlaid/extended by versions and peer_overrides)"
         },
         "url": {
           "type": "string",
@@ -178,6 +194,51 @@
           "description": "Additional notes about this endpoint"
         }
       }
+    },
+    "flags_map": {
+      "type": "object",
+      "description": "Map of CLI switch to value. Value is a string ('--k v'), true (bare flag '--k'), or an array of strings (repeated '--k a --k b'). When layers are merged, the most-specific layer wins for the same switch; different switches accumulate.",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "boolean" },
+          { "type": "array", "items": { "type": "string" } }
+        ]
+      }
+    },
+    "version_layer": {
+      "type": "object",
+      "description": "Per-draft config overlay for a role. Any field present overrides the base; flags merge most-specific-wins per switch, otherwise additive.",
+      "properties": {
+        "image": {
+          "type": "string",
+          "description": "Version-pinned image (overrides docker.image for this draft)"
+        },
+        "flags": { "$ref": "#/definitions/flags_map" },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "remote": {
+          "type": "array",
+          "description": "Version-pinned remote endpoints for this draft",
+          "items": { "$ref": "#/definitions/remote_endpoint" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "override_layer": {
+      "type": "object",
+      "description": "Pairwise (peer or peer@draft) config overlay applied only to this implementation's own container.",
+      "properties": {
+        "image": { "type": "string" },
+        "flags": { "$ref": "#/definitions/flags_map" },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
     }
   }
 }
