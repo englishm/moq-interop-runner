@@ -30,44 +30,57 @@ fi
 [ -z "$OUTPUT" ] && OUTPUT="$RESULTS_DIR/report-perdraft.html"
 SUMMARY="$RESULTS_DIR/summary.json"
 
-# Normalize fields: draft = .draft // .version ; transport = .transport // .mode
-norm() { jq -c '.runs | map({client, relay,
-                draft: (.draft // .version),
-                transport: (.transport // .mode),
-                status}) ' "$SUMMARY"; }
+# Family map (id -> family // id) for collapsing same-family registrations.
+CONFIG="$SCRIPT_DIR/implementations.json"
+FAMILY_MAP=$(jq -c '[.implementations | to_entries[]
+                     | {key: .key, value: (.value.family // .key)}] | from_entries' \
+             "$CONFIG" 2>/dev/null || echo '{}')
+
+# Normalize: add cfam/rfam (family of client/relay); draft/transport from either model.
+norm() { jq -c --argjson fam "$FAMILY_MAP" '.runs | map({
+           client, relay,
+           cfam: ($fam[.client] // .client),
+           rfam: ($fam[.relay]  // .relay),
+           draft: (.draft // .version),
+           transport: (.transport // .mode),
+           status})' "$SUMMARY"; }
 RUNS=$(norm)
 
-drafts()  { jq -r 'map(.draft)  | unique | sort_by(ltrimstr("draft-")|tonumber) | .[]' <<<"$RUNS"; }
-clients() { jq -r 'map(.client) | unique | .[]' <<<"$RUNS"; }
-relays()  { jq -r 'map(.relay)  | unique | .[]' <<<"$RUNS"; }
+drafts()  { jq -r 'map(.draft) | unique | sort_by(ltrimstr("draft-")|tonumber) | .[]' <<<"$RUNS"; }
+clients() { jq -r 'map(.cfam)  | unique | .[]' <<<"$RUNS"; }
+relays()  { jq -r 'map(.rfam)  | unique | .[]' <<<"$RUNS"; }
 
 # transport short label
 tlabel() { case "$1" in docker) echo LOCAL;; remote-quic|quic) echo QUIC;; remote-webtransport|webtransport) echo WT;; *) echo "${1:0:4}" | tr a-z A-Z;; esac; }
 
-# Render the pills for one (client, relay, draft): echo HTML, or "" if no pairing.
+# Render the stacked pills for one (client-family, relay-family, draft).
+# Aggregates all member registrations (transport/draft variants) of the families.
+# Echoes HTML, or "" if there is no pairing at this draft.
 cell_html() {
   local c="$1" r="$2" d="$3"
   local rows; rows=$(jq -c --arg c "$c" --arg r "$r" --arg d "$d" \
-      'map(select(.client==$c and .relay==$r and .draft==$d))' <<<"$RUNS")
+      'map(select(.cfam==$c and .rfam==$r and .draft==$d))' <<<"$RUNS")
   [ "$(jq 'length' <<<"$rows")" -eq 0 ] && return  # no pairing -> blank
 
   local out="" n; n=$(jq 'length' <<<"$rows")
   for i in $(seq 0 $((n-1))); do
-    local mode status label
+    local rawc rawr mode status label
+    rawc=$(jq -r ".[$i].client" <<<"$rows")
+    rawr=$(jq -r ".[$i].relay"  <<<"$rows")
     mode=$(jq -r ".[$i].transport" <<<"$rows")
     status=$(jq -r ".[$i].status" <<<"$rows")
     label=$(tlabel "$mode")
     if [ "$status" = "skip" ]; then
-      out+="<span class=\"pill skip\" title=\"explicitly skipped\">${label} SKIP</span>"
+      out+="<span class=\"pill skip\" title=\"explicitly skipped\">${label}: SKIP</span>"
       continue
     fi
-    local log="$RESULTS_DIR/${c}_to_${r}_${mode}.log"
+    local log="$RESULTS_DIR/${rawc}_to_${rawr}_${mode}.log"
     if parse_tap_file "$log" && [ "$TAP_TOTAL" -gt 0 ]; then
       local cls=partial; [ "$TAP_FAILED" -eq 0 ] && cls=pass; [ "$TAP_PASSED" -eq 0 ] && cls=fail
-      out+="<span class=\"pill ${cls}\">${label} ${TAP_PASSED}/${TAP_TOTAL}</span>"
+      out+="<span class=\"pill ${cls}\">${label}: ${TAP_PASSED}/${TAP_TOTAL}</span>"
     else
       local cls=pass; [ "$status" != "pass" ] && cls=fail
-      out+="<span class=\"pill ${cls}\">${label} ${status}</span>"
+      out+="<span class=\"pill ${cls}\">${label}: ${status}</span>"
     fi
   done
   echo "$out"
@@ -94,7 +107,8 @@ select{background:var(--card);color:var(--text);border:1px solid #334155;border-
 table{border-collapse:collapse;background:var(--card);border-radius:.5rem;overflow:hidden}
 th,td{padding:.55rem .6rem;text-align:center;border-bottom:1px solid var(--bg);border-right:1px solid var(--bg);font-size:.8rem;white-space:nowrap}
 th{background:#334155;font-weight:600}td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:#334155}
-.pill{display:inline-block;padding:.1rem .4rem;margin:.1rem;border-radius:9999px;font-size:.68rem;font-weight:600}
+.pill{display:inline-block;padding:.1rem .45rem;margin:.1rem;border-radius:9999px;font-size:.68rem;font-weight:600}
+td .pill{display:block;width:max-content;margin:.18rem auto;text-align:left}
 .pill.pass{background:rgba(34,197,94,.2);color:var(--pass)}
 .pill.fail{background:rgba(239,68,68,.2);color:var(--fail)}
 .pill.partial{background:rgba(251,191,36,.2);color:var(--partial)}
