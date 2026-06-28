@@ -69,10 +69,11 @@ cell_html() {
   local c="$1" r="$2" d="$3"
   local rows; rows=$(jq -c --arg c "$c" --arg r "$r" --arg d "$d" \
       'map(select(.cfam==$c and .rfam==$r and .draft==$d))' <<<"$RUNS")
-  [ "$(jq 'length' <<<"$rows")" -eq 0 ] && return  # no pairing -> blank
 
-  # One pill per transport (QUIC, then H3/WT). Protocol correctness per transport;
-  # source (local/remote) is a hover detail. Prefer the remote recipe when both exist.
+  # Always emit both transport slots (QUIC, H3/WT) so every cell is the same
+  # height; a transport with no recipe/result shows a muted "—" placeholder.
+  # Protocol correctness per transport; source (local/remote) is a hover detail.
+  # Prefer the remote recipe when both exist.
   local out="" T label
   for T in QUIC WT; do
     [ "$T" = "WT" ] && label="H3/WT" || label="QUIC"
@@ -80,7 +81,10 @@ cell_html() {
     run=$(jq -c --arg t "$T" \
         '(map(select(.t==$t))) as $m | (($m | map(select(.source=="remote")) | .[0]) // $m[0]) // empty' \
         <<<"$rows")
-    { [ -z "$run" ] || [ "$run" = "null" ]; } && continue
+    if [ -z "$run" ] || [ "$run" = "null" ]; then
+      out+="<span class=\"pill none\" title=\"no recipe for this transport at this draft\"><span class=\"plabel\">${label}</span><span class=\"pval\">&mdash;</span></span>"
+      continue
+    fi
 
     local status passed total source cls val
     status=$(jq -r '.status' <<<"$run")
@@ -136,6 +140,7 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .pill.fail{background:rgba(239,68,68,.16);color:var(--fail)}
 .pill.partial{background:rgba(251,191,36,.18);color:var(--partial)}
 .pill.skip{background:rgba(148,163,184,.14);color:var(--muted)}
+.pill.none{background:rgba(148,163,184,.06);color:#5a6680}
 .plabel{font-weight:600}
 .pval{font-weight:700}
 .pval.pass{color:var(--pass)}
@@ -164,9 +169,7 @@ for d in "${DRAFTS[@]}"; do
   for c in "${CLIENTS[@]}"; do
     echo "<tr><td><strong>$c</strong></td>"
     for r in "${RELAYS[@]}"; do
-      html=$(cell_html "$c" "$r" "$d")
-      if [ -z "$html" ]; then echo "<td><span class=\"blank\">—</span></td>"
-      else echo "<td>$html</td>"; fi
+      echo "<td>$(cell_html "$c" "$r" "$d")</td>"
     done
     echo "</tr>"
   done
@@ -177,7 +180,7 @@ cat <<'FOOT'
 <p class="legend">Two pills per cell &mdash; <strong>QUIC</strong> (raw QUIC) and <strong>H3/WT</strong>
 (HTTP/3 WebTransport) &mdash; protocol correctness per transport (<em>passed/total</em>). Hover a pill for
 whether that transport was tested against a local or remote endpoint.
-<span class="blank">&mdash;</span> = no pairing at this draft.</p>
+A muted <strong>&mdash;</strong> marks a transport with no recipe at this draft.</p>
 </div>
 <script>
 function showDraft(d){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.draft===d));}
