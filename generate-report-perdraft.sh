@@ -78,9 +78,14 @@ cell_html() {
   for T in QUIC WT; do
     [ "$T" = "WT" ] && label="H3/WT" || label="QUIC"
     local run
-    run=$(jq -c --arg t "$T" \
-        '(map(select(.t==$t))) as $m | (($m | map(select(.source=="remote")) | .[0]) // $m[0]) // empty' \
-        <<<"$rows")
+    # Prefer a recipe that produced a real result (remote first), then any remote,
+    # then anything — so a working local beats an unreachable remote for the same transport.
+    run=$(jq -c --arg t "$T" '
+        (map(select(.t==$t))) as $m |
+        (($m | map(select(.status=="pass" or .status=="fail" or .status=="partial"))
+              | (map(select(.source=="remote"))[0] // .[0]))
+         // ($m | map(select(.source=="remote"))[0])
+         // $m[0]) // empty' <<<"$rows")
     if [ -z "$run" ] || [ "$run" = "null" ]; then
       out+="<span class=\"pill none\" title=\"no recipe for this transport at this draft\"><span class=\"plabel\">${label}</span><span class=\"pval\">&mdash;</span></span>"
       continue
@@ -101,7 +106,7 @@ cell_html() {
     if [ "$status" = "skip" ]; then
       cls=skip; val="SKIP"; title="registered; this transport/draft marked skip on purpose"
     elif [ "$status" = "conn-fail" ]; then
-      cls=conn; val="no conn"; title="registered ${source} endpoint, but could not connect / attach"
+      cls=conn; val="&#8856;"; title="registered ${source} endpoint, but could not connect / attach"
     elif [ -n "$total" ] && [ "$total" -gt 0 ]; then
       cls=partial; [ "$passed" = "$total" ] && cls=pass; [ "$passed" = "0" ] && cls=fail
       val="${passed}/${total}"; title="tested against ${source} endpoint"
@@ -143,14 +148,14 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .pill.partial{background:rgba(251,191,36,.18);color:var(--partial)}
 .pill.skip{background:rgba(148,163,184,.14);color:var(--muted)}
 .pill.none{background:rgba(148,163,184,.06);color:#5a6680}
-.pill.conn{background:rgba(251,146,60,.15);color:#fb923c}
+.pill.conn{background:rgba(148,163,184,.07);color:#79859b}
 .plabel{font-weight:600}
 .pval{font-weight:700}
 .pval.pass{color:var(--pass)}
 .pval.fail{color:var(--fail)}
 .pval.partial{color:var(--partial)}
 .pval.skip{color:var(--muted)}
-.pval.conn{color:#fb923c}
+.pval.conn{color:#79859b}
 .blank{color:#475569}
 .page{display:none}.page.active{display:block}
 .legend{margin-top:1rem;color:var(--muted);font-size:.8rem}
@@ -184,7 +189,7 @@ cat <<'FOOT'
 <p class="legend">Two pills per cell &mdash; <strong>QUIC</strong> (raw QUIC) and <strong>H3/WT</strong>
 (HTTP/3 WebTransport) &mdash; protocol correctness per transport. <em>n/N</em> = tests passed/total
 (<em>0/N</em> = connected but all failed); hover for local vs remote endpoint.
-<span class="pill conn"><span class="pval conn">no conn</span></span> = endpoint registered but unreachable &middot;
+<span class="pill conn"><span class="pval conn">&#8856;</span></span> = endpoint registered but unreachable &middot;
 <span class="pill skip"><span class="pval skip">SKIP</span></span> = registered, this combo marked skip on purpose &middot;
 muted <strong>&mdash;</strong> = no registration for that transport at this draft.</p>
 </div>
