@@ -190,12 +190,9 @@ for d in "${DRAFTS[@]}"; do
 done
 
 cat <<'FOOT'
-<p class="legend">Two pills per cell &mdash; <strong>QUIC</strong> (raw QUIC) and <strong>H3/WT</strong>
-(HTTP/3 WebTransport) &mdash; protocol correctness per transport. <em>n/N</em> = tests passed/total
-(<em>0/N</em> = connected but all failed); hover for local vs remote endpoint.
-<span class="pill conn"><span class="pval conn">&#8856;</span></span> = endpoint registered but unreachable &middot;
-<span class="pill skip"><span class="pval skip">SKIP</span></span> = registered, this combo marked skip on purpose &middot;
-muted <strong>&mdash;</strong> = no registration for that transport at this draft.</p>
+<p class="legend"><span class="pill conn"><span class="pval conn">&#8856;</span></span> unreachable &middot;
+<span class="pill skip"><span class="pval skip">SKIP</span></span> skipped by config &middot;
+<strong>&mdash;</strong> not registered &middot; <span style="opacity:.7">hover for endpoint</span></p>
 </div>
 <script>
 function showDraft(d){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.draft===d));}
