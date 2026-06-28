@@ -97,7 +97,7 @@ cell_html() {
         cls=pass; [ "$status" != "pass" ] && cls=fail; val="$status"
       fi
     fi
-    local pill="<span class=\"pill ${cls}\"><span class=\"plabel\">${label}</span><span class=\"pval ${cls}\">${val}</span></span>"
+    local pill="<span class=\"pill ${cls}\"><span class=\"plabel\">${label}</span>:&nbsp;<span class=\"pval ${cls}\">${val}</span></span>"
     if [ "$dep" = "LOC" ]; then LOC[$trans]="$pill"; else REM[$trans]="$pill"; fi
   done
 
@@ -138,12 +138,12 @@ td:first-child{font-size:.92rem;font-weight:700}
 .cluster{display:block;width:7.5rem;margin:.25rem auto;padding:.2rem .3rem;border:1px solid #334155;border-radius:.5rem;background:rgba(2,6,23,.35)}
 .clabel{display:block;font-size:.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 0 .15rem .15rem}
 .pill{display:inline-block;padding:.1rem .45rem;margin:.1rem;border-radius:9999px;font-size:.68rem;font-weight:600;background:rgba(148,163,184,.14)}
-.cluster .pill{display:flex;justify-content:space-between;align-items:baseline;gap:.75rem;width:auto;margin:.12rem 0;text-align:left}
-.pill.pass{background:rgba(34,197,94,.16)}
-.pill.fail{background:rgba(239,68,68,.16)}
-.pill.partial{background:rgba(251,191,36,.18)}
-.pill.skip{background:rgba(148,163,184,.14)}
-.plabel{color:var(--text)}
+.cluster .pill{display:block;width:auto;margin:.12rem 0;text-align:left}
+.pill.pass{background:rgba(34,197,94,.16);color:var(--pass)}
+.pill.fail{background:rgba(239,68,68,.16);color:var(--fail)}
+.pill.partial{background:rgba(251,191,36,.18);color:var(--partial)}
+.pill.skip{background:rgba(148,163,184,.14);color:var(--muted)}
+.plabel{display:inline-block;width:3.1rem}
 .pval{font-weight:700}
 .pval.pass{color:var(--pass)}
 .pval.fail{color:var(--fail)}
