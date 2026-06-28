@@ -86,12 +86,12 @@ cell_html() {
       continue
     fi
 
-    local status passed total source cls val
+    local status passed total source cls val title
     status=$(jq -r '.status' <<<"$run")
     passed=$(jq -r '.passed // empty' <<<"$run")
     total=$(jq -r '.total // empty' <<<"$run")
     source=$(jq -r '.source' <<<"$run")
-    if [ -z "$total" ]; then
+    if [ -z "$total" ] && [ "$status" != "skip" ] && [ "$status" != "conn-fail" ]; then
       local rc rr m
       rc=$(jq -r '.client' <<<"$run"); rr=$(jq -r '.relay' <<<"$run"); m=$(jq -r '.mode' <<<"$run")
       if parse_tap_file "$RESULTS_DIR/${rc}_to_${rr}_${m}.log" && [ "$TAP_TOTAL" -gt 0 ]; then
@@ -99,15 +99,15 @@ cell_html() {
       fi
     fi
     if [ "$status" = "skip" ]; then
-      cls=skip; val=SKIP
+      cls=skip; val="SKIP"; title="registered; this transport/draft marked skip on purpose"
+    elif [ "$status" = "conn-fail" ]; then
+      cls=conn; val="no conn"; title="registered ${source} endpoint, but could not connect / attach"
     elif [ -n "$total" ] && [ "$total" -gt 0 ]; then
       cls=partial; [ "$passed" = "$total" ] && cls=pass; [ "$passed" = "0" ] && cls=fail
-      val="${passed}/${total}"
+      val="${passed}/${total}"; title="tested against ${source} endpoint"
     else
-      cls=pass; [ "$status" != "pass" ] && cls=fail; val="$status"
+      cls=fail; val="$status"; title="tested against ${source} endpoint"
     fi
-    local title="tested against ${source} endpoint"
-    [ "$status" = "skip" ] && title="recipe present, skipped this run"
     out+="<span class=\"pill ${cls}\" title=\"${title}\"><span class=\"plabel\">${label}</span><span class=\"pval ${cls}\">${val}</span></span>"
   done
   echo "$out"
@@ -143,12 +143,14 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .pill.partial{background:rgba(251,191,36,.18);color:var(--partial)}
 .pill.skip{background:rgba(148,163,184,.14);color:var(--muted)}
 .pill.none{background:rgba(148,163,184,.06);color:#5a6680}
+.pill.conn{background:rgba(251,146,60,.15);color:#fb923c}
 .plabel{font-weight:600}
 .pval{font-weight:700}
 .pval.pass{color:var(--pass)}
 .pval.fail{color:var(--fail)}
 .pval.partial{color:var(--partial)}
 .pval.skip{color:var(--muted)}
+.pval.conn{color:#fb923c}
 .blank{color:#475569}
 .page{display:none}.page.active{display:block}
 .legend{margin-top:1rem;color:var(--muted);font-size:.8rem}
@@ -180,10 +182,11 @@ done
 
 cat <<'FOOT'
 <p class="legend">Two pills per cell &mdash; <strong>QUIC</strong> (raw QUIC) and <strong>H3/WT</strong>
-(HTTP/3 WebTransport) &mdash; protocol correctness per transport (<em>passed/total</em>). Hover a pill for
-whether that transport was tested against a local or remote endpoint.
-<span class="pill skip"><span class="pval skip">SKIP</span></span> = a recipe exists but the run was skipped;
-a muted <strong>&mdash;</strong> = no recipe provided for that transport at this draft.</p>
+(HTTP/3 WebTransport) &mdash; protocol correctness per transport. <em>n/N</em> = tests passed/total
+(<em>0/N</em> = connected but all failed); hover for local vs remote endpoint.
+<span class="pill conn"><span class="pval conn">no conn</span></span> = endpoint registered but unreachable &middot;
+<span class="pill skip"><span class="pval skip">SKIP</span></span> = registered, this combo marked skip on purpose &middot;
+muted <strong>&mdash;</strong> = no registration for that transport at this draft.</p>
 </div>
 <script>
 function showDraft(d){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.draft===d));}

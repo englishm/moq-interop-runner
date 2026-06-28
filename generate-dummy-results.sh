@@ -49,9 +49,12 @@ jq '
               src:   (if ($fc[$r].wt_remote // false) then "remote" else "local" end) } ]
           | map(select(.avail)) )[] as $tp
       | ((($c + $r + $d + $tp.t) | explode | add)) as $h
-      # A recipe exists but the run was skipped (e.g. image unavailable) ~ every 17th.
+      # POC states: intentional skip (~1/17); a registered remote endpoint that is
+      # unreachable (~1/19 of remote); otherwise a real score (0/6 = connected, all failed).
       | (if ($h % 17 == 0)
          then { passed: null, total: null, status: "skip" }
+         elif ($tp.src == "remote" and ($h % 19 == 0))
+         then { passed: null, total: null, status: "conn-fail" }
          else (if ($h % 9 == 0) then 0 elif ($h % 4 == 0) then ($h % 6) else 6 end) as $p
               | { passed: $p, total: 6,
                   status: (if $p == 6 then "pass" elif $p == 0 then "fail" else "partial" end) }
