@@ -34,6 +34,8 @@ jq '
            | .[$f].quic_local = ((.[$f].quic_local // false) or (($rr.docker.url // "") | startswith("moqt")))
            | .[$f].wt_remote   = ((.[$f].wt_remote   // false) or (([ $rr.remote[]? | select(.transport == "webtransport") ] | length) > 0))
            | .[$f].quic_remote = ((.[$f].quic_remote // false) or (([ $rr.remote[]? | select(.transport == "quic") ] | length) > 0))
+           | .[$f].wt_url   = (.[$f].wt_url   // ([ $rr.remote[]? | select(.transport == "webtransport") | .url ][0]))
+           | .[$f].quic_url = (.[$f].quic_url // ([ $rr.remote[]? | select(.transport == "quic") | .url ][0]))
          else . end)
     )) as $fc
   | ($fc | to_entries | map(select(.value.client)) | map(.key) | sort) as $clients
@@ -59,7 +61,14 @@ jq '
               | { passed: $p, total: 6,
                   status: (if $p == 6 then "pass" elif $p == 0 then "fail" else "partial" end) }
          end) as $res
-      | { client: $c, relay: $r, draft: $d, transport: $tp.t, source: $tp.src } + $res
+      | (if $tp.src == "remote"
+         then (if $tp.t == "QUIC" then $fc[$r].quic_url else $fc[$r].wt_url end)
+         else null end) as $url
+      | (if $res.status == "conn-fail"
+         then (if ($h % 2 == 0) then "connection refused" else "connection timed out" end)
+         else null end) as $err
+      | { client: $c, relay: $r, draft: $d, transport: $tp.t, source: $tp.src,
+          url: $url, error: $err } + $res
     ]
   | { timestamp: "DUMMY (synthesized from implementations.json)",
       model: "version-pinned-dummy", runs: . }

@@ -49,7 +49,7 @@ norm() { jq -c --argjson fam "$FAMILY_MAP" '.runs | map(
                 else ($m|ascii_upcase) end),
             source: (.source // (if $m=="docker" then "local"
                                  elif ($m|startswith("remote")) then "remote" else "local" end)),
-            status, passed, total})' "$SUMMARY"; }
+            status, passed, total, url, error})' "$SUMMARY"; }
 RUNS=$(norm)
 
 # Drafts to render. Skip non-interop drafts (default 15/17 — nobody targets them);
@@ -91,11 +91,14 @@ cell_html() {
       continue
     fi
 
-    local status passed total source cls val title
+    local status passed total source cls val title url err loc
     status=$(jq -r '.status' <<<"$run")
     passed=$(jq -r '.passed // empty' <<<"$run")
     total=$(jq -r '.total // empty' <<<"$run")
     source=$(jq -r '.source' <<<"$run")
+    url=$(jq -r '.url // empty' <<<"$run")
+    err=$(jq -r '.error // empty' <<<"$run")
+    [ "$source" = "remote" ] && loc="$url" || loc="local (docker)"
     if [ -z "$total" ] && [ "$status" != "skip" ] && [ "$status" != "conn-fail" ]; then
       local rc rr m
       rc=$(jq -r '.client' <<<"$run"); rr=$(jq -r '.relay' <<<"$run"); m=$(jq -r '.mode' <<<"$run")
@@ -104,14 +107,14 @@ cell_html() {
       fi
     fi
     if [ "$status" = "skip" ]; then
-      cls=skip; val="SKIP"; title="registered; this transport/draft marked skip on purpose"
+      cls=skip; val="SKIP"; title="skipped via configuration"
     elif [ "$status" = "conn-fail" ]; then
-      cls=conn; val="&#8856;"; title="registered ${source} endpoint, but could not connect / attach"
+      cls=conn; val="&#8856;"; title="${url}&#10;${err:-failed to connect}"
     elif [ -n "$total" ] && [ "$total" -gt 0 ]; then
       cls=partial; [ "$passed" = "$total" ] && cls=pass; [ "$passed" = "0" ] && cls=fail
-      val="${passed}/${total}"; title="tested against ${source} endpoint"
+      val="${passed}/${total}"; title="$loc"
     else
-      cls=fail; val="$status"; title="tested against ${source} endpoint"
+      cls=fail; val="$status"; title="$loc"
     fi
     out+="<span class=\"pill ${cls}\" title=\"${title}\"><span class=\"plabel\">${label}</span><span class=\"pval ${cls}\">${val}</span></span>"
   done
