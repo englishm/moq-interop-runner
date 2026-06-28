@@ -135,10 +135,10 @@ th,td{padding:.55rem .6rem;text-align:center;border-bottom:1px solid var(--bg);b
 th{background:#334155;font-weight:700;font-size:.92rem}
 td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:#334155}
 td:first-child{font-size:.92rem;font-weight:700}
-.cluster{display:block;width:7.5rem;margin:.25rem auto;padding:.2rem .3rem;border:1px solid #334155;border-radius:.5rem;background:rgba(2,6,23,.35)}
+.cluster{display:block;width:6.8rem;margin:.25rem auto;padding:.25rem;border:1px solid #334155;border-radius:.5rem;background:rgba(2,6,23,.35)}
 .clabel{display:block;font-size:.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 0 .15rem .15rem}
 .pill{display:inline-block;padding:.1rem .45rem;margin:.1rem;border-radius:9999px;font-size:.68rem;font-weight:600;background:rgba(148,163,184,.14)}
-.cluster .pill{display:flex;width:fit-content;margin:.12rem auto;gap:.55rem;align-items:baseline}
+.cluster .pill{display:flex;justify-content:space-between;align-items:baseline;margin:.12rem 0;gap:.5rem}
 .pill.pass{background:rgba(34,197,94,.16);color:var(--pass)}
 .pill.fail{background:rgba(239,68,68,.16);color:var(--fail)}
 .pill.partial{background:rgba(251,191,36,.18);color:var(--partial)}
