@@ -37,13 +37,19 @@ FAMILY_MAP=$(jq -c '[.implementations | to_entries[]
              "$CONFIG" 2>/dev/null || echo '{}')
 
 # Normalize: add cfam/rfam (family of client/relay); draft/transport from either model.
-norm() { jq -c --argjson fam "$FAMILY_MAP" '.runs | map({
-           client, relay,
-           cfam: ($fam[.client] // .client),
-           rfam: ($fam[.relay]  // .relay),
-           draft: (.draft // .version),
-           transport: (.transport // .mode),
-           status, passed, total})' "$SUMMARY"; }
+norm() { jq -c --argjson fam "$FAMILY_MAP" '.runs | map(
+           (.transport // .mode) as $m |
+           {client, relay,
+            cfam: ($fam[.client] // .client),
+            rfam: ($fam[.relay]  // .relay),
+            draft: (.draft // .version),
+            mode: $m,
+            t: (if   ($m=="QUIC" or $m=="quic" or $m=="remote-quic") then "QUIC"
+                elif ($m=="WT" or $m=="webtransport" or $m=="remote-webtransport" or $m=="docker") then "WT"
+                else ($m|ascii_upcase) end),
+            source: (.source // (if $m=="docker" then "local"
+                                 elif ($m|startswith("remote")) then "remote" else "local" end)),
+            status, passed, total})' "$SUMMARY"; }
 RUNS=$(norm)
 
 # Drafts to render. Skip non-interop drafts (default 15/17 — nobody targets them);
@@ -65,50 +71,39 @@ cell_html() {
       'map(select(.cfam==$c and .rfam==$r and .draft==$d))' <<<"$RUNS")
   [ "$(jq 'length' <<<"$rows")" -eq 0 ] && return  # no pairing -> blank
 
-  # Group results into local/remote clusters, each holding QUIC and/or H3/WT pills.
-  local -A LOC REM
-  local n i; n=$(jq 'length' <<<"$rows")
-  for ((i=0; i<n; i++)); do
-    local rawc rawr mode status passed total dep trans label cls val
-    rawc=$(jq -r ".[$i].client" <<<"$rows")
-    rawr=$(jq -r ".[$i].relay"  <<<"$rows")
-    mode=$(jq -r ".[$i].transport" <<<"$rows")
-    status=$(jq -r ".[$i].status" <<<"$rows")
-    passed=$(jq -r ".[$i].passed // empty" <<<"$rows")
-    total=$(jq -r ".[$i].total // empty" <<<"$rows")
-    case "$mode" in
-      docker)                            dep=LOC; trans=WT ;;
-      remote-quic|quic)                  dep=REM; trans=QUIC ;;
-      remote-webtransport|webtransport)  dep=REM; trans=WT ;;
-      *)                                 dep=REM; trans=$(echo "$mode" | tr a-z A-Z) ;;
-    esac
-    [ "$trans" = "WT" ] && label="H3/WT" || label="$trans"
+  # One pill per transport (QUIC, then H3/WT). Protocol correctness per transport;
+  # source (local/remote) is a hover detail. Prefer the remote recipe when both exist.
+  local out="" T label
+  for T in QUIC WT; do
+    [ "$T" = "WT" ] && label="H3/WT" || label="QUIC"
+    local run
+    run=$(jq -c --arg t "$T" \
+        '(map(select(.t==$t))) as $m | (($m | map(select(.source=="remote")) | .[0]) // $m[0]) // empty' \
+        <<<"$rows")
+    { [ -z "$run" ] || [ "$run" = "null" ]; } && continue
 
-    if [ "$status" = "skip" ]; then
-      cls=skip; val=SKIP
-    else
-      if [ -z "$total" ] && parse_tap_file "$RESULTS_DIR/${rawc}_to_${rawr}_${mode}.log" && [ "$TAP_TOTAL" -gt 0 ]; then
+    local status passed total source cls val
+    status=$(jq -r '.status' <<<"$run")
+    passed=$(jq -r '.passed // empty' <<<"$run")
+    total=$(jq -r '.total // empty' <<<"$run")
+    source=$(jq -r '.source' <<<"$run")
+    if [ -z "$total" ]; then
+      local rc rr m
+      rc=$(jq -r '.client' <<<"$run"); rr=$(jq -r '.relay' <<<"$run"); m=$(jq -r '.mode' <<<"$run")
+      if parse_tap_file "$RESULTS_DIR/${rc}_to_${rr}_${m}.log" && [ "$TAP_TOTAL" -gt 0 ]; then
         passed=$TAP_PASSED; total=$TAP_TOTAL
       fi
-      if [ -n "$total" ] && [ "$total" -gt 0 ]; then
-        cls=partial; [ "$passed" = "$total" ] && cls=pass; [ "$passed" = "0" ] && cls=fail
-        val="${passed}/${total}"
-      else
-        cls=pass; [ "$status" != "pass" ] && cls=fail; val="$status"
-      fi
     fi
-    local pill="<span class=\"pill ${cls}\"><span class=\"plabel\">${label}</span><span class=\"pval ${cls}\">${val}</span></span>"
-    if [ "$dep" = "LOC" ]; then LOC[$trans]="$pill"; else REM[$trans]="$pill"; fi
+    if [ "$status" = "skip" ]; then
+      cls=skip; val=SKIP
+    elif [ -n "$total" ] && [ "$total" -gt 0 ]; then
+      cls=partial; [ "$passed" = "$total" ] && cls=pass; [ "$passed" = "0" ] && cls=fail
+      val="${passed}/${total}"
+    else
+      cls=pass; [ "$status" != "pass" ] && cls=fail; val="$status"
+    fi
+    out+="<span class=\"pill ${cls}\" title=\"tested against ${source} endpoint\"><span class=\"plabel\">${label}</span><span class=\"pval ${cls}\">${val}</span></span>"
   done
-
-  # Emit clusters; pills ordered QUIC then H3/WT.
-  local out=""
-  if [ -n "${LOC[QUIC]:-}${LOC[WT]:-}" ]; then
-    out+="<div class=\"cluster\"><span class=\"clabel\">local</span>${LOC[QUIC]:-}${LOC[WT]:-}</div>"
-  fi
-  if [ -n "${REM[QUIC]:-}${REM[WT]:-}" ]; then
-    out+="<div class=\"cluster\"><span class=\"clabel\">remote</span>${REM[QUIC]:-}${REM[WT]:-}</div>"
-  fi
   echo "$out"
 }
 
@@ -132,13 +127,11 @@ h1{margin-bottom:.25rem}.meta{color:var(--muted);margin-bottom:1.5rem}
 select{background:var(--card);color:var(--text);border:1px solid #334155;border-radius:.4rem;padding:.5rem .75rem;font-size:1rem}
 table{border-collapse:collapse;background:var(--card);border-radius:.5rem;overflow:hidden}
 th,td{padding:.55rem .6rem;text-align:center;border-bottom:1px solid var(--bg);border-right:1px solid var(--bg);font-size:.8rem;white-space:nowrap}
-th{background:#334155;font-weight:700;font-size:.92rem}
+th{background:#334155;font-weight:800;font-size:.98rem}
 td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:#334155}
-td:first-child{font-size:.92rem;font-weight:700}
-.cluster{display:block;width:6.8rem;margin:.25rem auto;padding:.25rem;border:1px solid #334155;border-radius:.5rem;background:rgba(2,6,23,.35)}
-.clabel{display:block;font-size:.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 0 .15rem .15rem}
-.pill{display:inline-block;padding:.1rem .45rem;margin:.1rem;border-radius:9999px;font-size:.68rem;font-weight:600;background:rgba(148,163,184,.14)}
-.cluster .pill{display:flex;justify-content:space-between;align-items:baseline;margin:.12rem 0;gap:.5rem}
+td:first-child{font-size:.98rem;font-weight:800}
+.pill{display:inline-block;padding:.12rem .55rem;margin:.1rem;border-radius:9999px;font-size:.68rem;font-weight:600;background:rgba(148,163,184,.14)}
+td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6.4rem;margin:.16rem auto;gap:.5rem;cursor:default}
 .pill.pass{background:rgba(34,197,94,.16);color:var(--pass)}
 .pill.fail{background:rgba(239,68,68,.16);color:var(--fail)}
 .pill.partial{background:rgba(251,191,36,.18);color:var(--partial)}
@@ -181,9 +174,9 @@ for d in "${DRAFTS[@]}"; do
 done
 
 cat <<'FOOT'
-<p class="legend">Each cell groups results into <strong>local</strong> (docker) and <strong>remote</strong> (public endpoint)
-clusters; within each, a pill per transport &mdash; <strong>QUIC</strong> (raw QUIC) and
-<strong>H3/WT</strong> (HTTP/3 WebTransport) &mdash; showing tests <em>passed/total</em>.
+<p class="legend">Two pills per cell &mdash; <strong>QUIC</strong> (raw QUIC) and <strong>H3/WT</strong>
+(HTTP/3 WebTransport) &mdash; protocol correctness per transport (<em>passed/total</em>). Hover a pill for
+whether that transport was tested against a local or remote endpoint.
 <span class="blank">&mdash;</span> = no pairing at this draft.</p>
 </div>
 <script>
