@@ -106,7 +106,9 @@ cell_html() {
     else
       cls=pass; [ "$status" != "pass" ] && cls=fail; val="$status"
     fi
-    out+="<span class=\"pill ${cls}\" title=\"tested against ${source} endpoint\"><span class=\"plabel\">${label}</span><span class=\"pval ${cls}\">${val}</span></span>"
+    local title="tested against ${source} endpoint"
+    [ "$status" = "skip" ] && title="recipe present, skipped this run"
+    out+="<span class=\"pill ${cls}\" title=\"${title}\"><span class=\"plabel\">${label}</span><span class=\"pval ${cls}\">${val}</span></span>"
   done
   echo "$out"
 }
@@ -180,7 +182,8 @@ cat <<'FOOT'
 <p class="legend">Two pills per cell &mdash; <strong>QUIC</strong> (raw QUIC) and <strong>H3/WT</strong>
 (HTTP/3 WebTransport) &mdash; protocol correctness per transport (<em>passed/total</em>). Hover a pill for
 whether that transport was tested against a local or remote endpoint.
-A muted <strong>&mdash;</strong> marks a transport with no recipe at this draft.</p>
+<span class="pill skip"><span class="pval skip">SKIP</span></span> = a recipe exists but the run was skipped;
+a muted <strong>&mdash;</strong> = no recipe provided for that transport at this draft.</p>
 </div>
 <script>
 function showDraft(d){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.draft===d));}

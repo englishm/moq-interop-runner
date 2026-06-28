@@ -49,11 +49,14 @@ jq '
               src:   (if ($fc[$r].wt_remote // false) then "remote" else "local" end) } ]
           | map(select(.avail)) )[] as $tp
       | ((($c + $r + $d + $tp.t) | explode | add)) as $h
-      | 6 as $total
-      | (if ($h % 9 == 0) then 0 elif ($h % 4 == 0) then ($h % 6) else 6 end) as $passed
-      | { client: $c, relay: $r, draft: $d, transport: $tp.t, source: $tp.src,
-          passed: $passed, total: $total,
-          status: (if $passed == $total then "pass" elif $passed == 0 then "fail" else "partial" end) }
+      # A recipe exists but the run was skipped (e.g. image unavailable) ~ every 17th.
+      | (if ($h % 17 == 0)
+         then { passed: null, total: null, status: "skip" }
+         else (if ($h % 9 == 0) then 0 elif ($h % 4 == 0) then ($h % 6) else 6 end) as $p
+              | { passed: $p, total: 6,
+                  status: (if $p == 6 then "pass" elif $p == 0 then "fail" else "partial" end) }
+         end) as $res
+      | { client: $c, relay: $r, draft: $d, transport: $tp.t, source: $tp.src } + $res
     ]
   | { timestamp: "DUMMY (synthesized from implementations.json)",
       model: "version-pinned-dummy", runs: . }
