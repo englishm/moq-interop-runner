@@ -5,9 +5,9 @@
 # implementations.json so the per-draft report can be shown fully populated.
 #
 # Model: what is tested is protocol correctness per TRANSPORT (QUIC, WT). Whether
-# a transport's recipe is local (docker) or remote (public endpoint) is not part
+# a transport's registration is local (docker) or remote (public endpoint) is not part
 # of the result — it's recorded as `source` (shown on hover). A relay family
-# offers at most one recipe per transport; when both a local and remote recipe
+# offers at most one registration per transport; when both a local and remote registration
 # exist we prefer the remote (public) one. Output marked model "DUMMY".
 #
 # Usage: ./generate-dummy-results.sh [implementations.json] > summary.json
@@ -18,7 +18,7 @@ CONFIG="${1:-$SCRIPT_DIR/implementations.json}"
 
 jq '
   .implementations as $impl
-  # Per-family: client/relay draft sets, client docker, and per-transport recipe
+  # Per-family: client/relay draft sets, client docker, and per-transport registration
   # availability (local via docker.url scheme, remote via endpoint transport).
   | (reduce ($impl | to_entries[]) as $e ({};
       ($e.value.family // $e.key) as $f

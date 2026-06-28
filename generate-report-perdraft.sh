@@ -2,9 +2,10 @@
 # generate-report-perdraft.sh - Per-draft interop matrix report (POC, ADR 003).
 #
 # Parallel to generate-report.sh. Renders ONE page per draft version, selectable
-# from a dropdown, instead of a single negotiated matrix. Each cell shows
-# per-transport pills (QUIC / WT / LOCAL), a blank for no pairing, or SKIP for an
-# explicitly skipped pairing. No version superscript, no at/ahead/behind target.
+# from a dropdown, instead of a single negotiated matrix. Each cell shows two
+# pills (QUIC and H3/WT) — protocol correctness per transport — with a muted "—"
+# where there is no version/transport registration. No version superscript, no
+# at/ahead/behind target.
 #
 # Data source: a results dir (summary.json + *.log), defaulting to the newest
 # under results/. Works with both the negotiated summary (runs[].version/.mode)
@@ -62,23 +63,23 @@ drafts() {
 clients() { jq -r 'map(.cfam)  | unique | .[]' <<<"$RUNS"; }
 relays()  { jq -r 'map(.rfam)  | unique | .[]' <<<"$RUNS"; }
 
-# Render the stacked pills for one (client-family, relay-family, draft).
-# Aggregates all member registrations (transport/draft variants) of the families.
-# Echoes HTML, or "" if there is no pairing at this draft.
+# Render the two transport pills (QUIC, H3/WT) for one (client-family,
+# relay-family, draft), aggregating the family's member registrations. Absent
+# transports show a muted "—"; every cell renders both slots.
 cell_html() {
   local c="$1" r="$2" d="$3"
   local rows; rows=$(jq -c --arg c "$c" --arg r "$r" --arg d "$d" \
       'map(select(.cfam==$c and .rfam==$r and .draft==$d))' <<<"$RUNS")
 
   # Always emit both transport slots (QUIC, H3/WT) so every cell is the same
-  # height; a transport with no recipe/result shows a muted "—" placeholder.
+  # height; a transport with no registration/result shows a muted "—" placeholder.
   # Protocol correctness per transport; source (local/remote) is a hover detail.
-  # Prefer the remote recipe when both exist.
+  # Prefer the remote registration when both exist.
   local out="" T label
   for T in QUIC WT; do
     [ "$T" = "WT" ] && label="H3/WT" || label="QUIC"
     local run
-    # Prefer a recipe that produced a real result (remote first), then any remote,
+    # Prefer a registration that produced a real result (remote first), then any remote,
     # then anything — so a working local beats an unreachable remote for the same transport.
     run=$(jq -c --arg t "$T" '
         (map(select(.t==$t))) as $m |
@@ -87,7 +88,7 @@ cell_html() {
          // ($m | map(select(.source=="remote"))[0])
          // $m[0]) // empty' <<<"$rows")
     if [ -z "$run" ] || [ "$run" = "null" ]; then
-      out+="<span class=\"pill none\" title=\"no recipe for this transport at this draft\"><span class=\"plabel\">${label}</span><span class=\"pval\">&mdash;</span></span>"
+      out+="<span class=\"pill none\" title=\"no version/transport registration\"><span class=\"plabel\">${label}</span><span class=\"pval\">&mdash;</span></span>"
       continue
     fi
 
