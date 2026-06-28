@@ -71,16 +71,16 @@ cell_html() {
     status=$(jq -r ".[$i].status" <<<"$rows")
     label=$(tlabel "$mode")
     if [ "$status" = "skip" ]; then
-      out+="<span class=\"pill skip\" title=\"explicitly skipped\">${label}: SKIP</span>"
+      out+="<span class=\"pill\" title=\"explicitly skipped\"><span class=\"plabel\">${label}</span>: <span class=\"pval skip\">SKIP</span></span>"
       continue
     fi
     local log="$RESULTS_DIR/${rawc}_to_${rawr}_${mode}.log"
     if parse_tap_file "$log" && [ "$TAP_TOTAL" -gt 0 ]; then
       local cls=partial; [ "$TAP_FAILED" -eq 0 ] && cls=pass; [ "$TAP_PASSED" -eq 0 ] && cls=fail
-      out+="<span class=\"pill ${cls}\">${label}: ${TAP_PASSED}/${TAP_TOTAL}</span>"
+      out+="<span class=\"pill\"><span class=\"plabel\">${label}</span>: <span class=\"pval ${cls}\">${TAP_PASSED}/${TAP_TOTAL}</span></span>"
     else
       local cls=pass; [ "$status" != "pass" ] && cls=fail
-      out+="<span class=\"pill ${cls}\">${label}: ${status}</span>"
+      out+="<span class=\"pill\"><span class=\"plabel\">${label}</span>: <span class=\"pval ${cls}\">${status}</span></span>"
     fi
   done
   echo "$out"
@@ -107,12 +107,14 @@ select{background:var(--card);color:var(--text);border:1px solid #334155;border-
 table{border-collapse:collapse;background:var(--card);border-radius:.5rem;overflow:hidden}
 th,td{padding:.55rem .6rem;text-align:center;border-bottom:1px solid var(--bg);border-right:1px solid var(--bg);font-size:.8rem;white-space:nowrap}
 th{background:#334155;font-weight:600}td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:#334155}
-.pill{display:inline-block;padding:.1rem .45rem;margin:.1rem;border-radius:9999px;font-size:.68rem;font-weight:600}
-td .pill{display:block;width:max-content;margin:.18rem auto;text-align:left}
-.pill.pass{background:rgba(34,197,94,.2);color:var(--pass)}
-.pill.fail{background:rgba(239,68,68,.2);color:var(--fail)}
-.pill.partial{background:rgba(251,191,36,.2);color:var(--partial)}
-.pill.skip{background:rgba(148,163,184,.2);color:var(--muted)}
+.pill{display:inline-block;padding:.12rem .55rem;margin:.1rem;border-radius:9999px;font-size:.68rem;font-weight:600;background:rgba(148,163,184,.14)}
+td .pill{display:block;width:5.5rem;margin:.18rem auto;text-align:left}
+.plabel{color:#fff}
+.pval{font-weight:700}
+.pval.pass{color:var(--pass)}
+.pval.fail{color:var(--fail)}
+.pval.partial{color:var(--partial)}
+.pval.skip{color:var(--muted)}
 .blank{color:#475569}
 .page{display:none}.page.active{display:block}
 .legend{margin-top:1rem;color:var(--muted);font-size:.8rem}
@@ -147,7 +149,7 @@ done
 cat <<'FOOT'
 <p class="legend">Each cell stacks one pill per transport &mdash; <strong>QUIC</strong> (raw QUIC),
 <strong>WT</strong> (WebTransport), or <strong>LOCAL</strong> (docker) &mdash; each showing tests <em>passed/total</em>.
-<span class="blank">&mdash;</span> = no pairing at this draft &middot; <span class="pill skip">SKIP</span> = explicitly skipped.</p>
+<span class="blank">&mdash;</span> = no pairing at this draft &middot; <span class="pill"><span class="pval skip">SKIP</span></span> = explicitly skipped.</p>
 </div>
 <script>
 function showDraft(d){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.draft===d));}
