@@ -145,9 +145,9 @@ for d in "${DRAFTS[@]}"; do
 done
 
 cat <<'FOOT'
-<p class="legend">Pills are per-transport: <span class="pill pass">QUIC 12/12</span> raw QUIC &middot;
-<span class="pill pass">WT 12/12</span> WebTransport &middot; <span class="pill pass">LOCAL 12/12</span> docker.
-<span class="blank">—</span> = no pairing at this draft &middot; <span class="pill skip">SKIP</span> = explicitly skipped.</p>
+<p class="legend">Each cell stacks one pill per transport &mdash; <strong>QUIC</strong> (raw QUIC),
+<strong>WT</strong> (WebTransport), or <strong>LOCAL</strong> (docker) &mdash; each showing tests <em>passed/total</em>.
+<span class="blank">&mdash;</span> = no pairing at this draft &middot; <span class="pill skip">SKIP</span> = explicitly skipped.</p>
 </div>
 <script>
 function showDraft(d){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.draft===d));}
