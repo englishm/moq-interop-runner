@@ -123,7 +123,7 @@ cat <<HEAD
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MoQT Interop — per-draft matrix</title>
 <style>
-:root{--pass:#22c55e;--fail:#ef4444;--partial:#fbbf24;--bg:#0f172a;--card:#1e293b;--text:#c4b5fd;--muted:#8b86b8;--accent:#c084fc;}
+:root{--pass:#22c55e;--fail:#ef4444;--partial:#fbbf24;--bg:#0f172a;--card:#1e293b;--text:#aebfd9;--muted:#8696ad;--accent:#7fa6cf;}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);padding:2rem;line-height:1.5}
 .container{max-width:1400px;margin:0 auto}

@@ -140,6 +140,22 @@ namespaces).
   Remote pairings stay **sequential per endpoint**, and version-pinned remotes
   must be **separate instances/ports** per draft.
 
+### Reporting / cell display
+
+- **One result set per cell.** With the page fixed to a single draft, a cell is
+  just `(client, relay)` at that draft — no version pills, and the per-cell
+  draft-number superscript is removed (redundant).
+- **No-pairing cells are blank (`—`)**, kept distinct from **`SKIP`**, which is
+  reserved for pairings that exist but were *explicitly* skipped (image
+  unavailable / notation).
+- **Transport is the cell's sub-dimension.** A pairing is exercised over raw
+  QUIC (`moqt://`) and/or HTTP/3 WebTransport (`https://`) — a relay may register
+  both — so the cell shows **per-transport pills** (e.g. `QUIC 12/12 · WT 12/12`)
+  rather than a blended total. Transport-pills are bounded (≤ ~3), unlike the
+  rejected version-pills. The aggregate max is the sum over transports
+  (both transports at N tests each → 2N). For remote-endpoint cases the pill
+  reflects the chosen transport per endpoint.
+
 ## Consequences
 
 **Positive**
