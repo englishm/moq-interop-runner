@@ -1,25 +1,25 @@
 #!/bin/bash
-# generate-dummy-results.sh - Synthesize full-coverage per-draft results (POC).
+# generate-dummy-results.sh - Synthesize full-coverage results (POC).
 #
-# Until the version-pinned runner has real coverage, fabricate a summary from
-# implementations.json so the per-draft report can be shown fully populated.
+# Emits two views (runs[].view):
+#   "draft" - the version-pinned per-draft matrix. Each (client,relay,draft,transport)
+#             cell, preferring the LOCAL (docker) recipe (version-confined, most
+#             credible); falls back to the remote endpoint only when no local exists.
+#   "open"  - "Open Relay Interop": for relays exposing a live/public endpoint, the
+#             mutually NEGOTIATED draft (highest common) tested against that endpoint,
+#             per remote transport. Real-world negotiation; client confines nothing.
 #
-# Model: what is tested is protocol correctness per TRANSPORT (QUIC, WT). Whether
-# a transport's registration is local (docker) or remote (public endpoint) is not part
-# of the result — it's recorded as `source` (shown on hover). A relay family
-# offers at most one registration per transport; when both a local and remote registration
-# exist we prefer the remote (public) one. Output marked model "DUMMY".
-#
-# Usage: ./generate-dummy-results.sh [implementations.json] > summary.json
+# Marked model "DUMMY". Usage: ./generate-dummy-results.sh [implementations.json] > summary.json
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="${1:-$SCRIPT_DIR/implementations.json}"
 
 jq '
+  def status($p; $t): if $p == $t then "pass" elif $p == 0 then "fail" else "partial" end;
+  def score($h): (if ($h % 9 == 0) then 0 elif ($h % 4 == 0) then ($h % 6) else 6 end);
+
   .implementations as $impl
-  # Per-family: client/relay draft sets, client docker, and per-transport registration
-  # availability (local via docker.url scheme, remote via endpoint transport).
   | (reduce ($impl | to_entries[]) as $e ({};
       ($e.value.family // $e.key) as $f
       | ($e.value.draft_versions // []) as $dv
@@ -42,33 +42,34 @@ jq '
   | ($fc | to_entries | map(select(.value.relay))  | map(.key) | sort) as $relays
   | [ $clients[] as $c | $relays[] as $r
       | ($fc[$c].client) as $cd | ($fc[$r].relay) as $rd
-      | (($cd) - (($cd) - ($rd)))[] as $d                # drafts both support
-      | ( [ { t: "QUIC",
-              avail: (($fc[$r].quic_local // false) or ($fc[$r].quic_remote // false)),
-              src:   (if ($fc[$r].quic_remote // false) then "remote" else "local" end) },
-            { t: "WT",
-              avail: (($fc[$r].wt_local // false) or ($fc[$r].wt_remote // false)),
-              src:   (if ($fc[$r].wt_remote // false) then "remote" else "local" end) } ]
-          | map(select(.avail)) )[] as $tp
-      | ((($c + $r + $d + $tp.t) | explode | add)) as $h
-      # POC states: intentional skip (~1/17); a registered remote endpoint that is
-      # unreachable (~1/19 of remote); otherwise a real score (0/6 = connected, all failed).
-      | (if ($h % 17 == 0)
-         then { passed: null, total: null, status: "skip" }
-         elif ($tp.src == "remote" and ($h % 19 == 0))
-         then { passed: null, total: null, status: "conn-fail" }
-         else (if ($h % 9 == 0) then 0 elif ($h % 4 == 0) then ($h % 6) else 6 end) as $p
-              | { passed: $p, total: 6,
-                  status: (if $p == 6 then "pass" elif $p == 0 then "fail" else "partial" end) }
-         end) as $res
-      | (if $tp.src == "remote"
-         then (if $tp.t == "QUIC" then $fc[$r].quic_url else $fc[$r].wt_url end)
-         else null end) as $url
-      | (if $res.status == "conn-fail"
-         then (if ($h % 2 == 0) then "connection refused" else "connection timed out" end)
-         else null end) as $err
-      | { client: $c, relay: $r, draft: $d, transport: $tp.t, source: $tp.src,
-          url: $url, error: $err } + $res
+      | (($cd) - (($cd) - ($rd))) as $common
+      | (
+          # ---- per-draft confined view (LOCAL preferred) ----
+          ( $common[] as $d
+            | ( { t: "QUIC", lo: ($fc[$r].quic_local // false), re: ($fc[$r].quic_remote // false), url: $fc[$r].quic_url },
+                { t: "WT",   lo: ($fc[$r].wt_local   // false), re: ($fc[$r].wt_remote   // false), url: $fc[$r].wt_url } )
+              | select(.lo or .re)
+              | (if .lo then "local" else "remote" end) as $src
+              | ((($c+$r+$d+.t) | explode | add)) as $h
+              | (if ($h % 17 == 0) then {passed:null,total:null,status:"skip"}
+                 elif (.re and (.lo|not) and ($h % 19 == 0)) then {passed:null,total:null,status:"conn-fail"}
+                 else (score($h)) as $p | {passed:$p, total:6, status: status($p;6)} end) as $res
+              | { view:"draft", client:$c, relay:$r, draft:$d, transport:.t, source:$src,
+                  url: (if $src=="remote" then .url else null end),
+                  error: (if $res.status=="conn-fail" then "connection refused" else null end) } + $res )
+          ,
+          # ---- open relay interop view (NEGOTIATED, live endpoint) ----
+          ( ($common | sort_by(ltrimstr("draft-")|tonumber) | last) as $neg
+            | select($neg != null and (($fc[$r].wt_remote // false) or ($fc[$r].quic_remote // false)))
+            | ( { t:"QUIC", re:($fc[$r].quic_remote // false), url:$fc[$r].quic_url },
+                { t:"WT",   re:($fc[$r].wt_remote   // false), url:$fc[$r].wt_url } )
+              | select(.re)
+              | ((($c+$r+"open"+.t) | explode | add)) as $h
+              | (if ($h % 23 == 0) then {passed:null,total:null,status:"conn-fail"}
+                 else (score($h)) as $p | {passed:$p, total:6, status: status($p;6)} end) as $res
+              | { view:"open", client:$c, relay:$r, draft:$neg, transport:.t, source:"remote", url:.url,
+                  error:(if $res.status=="conn-fail" then "connection timed out" else null end) } + $res )
+        )
     ]
   | { timestamp: "DUMMY (synthesized from implementations.json)",
       model: "version-pinned-dummy", runs: . }

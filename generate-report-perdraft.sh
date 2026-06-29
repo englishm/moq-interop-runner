@@ -50,6 +50,7 @@ norm() { jq -c --argjson fam "$FAMILY_MAP" '.runs | map(
                 else ($m|ascii_upcase) end),
             source: (.source // (if $m=="docker" then "local"
                                  elif ($m|startswith("remote")) then "remote" else "local" end)),
+            view: (.view // "draft"),
             status, passed, total, url, error})' "$SUMMARY"; }
 RUNS=$(norm)
 
@@ -57,35 +58,30 @@ RUNS=$(norm)
 # override with SKIP_DRAFTS="draft-NN draft-MM".
 SKIP_DRAFTS="${SKIP_DRAFTS:-draft-15 draft-17}"
 drafts() {
-  jq -r 'map(.draft) | unique | sort_by(ltrimstr("draft-")|tonumber) | .[]' <<<"$RUNS" \
+  jq -r 'map(select(.view=="draft").draft) | unique | sort_by(ltrimstr("draft-")|tonumber) | .[]' <<<"$RUNS" \
     | while IFS= read -r d; do [[ " $SKIP_DRAFTS " == *" $d "* ]] || echo "$d"; done
 }
 clients() { jq -r 'map(.cfam)  | unique | .[]' <<<"$RUNS"; }
 relays()  { jq -r 'map(.rfam)  | unique | .[]' <<<"$RUNS"; }
+# relays that expose a live endpoint (have any open-view runs)
+open_relays() { jq -r 'map(select(.view=="open").rfam) | unique | .[]' <<<"$RUNS"; }
+has_open() { [ -n "$(jq -r 'map(select(.view=="open")) | length' <<<"$RUNS" | grep -v '^0$')" ]; }
 
-# Render the two transport pills (QUIC, H3/WT) for one (client-family,
-# relay-family, draft), aggregating the family's member registrations. Absent
-# transports show a muted "—"; every cell renders both slots.
-cell_html() {
-  local c="$1" r="$2" d="$3"
-  local rows; rows=$(jq -c --arg c "$c" --arg r "$r" --arg d "$d" \
-      'map(select(.cfam==$c and .rfam==$r and .draft==$d))' <<<"$RUNS")
-
-  # Always emit both transport slots (QUIC, H3/WT) so every cell is the same
-  # height; a transport with no registration/result shows a muted "—" placeholder.
-  # Protocol correctness per transport; source (local/remote) is a hover detail.
-  # Prefer the remote registration when both exist.
+# Render the two transport pills (QUIC, H3/WT) for a set of rows, preferring the
+# given source ($2 = local|remote). Always emits both slots for uniform height.
+render_pills() {
+  local rows="$1" prefer="$2"
   local out="" T label
   for T in QUIC WT; do
     [ "$T" = "WT" ] && label="H3/WT" || label="QUIC"
     local run
-    # Prefer a registration that produced a real result (remote first), then any remote,
-    # then anything — so a working local beats an unreachable remote for the same transport.
-    run=$(jq -c --arg t "$T" '
+    # Prefer a run that produced a real result in the preferred source, then any
+    # preferred-source run, then anything — so a working preferred beats a broken one.
+    run=$(jq -c --arg t "$T" --arg pref "$prefer" '
         (map(select(.t==$t))) as $m |
         (($m | map(select(.status=="pass" or .status=="fail" or .status=="partial"))
-              | (map(select(.source=="remote"))[0] // .[0]))
-         // ($m | map(select(.source=="remote"))[0])
+              | (map(select(.source==$pref))[0] // .[0]))
+         // ($m | map(select(.source==$pref))[0])
          // $m[0]) // empty' <<<"$rows")
     if [ -z "$run" ] || [ "$run" = "null" ]; then
       out+="<span class=\"pill none\" title=\"no version/transport registration\"><span class=\"plabel\">${label}</span><span class=\"pval\">&mdash;</span></span>"
@@ -120,6 +116,25 @@ cell_html() {
     out+="<span class=\"pill ${cls}\" title=\"${title}\"><span class=\"plabel\">${label}</span><span class=\"pval ${cls}\">${val}</span></span>"
   done
   echo "$out"
+}
+
+# Per-draft cell (version-confined): prefer the LOCAL recipe; remote is fallback.
+cell_html() {
+  local c="$1" r="$2" d="$3"
+  local rows; rows=$(jq -c --arg c "$c" --arg r "$r" --arg d "$d" \
+      'map(select(.cfam==$c and .rfam==$r and .draft==$d and .view=="draft"))' <<<"$RUNS")
+  render_pills "$rows" local
+}
+
+# Open Relay Interop cell: a mutually-negotiated-draft badge plus the live-endpoint
+# (remote) transport pills. Blank when this pair has no live result.
+cell_open() {
+  local c="$1" r="$2"
+  local rows; rows=$(jq -c --arg c "$c" --arg r "$r" \
+      'map(select(.cfam==$c and .rfam==$r and .view=="open"))' <<<"$RUNS")
+  [ "$(jq 'length' <<<"$rows")" -eq 0 ] && { echo "<span class=\"blank\">&mdash;</span>"; return; }
+  local neg; neg=$(jq -r 'map(.draft)|unique|.[0] // empty' <<<"$rows")
+  echo "<span class=\"negdraft\" title=\"mutually negotiated draft\">${neg#draft-}</span>$(render_pills "$rows" remote)"
 }
 
 mapfile -t DRAFTS < <(drafts)
@@ -161,18 +176,21 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .pval.skip{color:var(--muted)}
 .pval.conn{color:#79859b}
 .blank{color:#475569}
+.negdraft{display:block;width:fit-content;margin:.1rem auto .2rem;padding:.05rem .5rem;border-radius:.3rem;font-size:.66rem;font-weight:800;color:var(--accent);background:rgba(127,166,207,.16);border:1px solid #3a516e}
+.openmeta{color:var(--muted);font-size:.82rem;margin:.25rem 0 1rem}
 .page{display:none}.page.active{display:block}
 .legend{margin-top:1rem;color:var(--muted);font-size:.8rem}
 </style></head><body><div class="container">
 <h1>MoQT Interop — per-draft matrix <span style="font-size:.6em;color:var(--muted)">(POC)</span></h1>
 <p class="meta">Generated: ${TS} &middot; one matrix per draft (negotiated → pinned)</p>
-<div class="controls"><label>Draft: <select id="draftSel" onchange="showDraft(this.value)">
+<div class="controls"><label>View: <select id="draftSel" onchange="showDraft(this.value)">
 HEAD
 
 # Latest draft first so it is the default landing view; older drafts follow.
 for ((i=${#DRAFTS[@]}-1; i>=0; i--)); do
   echo "<option value=\"${DRAFTS[$i]}\">${DRAFTS[$i]}</option>"
 done
+has_open && echo "<option value=\"open\">Open Relay Interop</option>"
 echo "</select></label></div>"
 
 for d in "${DRAFTS[@]}"; do
@@ -189,9 +207,25 @@ for d in "${DRAFTS[@]}"; do
   echo "</tbody></table></div>"
 done
 
+# Open Relay Interop page: clients × relays-with-live-endpoints; mutually negotiated draft.
+mapfile -t OPEN_RELAYS < <(open_relays)
+if [ "${#OPEN_RELAYS[@]}" -gt 0 ]; then
+  echo "<div class=\"page\" data-draft=\"open\"><p class=\"openmeta\">Live/public endpoints &mdash; mutually <strong>negotiated</strong> draft (no version confinement), complementing the confined per-draft matrix. The badge is the negotiated draft.</p><table><thead><tr><th>Client ↓ / Relay →</th>"
+  for r in "${OPEN_RELAYS[@]}"; do echo "<th>$r</th>"; done
+  echo "</tr></thead><tbody>"
+  for c in "${CLIENTS[@]}"; do
+    echo "<tr><td><strong>$c</strong></td>"
+    for r in "${OPEN_RELAYS[@]}"; do echo "<td>$(cell_open "$c" "$r")</td>"; done
+    echo "</tr>"
+  done
+  echo "</tbody></table></div>"
+fi
+
 cat <<'FOOT'
-<p class="legend"><span class="pill conn"><span class="pval conn">&#8856;</span></span> unreachable &middot;
-<span class="pill skip"><span class="pval skip">SKIP</span></span> skipped by config &middot;
+<p class="legend"><strong>draft-NN</strong> tabs: version-confined, local preferred &middot;
+<strong>Open Relay Interop</strong>: live endpoints at their <span class="negdraft" style="display:inline-block;margin:0">negotiated</span> draft &nbsp;|&nbsp;
+<span class="pill conn"><span class="pval conn">&#8856;</span></span> unreachable &middot;
+<span class="pill skip"><span class="pval skip">SKIP</span></span> skipped &middot;
 <strong>&mdash;</strong> not registered &middot; <span style="opacity:.7">hover for endpoint</span></p>
 </div>
 <script>
