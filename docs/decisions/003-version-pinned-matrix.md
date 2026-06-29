@@ -186,6 +186,23 @@ namespaces).
   (both transports at N tests each → 2N). For remote-endpoint cases the pill
   reflects the chosen transport per endpoint.
 
+### Parallelization (sharding by draft)
+
+The version-pinned matrix is larger than the negotiated one (per-draft × pairs),
+so execution must parallelize — and the per-draft structure makes that clean:
+each **draft page is independent**, so *draft* is a natural shard key.
+
+- Run N parallel jobs, each `run-interop-pinned.sh --draft draft-D` (the runner
+  already takes `--draft`), producing a partial per-draft `summary.json`.
+- A fan-in step merges the partials with `merge-results.sh` (keyed by
+  `(client, relay, draft, transport)`) and renders once.
+- Finer granularity when needed: shard by `draft × relay`.
+
+Wall-clock drops to roughly the slowest single shard. Combined with the additive
+report phase (only the new run is rendered) and `merge-results.sh`, the building
+blocks for sharded execution already exist; only the CI fan-out/fan-in wiring
+remains.
+
 ## Consequences
 
 **Positive**
