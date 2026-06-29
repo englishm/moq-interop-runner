@@ -1,42 +1,50 @@
 # Client version-confinement audit (Tier C)
 
-For the version-pinned matrix (ADR 003), a multi-version implementation needs a
-way to be **confined to one draft** so a cell on draft-D's page genuinely tests D.
-The runner always supplies the standard `MOQT_DRAFT=draft-D` (and the
-`${MOQT_DRAFT_NUM}` template = bare number); each registration interpolates that
-into whatever knob the impl actually exposes. This audit records the knob per
-implementation.
+For the version-pinned matrix (ADR 003), a cell on draft-D's page must genuinely
+test draft D. The runner cannot change wire negotiation — only what a side
+advertises — so **confinement is fundamentally the client's responsibility** in a
+pairing. (A relay offering version-specific images/deployments is its own
+freedom, not the mechanism the matrix relies on.)
 
-Single-version impls (the `moq-rs` draft family, `moq-go`, `xquic`, …) are
-inherently confined by their image and need nothing.
+The runner always supplies the standard `MOQT_DRAFT=draft-D` (with
+`${MOQT_DRAFT_NUM}` = the bare number for interpolation). Each **client**
+registration maps that to whatever knob the client exposes.
 
-| Impl | Role | Confinement knob | Source | Status |
-|------|------|------------------|--------|--------|
-| **moqx** | client + relay | `MOQX_MOQT_VERSIONS=<N>` (env, read by binary) | moqx-run.sh / entrypoint | ✅ encoded — `env: MOQX_MOQT_VERSIONS=${MOQT_DRAFT_NUM}` |
-| **moq-dev-rs** | client | `MOQ_CLIENT_VERSION=moq-transport-<N>` (env, read by binary) | `builds/moq-dev-rs/src/main.rs` | ✅ encoded — `env: MOQ_CLIENT_VERSION=moq-transport-${MOQT_DRAFT_NUM}` |
-| **aiomoqt** | client | `DRAFT=<N>` env (a single int pins; otherwise a `16,14,18` probe) | `aiomoqt/examples/moq_interop_client.py` | ✅ encoded — `env: DRAFT=${MOQT_DRAFT_NUM}` |
-| **aiomoqt** | relay | entrypoint maps `MOQT_DRAFT` → `--draft` | `aiomoqt docker-entrypoint.sh` | ⚠️ already honors the convention name — confirm `draft-16` vs `16` format (see below) |
-| **moq-dev-rs** | relay | (relay-side pin TBD) | — | ❓ needs check (`moq-relay` version flag/env) |
-| **moq-dev-js** | client | none found (`CERT_PATH` only) | `builds/moq-dev-js/src/main.ts` | ❌ needs upstream support |
-| **imquic** | client + relay | entrypoint passes only `--relay/--test/--tls/--verbose`; no version flag exposed | `builds/imquic/entrypoint-client.sh` (no local source) | ❓ needs Meetecho / source check |
-| **moxygen** | client | none found locally | `~/Projects/moq/moxygen` | ❓ needs check / maintainer |
-| **moqlivemock** | client | — (no local checkout) | Eyevinn/moqlivemock | ❓ needs source check / maintainer |
+## Findings (multi-version clients)
 
-## Format note surfaced by aiomoqt
+| Client | Knob | Evidence | Status |
+|--------|------|----------|--------|
+| **moqx** | `MOQX_MOQT_VERSIONS=<N>` env | moqx core (wraps moxygen's `getMoqtProtocols`) | ✅ encoded: `MOQX_MOQT_VERSIONS=${MOQT_DRAFT_NUM}` |
+| **moq-dev-rs** | `MOQ_CLIENT_VERSION=moq-transport-<N>` env | `builds/moq-dev-rs/src/main.rs` (reads env, pins `client_config.version`) | ✅ encoded: `MOQ_CLIENT_VERSION=moq-transport-${MOQT_DRAFT_NUM}` |
+| **aiomoqt** | `DRAFT=<N>` env (single int pins) | `aiomoqt/examples/moq_interop_client.py` | ✅ encoded: `DRAFT=${MOQT_DRAFT_NUM}` |
+| **moxygen** | none *exposed by the interop client* | `MoQInteropClientMain.cpp` gflags = relay/test/list/tls/verbose only; `MoQInteropClient.cpp` hardcodes `kInteropAlpns = {moqt-16,moqt-14,moq-00}` | ❌ capability exists in the moxygen lib (`MoQVersions.h` / `getMoqtProtocols`, used by moqx) but is **not wired to the interop client** → add a flag/env (read `MOQT_DRAFT`) |
+| **moq-dev-js** | none *in the interop wrapper* | `builds/moq-dev-js/src/main.ts` parses only `--relay/--test/--list/--tls/--verbose` | ❌ lib supports it (sibling moq-dev-rs has `MOQ_CLIENT_VERSION`; author confirms a switch) → **wire the wrapper** to read it and pass through to `Moq.Connection` |
+| **imquic** | none exposed by the entrypoint | `builds/imquic/entrypoint-client.sh` passes only `--relay/--test/--tls/--verbose`; no local source | ❓ needs Meetecho / imquic source for a version flag |
+| **moqlivemock** | unknown | no local checkout (Eyevinn/moqlivemock) | ❓ needs source / maintainer |
 
-The runner sets `MOQT_DRAFT=draft-16` (canonical draft id) and exposes
-`${MOQT_DRAFT_NUM}` = `16` for registrations that want the bare number. aiomoqt's
-relay entrypoint already reads `MOQT_DRAFT` and passes it to `--draft`, which
-expects the **number** — so either the convention's injected value should be the
-number, the impl should accept `draft-NN`, or the registration/entrypoint strips
-the prefix. **Recommendation:** keep `MOQT_DRAFT=draft-NN` as the canonical env
-(self-documenting), and have impls interpolate `${MOQT_DRAFT_NUM}` (or strip
-`draft-` in shell) where a bare number is required — which is exactly what the
-encoded client registrations above do.
+Single-version clients (`moq-rs` draft family, `moq-go`, `xquic`) are inherently
+confined by their image and ignore `MOQT_DRAFT`.
+
+## The recurring pattern
+
+The version-confinement capability almost always **exists in the implementation's
+core** — but the **interop test-client wrapper doesn't surface it** (moxygen and
+moq-dev-js both fit this exactly). So most of Tier C is not "add version support,"
+it's **"have each interop client read `MOQT_DRAFT` and confine."** That is exactly
+what the `MOQT_DRAFT` convention asks of test clients, and it slots into the
+[test-client interface](TEST-CLIENT-INTERFACE.md) as a small required behavior.
+
+## Format note (`draft-NN` vs `N`)
+
+The runner injects `MOQT_DRAFT=draft-NN` (canonical, self-documenting); clients
+that want the bare number interpolate `${MOQT_DRAFT_NUM}` (or strip `draft-` in
+shell). aiomoqt's relay entrypoint already reads `MOQT_DRAFT` and passes it to
+`--draft`, which surfaced this — the encoded client registrations use
+`${MOQT_DRAFT_NUM}` where a bare number is required.
 
 ## Encoded so far
 
-Confirmed from source and live in `implementations.json` (via `${MOQT_DRAFT_NUM}`
-interpolation): **moqx** (both roles), **moq-dev-rs** (client), **aiomoqt**
-(client). These produce real Tier-C confinement today; the rest are tracked above
-pending a knob (or maintainer input).
+Confirmed from source and live in `implementations.json`: **moqx**,
+**moq-dev-rs** (client), **aiomoqt** (client) — real Tier-C confinement today.
+**moxygen** and **moq-dev-js** need their interop wrappers wired to `MOQT_DRAFT`;
+**imquic** / **moqlivemock** need a source/maintainer check.
