@@ -1,0 +1,138 @@
+name: Version-Pinned Preview (staged, non-official)
+
+# Stages the per-draft (ADR 003) report so it can be OBSERVED from a PR without
+# touching official results. It publishes only under gh-pages:previews/ — never
+# results/, never the landing index.html — and a scheduled reaper ages previews out.
+#
+# Triggers:
+#   - pull_request labeled `vpm-preview`  -> runs THIS branch's workflow (no need
+#       to be on main first); publishes for same-repo PRs, artifact-only for forks.
+#   - workflow_dispatch (run_real)        -> available once on main; can also run
+#       Tier-A real image-pinned tests and merge them over the dummy baseline.
+#   - schedule                            -> reaper (prunes previews > 14 days).
+
+on:
+  pull_request:
+    types: [labeled, synchronize]
+  workflow_dispatch:
+    inputs:
+      run_real:
+        description: 'Run Tier-A real image-pinned tests and merge over dummy (slower). Off = dummy only.'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '0 3 * * 0'  # weekly reaper
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vpm-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    # PR labeled `vpm-preview`, or a manual dispatch. Never on schedule.
+    if: >-
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'vpm-preview'))
+      || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    permissions:
+      contents: write  # to publish under previews/ (capped to read for fork PRs -> artifact only)
+    steps:
+      - name: Checkout PR/ref
+        uses: actions/checkout@v4
+        with:
+          path: main
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-site
+
+      - name: Set up real Tier-A run (dispatch + run_real only)
+        if: github.event_name == 'workflow_dispatch' && inputs.run_real
+        working-directory: main
+        run: |
+          ./generate-certs.sh ./certs
+          jq -r '.implementations[].roles[].docker.image // empty' implementations.json \
+            | grep '^ghcr.io/' | sort -u | while read -r img; do docker pull "$img" || true; done
+
+      - name: Build staged summary + render
+        working-directory: main
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          # Dummy baseline = full coverage from the registry.
+          ./generate-dummy-results.sh > out/summary.json
+          # Optionally overlay real Tier-A (image-pinned) results.
+          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.run_real }}" = "true" ]; then
+            ./run-interop-pinned.sh --docker-only || true
+            REAL=$(ls -1d results/*-pinned/ 2>/dev/null | sort | tail -1 || true)
+            if [ -n "${REAL:-}" ] && [ -f "$REAL/summary.json" ]; then
+              ./merge-results.sh out/summary.json "$REAL/summary.json" > out/merged.json
+              mv out/merged.json out/summary.json
+            fi
+          fi
+          ./generate-report-perdraft.sh out -o out/index.html
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-pinned-preview
+          path: main/out/index.html
+          retention-days: 14
+
+      - name: Publish to gh-pages previews/ (same-repo only; off the main landing)
+        if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            SLUG="pr-${{ github.event.pull_request.number }}"
+          else
+            SLUG="version-pinned"
+          fi
+          DEST="gh-pages-site/previews/$SLUG"
+          mkdir -p "$DEST"
+          cp main/out/index.html "$DEST/index.html"
+          cd gh-pages-site
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add previews
+          if git diff --cached --quiet; then
+            echo "No preview change."
+          else
+            git commit -m "Version-pinned preview: $SLUG (staged, non-official)"
+            git push origin gh-pages
+          fi
+          URL="${{ github.server_url }}/${{ github.repository }}"
+          PAGES="https://$(echo '${{ github.repository_owner }}' | tr 'A-Z' 'a-z').github.io/$(echo '${{ github.repository }}' | cut -d/ -f2)/previews/$SLUG/"
+          echo "📊 Staged preview (not official): $PAGES" >> "$GITHUB_STEP_SUMMARY"
+
+  reap-previews:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-site
+      - name: Prune previews older than 14 days
+        working-directory: gh-pages-site
+        run: |
+          [ -d previews ] || { echo "no previews/"; exit 0; }
+          find previews -mindepth 1 -maxdepth 1 -type d -mtime +14 -exec rm -rf {} +
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to reap."
+          else
+            git commit -m "Reap version-pinned previews older than 14 days"
+            git push origin gh-pages
+          fi
