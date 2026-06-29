@@ -78,8 +78,12 @@ testable() {
     ($cv - ($cv - $rv)) as $common |
     if ($common | index($d) | not) then "no"
     else
-      (($i[$c].roles.client.versions[$d] != null) or ($cv == [$d])) as $cpin |
-      (($i[$r].roles.relay.versions[$d]  != null) or ($rv == [$d])) as $rpin |
+      # confinable to $d if: explicit versions[$d] entry, single-version impl,
+      # or the role interpolates the standard MOQT_DRAFT into its config.
+      (($i[$c].roles.client.versions[$d] != null) or ($cv == [$d])
+         or ($i[$c].roles.client | tostring | test("MOQT_DRAFT"))) as $cpin |
+      (($i[$r].roles.relay.versions[$d]  != null) or ($rv == [$d])
+         or ($i[$r].roles.relay | tostring | test("MOQT_DRAFT"))) as $rpin |
       ($common | sort_by(ltrimstr("draft-")|tonumber) | last) as $maxc |
       (if ($cpin or $rpin or ($d == $maxc)) then "yes" else "no" end)
     end' "$CONFIG_FILE"

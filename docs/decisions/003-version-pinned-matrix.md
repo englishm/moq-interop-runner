@@ -117,26 +117,22 @@ for the long tail of pairwise compat quirks.
 
 ### Execution and the `MOQT_DRAFT` convention
 
-The runner resolves each side's `{image, flags, env}` and injects it into the
-container. There are two layered, equivalent ways to confine a multi-version
-implementation to draft D — both supported:
+The runner's contract is constant and impl-agnostic: it **always supplies
+`MOQT_DRAFT=draft-D`** to every container. *How* an implementation acts on it is
+the registration's concern — keeping "what the runner provides" cleanly separate
+from "how an impl confines." Two equivalent ways:
 
-1. **Explicit per-draft entries.** `versions[draft-D]` carries the concrete
-   image/env/flags for D (e.g. moqx's `MOQX_MOQT_VERSIONS`). The container
-   receives the resolved value directly; nothing to translate. Best when drafts
-   genuinely differ (a different image, a per-draft endpoint).
-2. **The `MOQT_DRAFT` convention.** When a role has *no* explicit
-   `versions[draft-D]` entry, the runner injects a single `MOQT_DRAFT=draft-D`
-   fallback (an already-confined impl gets nothing extra). Independently, the
-   runner always expands `${MOQT_DRAFT}` / `${MOQT_DRAFT_NUM}` placeholders in
-   registration env/flag values. So an impl that would rather not enumerate
-   drafts can either (a) have its entrypoint translate `MOQT_DRAFT` to its own
-   flag in shell (`--advertise "$MOQT_DRAFT"`, or strip the prefix for the
-   number), or (b) put a `${MOQT_DRAFT_NUM}` placeholder in a registration value.
+1. **Interpolate it** into whatever env/flag the impl actually uses, via a
+   `${MOQT_DRAFT}` / `${MOQT_DRAFT_NUM}` placeholder expanded at resolution — e.g.
+   moqx declares `env: { "MOQX_MOQT_VERSIONS": "${MOQT_DRAFT_NUM}" }` *once*
+   (covers every draft, no enumeration). Equivalently, the impl's entrypoint can
+   translate `MOQT_DRAFT` to its flag in shell (`--advertise "$MOQT_DRAFT"`).
+2. **Per-draft `versions[draft-D]` entries** remain for things that genuinely
+   *differ* per draft — a different image or a per-draft endpoint — not for
+   plugging in a version number (interpolation handles that).
 
-Image-pinned single-version impls (the moq-rs draft family, etc.) need none of
-this — the image *is* the draft. `MOQT_DRAFT` is a convenience/fallback, never a
-requirement; an explicit `versions[D]` value wins where specified.
+Image-pinned single-version impls (the moq-rs draft family, etc.) need neither —
+the image *is* the draft, and they simply ignore `MOQT_DRAFT`.
 
 ### Version confinement & negotiated-version verification
 
