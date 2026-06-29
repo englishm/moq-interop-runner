@@ -103,12 +103,15 @@ pair_modes() {
 #############################################################################
 
 record_run() {
-  local c="$1" r="$2" d="$3" mode="$4" status="$5" cimg="$6" rimg="$7" cenv="$8" renv="$9"
+  # Emits the per-draft schema the renderer/merge expect.
+  local c="$1" r="$2" d="$3" transport="$4" source="$5" status="$6" passed="$7" total="$8" url="${9:-}"
   local tmp; tmp=$(mktemp "${SUMMARY_FILE}.XXXXXX")
-  jq --arg c "$c" --arg r "$r" --arg d "$d" --arg mode "$mode" --arg status "$status" \
-     --arg cimg "$cimg" --arg rimg "$rimg" --argjson cenv "$cenv" --argjson renv "$renv" \
-     '.runs += [{client:$c, relay:$r, draft:$d, transport:$mode, status:$status,
-                 client_image:$cimg, relay_image:$rimg, client_env:$cenv, relay_env:$renv}]' \
+  jq --arg c "$c" --arg r "$r" --arg d "$d" --arg t "$transport" --arg src "$source" \
+     --arg status "$status" --argjson passed "${passed:-null}" --argjson total "${total:-null}" \
+     --arg url "$url" \
+     '.runs += [{client:$c, relay:$r, draft:$d, transport:$t, source:$src,
+                 status:$status, passed:$passed, total:$total,
+                 url:(if $url=="" then null else $url end)}]' \
      "$SUMMARY_FILE" > "$tmp" && mv "$tmp" "$SUMMARY_FILE" || rm -f "$tmp"
 }
 
@@ -119,7 +122,12 @@ run_docker_test() {
   crc=$(resolve_config "$CONFIG_FILE" "$c" client "$r" "$d")
   rrc=$(resolve_config "$CONFIG_FILE" "$r" relay  "$c" "$d")
   cimg=$(jq -r '.image' <<<"$crc"); rimg=$(jq -r '.image' <<<"$rrc")
-  local log="$RESULTS_DIR/${c}_to_${r}_${d}_docker.log"
+
+  # Local docker transport from the relay's docker.url scheme (moqt:// = QUIC, else H3/WT).
+  local relay_url transport
+  relay_url=$(jq -r --arg r "$r" '.implementations[$r].roles.relay.docker.url // "https"' "$CONFIG_FILE")
+  case "$relay_url" in moqt://*) transport=QUIC ;; *) transport=WT ;; esac
+  local log="$RESULTS_DIR/${c}_to_${r}_${d}_${transport}.log"
 
   # Resolved env -> per-test env files consumed by docker-compose (env_file).
   local renv_file cenv_file
@@ -138,8 +146,16 @@ run_docker_test() {
   else
     [ "$?" -eq 124 ] && status="timeout"
   fi
-  record_run "$c" "$r" "$d" docker "$status" "$cimg" "$rimg" \
-             "$(jq '.env' <<<"$crc")" "$(jq '.env' <<<"$rrc")"
+
+  # Prefer real TAP counts; refine status from them.
+  local passed="" total=""
+  if parse_tap_file "$log" && [ "$TAP_TOTAL" -gt 0 ]; then
+    passed=$TAP_PASSED; total=$TAP_TOTAL
+    if [ "$passed" = "$total" ]; then status=pass
+    elif [ "$passed" = "0" ]; then status=fail
+    else status=partial; fi
+  fi
+  record_run "$c" "$r" "$d" "$transport" local "$status" "$passed" "$total"
   echo "$status"
 }
 
