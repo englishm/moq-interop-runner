@@ -125,12 +125,14 @@ implementation to draft D — both supported:
    image/env/flags for D (e.g. moqx's `MOQX_MOQT_VERSIONS`). The container
    receives the resolved value directly; nothing to translate. Best when drafts
    genuinely differ (a different image, a per-draft endpoint).
-2. **The `MOQT_DRAFT` convention.** The runner *always* injects
-   `MOQT_DRAFT=draft-D` and `MOQT_DRAFT_NUM=D`. An impl that would rather not
-   enumerate drafts can either (a) have its entrypoint translate `MOQT_DRAFT_NUM`
-   to its own flag in shell (`--advertise draft-$MOQT_DRAFT_NUM`), or (b) put a
-   `${MOQT_DRAFT_NUM}` placeholder in a registration env/flag value, which the
-   runner expands at resolution time.
+2. **The `MOQT_DRAFT` convention.** When a role has *no* explicit
+   `versions[draft-D]` entry, the runner injects a single `MOQT_DRAFT=draft-D`
+   fallback (an already-confined impl gets nothing extra). Independently, the
+   runner always expands `${MOQT_DRAFT}` / `${MOQT_DRAFT_NUM}` placeholders in
+   registration env/flag values. So an impl that would rather not enumerate
+   drafts can either (a) have its entrypoint translate `MOQT_DRAFT` to its own
+   flag in shell (`--advertise "$MOQT_DRAFT"`, or strip the prefix for the
+   number), or (b) put a `${MOQT_DRAFT_NUM}` placeholder in a registration value.
 
 Image-pinned single-version impls (the moq-rs draft family, etc.) need none of
 this — the image *is* the draft. `MOQT_DRAFT` is a convenience/fallback, never a

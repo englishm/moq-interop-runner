@@ -45,10 +45,12 @@ resolve_config() {
     layer($l1;   ($r.peer_overrides[$peer] // {})) as $l2 |
     layer($l2;   ($r.peer_overrides[($peer + "@" + $draft)] // {})) as $res0 |
     ($draft | ltrimstr("draft-")) as $dnum |
-    # Tier-C convention: always inject MOQT_DRAFT / MOQT_DRAFT_NUM (an entrypoint can
-    # translate these to whatever flag the client takes), and expand ${MOQT_DRAFT[_NUM]}
-    # placeholders in registration env/flag values for the declarative variant.
-    ( (($res0.env // {}) + {"MOQT_DRAFT": $draft, "MOQT_DRAFT_NUM": $dnum})
+    # Tier-C convention: inject MOQT_DRAFT ONLY when this role has no explicit
+    # versions[draft] entry (an impl already confined per-draft needs no fallback).
+    # An entrypoint can translate it; ${MOQT_DRAFT}/${MOQT_DRAFT_NUM} placeholders in
+    # registration env/flag values are always expanded for the declarative variant.
+    ( if ($r.versions[$draft] != null) then {} else {"MOQT_DRAFT": $draft} end ) as $conv |
+    ( (($res0.env // {}) + $conv)
         | with_entries(.value |= (gsub("\\$\\{MOQT_DRAFT_NUM\\}"; $dnum)
                                   | gsub("\\$\\{MOQT_DRAFT\\}"; $draft))) ) as $env |
     ( ($res0.flags // {})
