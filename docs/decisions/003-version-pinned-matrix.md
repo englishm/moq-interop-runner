@@ -115,16 +115,48 @@ client…" are just the relay-side and client-side views of one override map. Mo
 implementations declare none of this — base config is enough; the layers exist
 for the long tail of pairwise compat quirks.
 
-### Execution (entrypoint/env convention)
+### Execution and the `MOQT_DRAFT` convention
 
-For pinned + overridden runs to actually execute, the runner resolves each side's
-`{image, flags, env}` and injects it into the container. Image-pinned impls
-(e.g. the moq-rs draft family) need nothing more. Flag/env-pinned impls rely on a
-small container convention: the entrypoint honors injected extra args/env
-(carried via the compose file as e.g. `RELAY_EXTRA_ARGS` / `CLIENT_EXTRA_ARGS`
-plus passthrough env). This is the "when everyone gets on board" surface; the POC
-wires the runner end-to-end and migrates a subset whose containers already honor
-pinning, so it both *looks* and *runs* like the target state.
+The runner resolves each side's `{image, flags, env}` and injects it into the
+container. There are two layered, equivalent ways to confine a multi-version
+implementation to draft D — both supported:
+
+1. **Explicit per-draft entries.** `versions[draft-D]` carries the concrete
+   image/env/flags for D (e.g. moqx's `MOQX_MOQT_VERSIONS`). The container
+   receives the resolved value directly; nothing to translate. Best when drafts
+   genuinely differ (a different image, a per-draft endpoint).
+2. **The `MOQT_DRAFT` convention.** The runner *always* injects
+   `MOQT_DRAFT=draft-D` and `MOQT_DRAFT_NUM=D`. An impl that would rather not
+   enumerate drafts can either (a) have its entrypoint translate `MOQT_DRAFT_NUM`
+   to its own flag in shell (`--advertise draft-$MOQT_DRAFT_NUM`), or (b) put a
+   `${MOQT_DRAFT_NUM}` placeholder in a registration env/flag value, which the
+   runner expands at resolution time.
+
+Image-pinned single-version impls (the moq-rs draft family, etc.) need none of
+this — the image *is* the draft. `MOQT_DRAFT` is a convenience/fallback, never a
+requirement; an explicit `versions[D]` value wins where specified.
+
+### Version confinement & negotiated-version verification
+
+Placing a result on draft-D's page asserts the test negotiated D. The runner
+cannot change wire negotiation, only what a side *advertises*:
+
+- **Forcing D requires ≥1 side to advertise only D.** For a multi-version
+  *remote* relay (whose advertised set we don't control), that side must be the
+  **client** — so a multi-version client needs an advertise-only mechanism (a
+  `versions[D]` entry or a `MOQT_DRAFT` translation) to be testable at non-max
+  drafts against such relays.
+- **Verify, don't assume.** The test client must report the *actually negotiated*
+  version (a required field of the test-client interface), and the runner places
+  each result on the page of that version — never the intended one. A run meant
+  for D that negotiates 16 lands on the 16 page (or is flagged), never mislabeled.
+- **Honest N/A.** If neither side can confine to D, that cell is N/A for
+  *intentional* coverage; the pair may still appear on its natural negotiated page
+  via verification.
+
+This keeps the per-draft matrix sound regardless of whether pinning "took," and
+tells implementers exactly what capability buys coverage: a client-side
+advertise-only knob unlocks chosen-draft testing against multi-version remotes.
 
 ### Relay state isolation
 

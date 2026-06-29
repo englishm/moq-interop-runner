@@ -43,7 +43,19 @@ resolve_config() {
     { image: $d.image, env: ($d.env // {}), flags: ($d.flags // {}) } as $base |
     layer($base; ($r.versions[$draft] // {})) as $l1 |
     layer($l1;   ($r.peer_overrides[$peer] // {})) as $l2 |
-    layer($l2;   ($r.peer_overrides[($peer + "@" + $draft)] // {})) as $res |
+    layer($l2;   ($r.peer_overrides[($peer + "@" + $draft)] // {})) as $res0 |
+    ($draft | ltrimstr("draft-")) as $dnum |
+    # Tier-C convention: always inject MOQT_DRAFT / MOQT_DRAFT_NUM (an entrypoint can
+    # translate these to whatever flag the client takes), and expand ${MOQT_DRAFT[_NUM]}
+    # placeholders in registration env/flag values for the declarative variant.
+    ( (($res0.env // {}) + {"MOQT_DRAFT": $draft, "MOQT_DRAFT_NUM": $dnum})
+        | with_entries(.value |= (gsub("\\$\\{MOQT_DRAFT_NUM\\}"; $dnum)
+                                  | gsub("\\$\\{MOQT_DRAFT\\}"; $draft))) ) as $env |
+    ( ($res0.flags // {})
+        | with_entries(.value |= (if type == "string"
+            then (gsub("\\$\\{MOQT_DRAFT_NUM\\}"; $dnum) | gsub("\\$\\{MOQT_DRAFT\\}"; $draft))
+            else . end)) ) as $flags |
+    ($res0 + {env: $env, flags: $flags}) as $res |
     $res + {
       env_args:  ($res.env   | to_entries | map(.key + "=" + .value)),
       flag_args: ($res.flags | flag_args)
