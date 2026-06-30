@@ -192,7 +192,7 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .pval.skip{color:var(--muted)}
 .pval.conn{color:#79859b}
 .blank{color:#475569}
-.opencell{display:flex;align-items:center;gap:.55rem;justify-content:flex-start}
+.opencell{display:flex;align-items:stretch;gap:.55rem;justify-content:flex-start}
 .openpills{display:flex;flex-direction:column}
 .openpills .pill{margin:.12rem 0}
 /* Draft recency badge: medal emoji + draft number, tinted by rank. */
