@@ -208,9 +208,9 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 /* Draft recency badge: medal emoji + draft number, tinted by rank. */
 /* Explicit px knobs: padding-top = number→top, .dnum margin-bottom = number→medal,
    padding-bottom = medal→bottom. Tune these freely. */
-.negdraft{display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px 3px;margin:.16rem 0;border-radius:.35rem;border:1px solid #3a516e;background:rgba(127,166,207,.16);color:var(--accent);flex:none;line-height:1}
+.negdraft{display:inline-flex;flex-direction:column;align-items:center;padding:3px 7px 6px;margin:.16rem 0;border-radius:.35rem;border:1px solid #3a516e;background:rgba(127,166,207,.16);color:var(--accent);flex:none;line-height:1}
 .negdraft .dnum{font-size:13px;font-weight:800;margin-bottom:2px}
-.negdraft .dmedal{font-size:13px}
+.negdraft .dmedal{font-size:13px;line-height:1;display:block}
 .negdraft.age-cur{background:rgba(34,197,94,.18);color:#34d399;border-color:#1f7a48}
 .negdraft.age-near{background:rgba(253,224,71,.16);color:#fde047;border-color:#a3892a}
 .negdraft.age-back{background:rgba(245,158,11,.16);color:#f59e0b;border-color:#a35c10}
