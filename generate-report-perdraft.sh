@@ -134,8 +134,13 @@ cell_open() {
       'map(select(.cfam==$c and .rfam==$r and .view=="open"))' <<<"$RUNS")
   [ "$(jq 'length' <<<"$rows")" -eq 0 ] && { echo "<span class=\"blank\">&mdash;</span>"; return; }
   local neg; neg=$(jq -r 'map(.draft)|unique|.[0] // empty' <<<"$rows")
-  local medal="${MEDAL[$neg]:-old}"
-  echo "<div class=\"opencell\"><span class=\"negdraft medal-${medal}\" title=\"mutually negotiated ${neg}\">${neg#draft-}</span><span class=\"openpills\">$(render_pills "$rows" remote)</span></div>"
+  local medal="${MEDAL[$neg]:-old}" emoji=""
+  case "$medal" in
+    cur)  emoji="&#129351;&#8201;" ;;  # 🥇
+    near) emoji="&#129352;&#8201;" ;;  # 🥈
+    back) emoji="&#129353;&#8201;" ;;  # 🥉
+  esac
+  echo "<div class=\"opencell\"><span class=\"negdraft age-${medal}\" title=\"mutually negotiated ${neg}\">${emoji}${neg#draft-}</span><span class=\"openpills\">$(render_pills "$rows" remote)</span></div>"
 }
 
 mapfile -t DRAFTS < <(drafts)
@@ -143,12 +148,12 @@ mapfile -t CLIENTS < <(clients)
 mapfile -t RELAYS < <(relays)
 TS=$(jq -r '.timestamp // "unknown"' "$SUMMARY")
 
-# Medal tier by draft rank (latest = gold, then silver, bronze, older = faded).
-# Dynamic: when a newer draft appears it becomes gold and others demote automatically.
+# Draft recency by rank (latest = green, then light-yellow, amber, older = faded).
+# Dynamic: when a newer draft appears it becomes green and the rest shift down.
 declare -A MEDAL
 __mi=0
 while IFS= read -r __d; do
-  case $__mi in 0) MEDAL[$__d]=gold ;; 1) MEDAL[$__d]=silver ;; 2) MEDAL[$__d]=bronze ;; *) MEDAL[$__d]=old ;; esac
+  case $__mi in 0) MEDAL[$__d]=cur ;; 1) MEDAL[$__d]=near ;; 2) MEDAL[$__d]=back ;; *) MEDAL[$__d]=old ;; esac
   __mi=$((__mi + 1))
 done < <(jq -r 'map(.draft) | unique | sort_by(ltrimstr("draft-")|tonumber) | reverse | .[]' <<<"$RUNS" \
           | while IFS= read -r __x; do [[ " $SKIP_DRAFTS " == *" $__x "* ]] || echo "$__x"; done)
@@ -190,12 +195,12 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .opencell{display:flex;align-items:center;gap:.55rem;justify-content:flex-start}
 .openpills{display:flex;flex-direction:column}
 .openpills .pill{margin:.12rem 0}
-/* Medal badge (placeholder for a future medal icon): left-justified, portrait. */
-.negdraft{display:inline-flex;align-items:center;justify-content:center;min-width:1.5rem;padding:.5rem .4rem;border-radius:.4rem;font-size:.74rem;font-weight:800;border:1px solid #3a516e;background:rgba(127,166,207,.16);color:var(--accent);flex:none}
-.negdraft.medal-gold{background:linear-gradient(160deg,#ffe680,#e3b100);color:#4a3a00;border-color:#b8860b}
-.negdraft.medal-silver{background:linear-gradient(160deg,#ededed,#b6b6b6);color:#2f2f2f;border-color:#9a9a9a}
-.negdraft.medal-bronze{background:linear-gradient(160deg,#e0a36a,#bd7333);color:#3a2410;border-color:#8a5320}
-.negdraft.medal-old{background:rgba(148,163,184,.16);color:var(--muted);border-color:#3a516e}
+/* Draft recency badge: medal emoji + draft number, tinted by rank. */
+.negdraft{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;padding:.32rem .5rem;border-radius:.4rem;font-size:.74rem;font-weight:800;border:1px solid #3a516e;background:rgba(127,166,207,.16);color:var(--accent);flex:none}
+.negdraft.age-cur{background:rgba(34,197,94,.18);color:#34d399;border-color:#1f7a48}
+.negdraft.age-near{background:rgba(253,224,71,.16);color:#fde047;border-color:#a3892a}
+.negdraft.age-back{background:rgba(245,158,11,.16);color:#f59e0b;border-color:#a35c10}
+.negdraft.age-old{background:rgba(148,163,184,.16);color:var(--muted);border-color:#3a516e}
 .openmeta{color:var(--muted);font-size:.82rem;margin:.25rem 0 1rem}
 .page{display:none}.page.active{display:block}
 .legend{margin-top:1rem;color:var(--muted);font-size:.8rem}
