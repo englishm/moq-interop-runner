@@ -129,7 +129,9 @@ run_docker_test() {
 
   # Local docker transport from the relay's docker.url scheme (moqt:// = QUIC, else H3/WT).
   local relay_url transport
-  relay_url=$(jq -r --arg r "$r" '.implementations[$r].roles.relay.docker.url // "https"' "$CONFIG_FILE")
+  # Default to the compose relay service URL when no docker.url is declared (most
+  # relays) — must be a full URL, since it is also passed to the client as RELAY_URL.
+  relay_url=$(jq -r --arg r "$r" '.implementations[$r].roles.relay.docker.url // "https://relay:4443"' "$CONFIG_FILE")
   case "$relay_url" in moqt://*) transport=QUIC ;; *) transport=WT ;; esac
   local log="$RESULTS_DIR/${c}_to_${r}_${d}_${transport}.log"
 
