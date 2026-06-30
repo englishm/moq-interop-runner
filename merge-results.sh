@@ -21,7 +21,8 @@ jq -s --slurpfile cfg "$CONFIG" '
      | map({key: .key, value: (.value.family // .key)}) | from_entries) as $fam
   | ( reduce .[] as $s ({};
         reduce ($s.runs // [])[] as $run (.;
-          ( (($fam[$run.client]) // $run.client) + "|" +
+          ( ($run.view // "draft") + "|" +
+            (($fam[$run.client]) // $run.client) + "|" +
             (($fam[$run.relay])  // $run.relay)  + "|" +
             $run.draft + "|" + $run.transport ) as $k
           | .[$k] = $run)) ) as $cells

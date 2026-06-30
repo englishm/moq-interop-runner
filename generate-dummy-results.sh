@@ -1,5 +1,5 @@
 #!/bin/bash
-# generate-dummy-results.sh - Synthesize full-coverage results (POC).
+# generate-dummy-results.sh - Synthesize full-coverage BASELINE (POC).
 #
 # Emits two views (runs[].view):
 #   "draft" - the version-pinned per-draft matrix. Each (client,relay,draft,transport)
@@ -9,6 +9,12 @@
 #             mutually NEGOTIATED draft (highest common) tested against that endpoint,
 #             per remote transport. Real-world negotiation; client confines nothing.
 #
+# This is an OPTIMISTIC baseline: every structurally-eligible cell is "pass". It is
+# NOT a guess at real outcomes - real results are layered on top via
+# merge-results.sh (see seed-official-results.sh), and real status always wins.
+# Do NOT synthesize fail/skip/conn-fail here: fabricated failures on known-good
+# pairs destroy the report credibility.
+#
 # Marked model "DUMMY". Usage: ./generate-dummy-results.sh [implementations.json] > summary.json
 
 set -euo pipefail
@@ -16,9 +22,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="${1:-$SCRIPT_DIR/implementations.json}"
 
 jq '
-  def status($p; $t): if $p == $t then "pass" elif $p == 0 then "fail" else "partial" end;
-  def score($h): (if ($h % 9 == 0) then 0 elif ($h % 4 == 0) then ($h % 6) else 6 end);
-
   .implementations as $impl
   | (reduce ($impl | to_entries[]) as $e ({};
       ($e.value.family // $e.key) as $f
@@ -50,13 +53,9 @@ jq '
                 { t: "WT",   lo: ($fc[$r].wt_local   // false), re: ($fc[$r].wt_remote   // false), url: $fc[$r].wt_url } )
               | select(.lo or .re)
               | (if .lo then "local" else "remote" end) as $src
-              | ((($c+$r+$d+.t) | explode | add)) as $h
-              | (if ($h % 17 == 0) then {passed:null,total:null,status:"skip"}
-                 elif (.re and (.lo|not) and ($h % 19 == 0)) then {passed:null,total:null,status:"conn-fail"}
-                 else (score($h)) as $p | {passed:$p, total:6, status: status($p;6)} end) as $res
+              | {passed:6, total:6, status:"pass"} as $res
               | { view:"draft", client:$c, relay:$r, draft:$d, transport:.t, source:$src,
-                  url: (if $src=="remote" then .url else null end),
-                  error: (if $res.status=="conn-fail" then "connection refused" else null end) } + $res )
+                  url: (if $src=="remote" then .url else null end), error: null } + $res )
           ,
           # ---- open relay interop view (NEGOTIATED, live endpoint) ----
           ( ($common | sort_by(ltrimstr("draft-")|tonumber) | last) as $neg
@@ -64,11 +63,9 @@ jq '
             | ( { t:"QUIC", re:($fc[$r].quic_remote // false), url:$fc[$r].quic_url },
                 { t:"WT",   re:($fc[$r].wt_remote   // false), url:$fc[$r].wt_url } )
               | select(.re)
-              | ((($c+$r+"open"+.t) | explode | add)) as $h
-              | (if ($h % 23 == 0) then {passed:null,total:null,status:"conn-fail"}
-                 else (score($h)) as $p | {passed:$p, total:6, status: status($p;6)} end) as $res
+              | {passed:6, total:6, status:"pass"} as $res
               | { view:"open", client:$c, relay:$r, draft:$neg, transport:.t, source:"remote", url:.url,
-                  error:(if $res.status=="conn-fail" then "connection timed out" else null end) } + $res )
+                  error:null } + $res )
         )
     ]
   | { timestamp: "DUMMY (synthesized from implementations.json)",
