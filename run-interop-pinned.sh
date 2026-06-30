@@ -141,7 +141,7 @@ run_docker_test() {
   jq -r '.env_args[]' <<<"$crc" > "$cenv_file"
 
   local status="fail"
-  if RELAY_IMAGE="$rimg" CLIENT_IMAGE="$cimg" \
+  if RELAY_IMAGE="$rimg" CLIENT_IMAGE="$cimg" RELAY_URL="$relay_url" \
      PINNED_RELAY_ENV_FILE="$renv_file" PINNED_CLIENT_ENV_FILE="$cenv_file" \
      run_with_timeout "${TEST_TIMEOUT:-120}" \
         docker compose -f "$SCRIPT_DIR/docker-compose.test.yml" up --abort-on-container-exit \
