@@ -136,11 +136,11 @@ cell_open() {
   local neg; neg=$(jq -r 'map(.draft)|unique|.[0] // empty' <<<"$rows")
   local medal="${MEDAL[$neg]:-old}" emoji=""
   case "$medal" in
-    cur)  emoji="&#129351;&#8201;" ;;  # 🥇
-    near) emoji="&#129352;&#8201;" ;;  # 🥈
-    back) emoji="&#129353;&#8201;" ;;  # 🥉
+    cur)  emoji="&#129351;" ;;  # 🥇
+    near) emoji="&#129352;" ;;  # 🥈
+    back) emoji="&#129353;" ;;  # 🥉
   esac
-  echo "<div class=\"opencell\"><span class=\"negdraft age-${medal}\" title=\"mutually negotiated ${neg}\">${emoji}${neg#draft-}</span><span class=\"openpills\">$(render_pills "$rows" remote)</span></div>"
+  echo "<div class=\"opencell\"><span class=\"negdraft age-${medal}\" title=\"mutually negotiated ${neg}\"><span class=\"dnum\">${neg#draft-}</span><span class=\"dmedal\">${emoji}</span></span><span class=\"openpills\">$(render_pills "$rows" remote)</span></div>"
 }
 
 mapfile -t DRAFTS < <(drafts)
@@ -196,7 +196,9 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .openpills{display:flex;flex-direction:column}
 .openpills .pill{margin:.12rem 0}
 /* Draft recency badge: medal emoji + draft number, tinted by rank. */
-.negdraft{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;padding:.32rem .5rem;border-radius:.4rem;font-size:.74rem;font-weight:800;border:1px solid #3a516e;background:rgba(127,166,207,.16);color:var(--accent);flex:none}
+.negdraft{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;padding:.18rem .3rem;border-radius:.35rem;border:1px solid #3a516e;background:rgba(127,166,207,.16);color:var(--accent);flex:none;line-height:1.1}
+.negdraft .dnum{font-size:.64rem;font-weight:800}
+.negdraft .dmedal{font-size:.7rem}
 .negdraft.age-cur{background:rgba(34,197,94,.18);color:#34d399;border-color:#1f7a48}
 .negdraft.age-near{background:rgba(253,224,71,.16);color:#fde047;border-color:#a3892a}
 .negdraft.age-back{background:rgba(245,158,11,.16);color:#f59e0b;border-color:#a35c10}
