@@ -66,8 +66,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
-          # Dummy baseline = full coverage from the registry.
+          # Optimistic baseline = full coverage from the registry (every eligible cell = pass).
           ./generate-dummy-results.sh > out/summary.json
+          # Overlay REAL official negotiated results (latest gh-pages run) so the matrix
+          # shows true status where we have data; baseline stays optimistic for pinned
+          # cells not yet covered. Real status always wins.
+          OFFICIAL=$(ls -1d ../gh-pages-site/results/*/ 2>/dev/null | sort | tail -1 || true)
+          if [ -n "${OFFICIAL:-}" ] && [ -f "${OFFICIAL}summary.json" ]; then
+            echo "Seeding real results from ${OFFICIAL}summary.json"
+            ./seed-official-results.sh "${OFFICIAL}summary.json" > out/real.json
+            ./merge-results.sh out/summary.json out/real.json > out/merged.json
+            mv out/merged.json out/summary.json
+          else
+            echo "No official gh-pages results found to seed; optimistic baseline only."
+          fi
           # Optionally overlay real Tier-A (image-pinned) results.
           if [ "${{ github.event_name == 'workflow_dispatch' && inputs.run_real }}" = "true" ]; then
             ./run-interop-pinned.sh --docker-only || true
