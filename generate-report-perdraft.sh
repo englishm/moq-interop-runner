@@ -134,13 +134,24 @@ cell_open() {
       'map(select(.cfam==$c and .rfam==$r and .view=="open"))' <<<"$RUNS")
   [ "$(jq 'length' <<<"$rows")" -eq 0 ] && { echo "<span class=\"blank\">&mdash;</span>"; return; }
   local neg; neg=$(jq -r 'map(.draft)|unique|.[0] // empty' <<<"$rows")
-  echo "<span class=\"negdraft\" title=\"mutually negotiated draft\">${neg#draft-}</span>$(render_pills "$rows" remote)"
+  local medal="${MEDAL[$neg]:-old}"
+  echo "<div class=\"opencell\"><span class=\"negdraft medal-${medal}\" title=\"mutually negotiated ${neg}\">${neg#draft-}</span><span class=\"openpills\">$(render_pills "$rows" remote)</span></div>"
 }
 
 mapfile -t DRAFTS < <(drafts)
 mapfile -t CLIENTS < <(clients)
 mapfile -t RELAYS < <(relays)
 TS=$(jq -r '.timestamp // "unknown"' "$SUMMARY")
+
+# Medal tier by draft rank (latest = gold, then silver, bronze, older = faded).
+# Dynamic: when a newer draft appears it becomes gold and others demote automatically.
+declare -A MEDAL
+__mi=0
+while IFS= read -r __d; do
+  case $__mi in 0) MEDAL[$__d]=gold ;; 1) MEDAL[$__d]=silver ;; 2) MEDAL[$__d]=bronze ;; *) MEDAL[$__d]=old ;; esac
+  __mi=$((__mi + 1))
+done < <(jq -r 'map(.draft) | unique | sort_by(ltrimstr("draft-")|tonumber) | reverse | .[]' <<<"$RUNS" \
+          | while IFS= read -r __x; do [[ " $SKIP_DRAFTS " == *" $__x "* ]] || echo "$__x"; done)
 
 {
 cat <<HEAD
@@ -153,13 +164,13 @@ cat <<HEAD
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);padding:2rem;line-height:1.5}
 .container{max-width:1400px;margin:0 auto}
 h1{margin-bottom:.25rem}.meta{color:var(--muted);margin-bottom:1.5rem}
-.controls{margin-bottom:1.5rem}
+.controls{margin-bottom:1.5rem;display:flex;gap:1.75rem;align-items:center}
 select{background:var(--card);color:var(--text);border:1px solid #334155;border-radius:.4rem;padding:.5rem .75rem;font-size:1rem}
 table{border-collapse:collapse;background:var(--card);border-radius:.5rem;overflow:hidden}
 th,td{padding:.55rem .6rem;text-align:center;border-bottom:1px solid var(--bg);border-right:1px solid var(--bg);font-size:.8rem;white-space:nowrap}
-th{background:#334155;font-weight:800;font-size:.98rem}
+th{background:#334155;font-weight:700;font-size:.95rem}
 td:first-child,th:first-child{text-align:left;position:sticky;left:0;background:#334155}
-td:first-child{font-size:.98rem;font-weight:800}
+td:first-child{font-size:.95rem;font-weight:700}
 .pill{display:inline-block;padding:.12rem .55rem;margin:.1rem;border-radius:9999px;font-size:.68rem;font-weight:600;background:rgba(148,163,184,.14)}
 td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6.4rem;margin:.16rem auto;gap:.5rem;cursor:default}
 .pill.pass{background:rgba(34,197,94,.16);color:var(--pass)}
@@ -176,13 +187,21 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .pval.skip{color:var(--muted)}
 .pval.conn{color:#79859b}
 .blank{color:#475569}
-.negdraft{display:block;width:fit-content;margin:.1rem auto .2rem;padding:.05rem .5rem;border-radius:.3rem;font-size:.66rem;font-weight:800;color:var(--accent);background:rgba(127,166,207,.16);border:1px solid #3a516e}
+.opencell{display:flex;align-items:center;gap:.55rem;justify-content:flex-start}
+.openpills{display:flex;flex-direction:column}
+.openpills .pill{margin:.12rem 0}
+/* Medal badge (placeholder for a future medal icon): left-justified, portrait. */
+.negdraft{display:inline-flex;align-items:center;justify-content:center;min-width:1.5rem;padding:.5rem .4rem;border-radius:.4rem;font-size:.74rem;font-weight:800;border:1px solid #3a516e;background:rgba(127,166,207,.16);color:var(--accent);flex:none}
+.negdraft.medal-gold{background:linear-gradient(160deg,#ffe680,#e3b100);color:#4a3a00;border-color:#b8860b}
+.negdraft.medal-silver{background:linear-gradient(160deg,#ededed,#b6b6b6);color:#2f2f2f;border-color:#9a9a9a}
+.negdraft.medal-bronze{background:linear-gradient(160deg,#e0a36a,#bd7333);color:#3a2410;border-color:#8a5320}
+.negdraft.medal-old{background:rgba(148,163,184,.16);color:var(--muted);border-color:#3a516e}
 .openmeta{color:var(--muted);font-size:.82rem;margin:.25rem 0 1rem}
 .page{display:none}.page.active{display:block}
 .legend{margin-top:1rem;color:var(--muted);font-size:.8rem}
 </style></head><body><div class="container">
-<h1>MoQT Interop — per-draft matrix <span style="font-size:.6em;color:var(--muted)">(POC)</span></h1>
-<p class="meta">Generated: ${TS} &middot; one matrix per draft (negotiated → pinned)</p>
+<h1>MoQT Interop <span style="font-size:.6em;color:var(--muted)">(POC)</span></h1>
+<p class="meta">Generated: ${TS}</p>
 <div class="controls"><label>View: <select id="viewSel" onchange="showView(this.value)">
 <option value="draft">Per-draft Interop</option>
 HEAD
