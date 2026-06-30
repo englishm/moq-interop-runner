@@ -132,7 +132,12 @@ cell_open() {
   local c="$1" r="$2"
   local rows; rows=$(jq -c --arg c "$c" --arg r "$r" \
       'map(select(.cfam==$c and .rfam==$r and .view=="open"))' <<<"$RUNS")
-  [ "$(jq 'length' <<<"$rows")" -eq 0 ] && { echo "<span class=\"blank\">&mdash;</span>"; return; }
+  if [ "$(jq 'length' <<<"$rows")" -eq 0 ]; then
+    # No mutually negotiable draft — faint placeholder badge + placeholder pills,
+    # so the grid stays uniform (matches the per-draft "—" placeholders).
+    echo "<div class=\"opencell\"><span class=\"negdraft negblank\" title=\"no mutually negotiable draft\">&mdash;</span><span class=\"openpills\">$(render_pills "[]" remote)</span></div>"
+    return
+  fi
   local neg; neg=$(jq -r 'map(.draft)|unique|.[0] // empty' <<<"$rows")
   local medal="${MEDAL[$neg]:-old}" emoji=""
   case "$medal" in
@@ -205,6 +210,7 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .negdraft.age-near{background:rgba(253,224,71,.16);color:#fde047;border-color:#a3892a}
 .negdraft.age-back{background:rgba(245,158,11,.16);color:#f59e0b;border-color:#a35c10}
 .negdraft.age-old{background:rgba(148,163,184,.16);color:var(--muted);border-color:#3a516e}
+.negdraft.negblank{background:transparent;color:#475569;border-color:#27344a;font-weight:600}
 .openmeta{color:var(--muted);font-size:.82rem;margin:.25rem 0 1rem}
 .page{display:none}.page.active{display:block}
 .legend{margin-top:1rem;color:var(--muted);font-size:.8rem}
