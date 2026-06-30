@@ -183,14 +183,16 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 </style></head><body><div class="container">
 <h1>MoQT Interop — per-draft matrix <span style="font-size:.6em;color:var(--muted)">(POC)</span></h1>
 <p class="meta">Generated: ${TS} &middot; one matrix per draft (negotiated → pinned)</p>
-<div class="controls"><label>View: <select id="draftSel" onchange="showDraft(this.value)">
+<div class="controls"><label>View: <select id="viewSel" onchange="showView(this.value)">
+<option value="draft">Per-draft Interop</option>
 HEAD
 
+has_open && echo "<option value=\"open\">Open Relay Interop</option>"
+echo "</select></label> <label id=\"draftLabel\">Draft: <select id=\"draftSel\" onchange=\"showDraft(this.value)\">"
 # Latest draft first so it is the default landing view; older drafts follow.
 for ((i=${#DRAFTS[@]}-1; i>=0; i--)); do
   echo "<option value=\"${DRAFTS[$i]}\">${DRAFTS[$i]}</option>"
 done
-has_open && echo "<option value=\"open\">Open Relay Interop</option>"
 echo "</select></label></div>"
 
 for d in "${DRAFTS[@]}"; do
@@ -229,8 +231,14 @@ cat <<'FOOT'
 <strong>&mdash;</strong> not registered &middot; <span style="opacity:.7">hover for endpoint</span></p>
 </div>
 <script>
-function showDraft(d){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.draft===d));}
-document.addEventListener('DOMContentLoaded',()=>{const s=document.getElementById('draftSel');showDraft(s.value);});
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.draft===id));}
+function showDraft(d){showPage(d);}
+function showView(v){
+  var dl=document.getElementById('draftLabel');
+  if(v==='open'){ if(dl) dl.style.display='none'; showPage('open'); }
+  else { if(dl) dl.style.display=''; showPage(document.getElementById('draftSel').value); }
+}
+document.addEventListener('DOMContentLoaded',function(){showView(document.getElementById('viewSel').value);});
 </script>
 </body></html>
 FOOT
