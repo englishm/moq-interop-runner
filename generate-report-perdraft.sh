@@ -54,12 +54,17 @@ norm() { jq -c --argjson fam "$FAMILY_MAP" '.runs | map(
             status, passed, total, url, error})' "$SUMMARY"; }
 RUNS=$(norm)
 
-# Drafts to render. Skip non-interop drafts (default 15/17 — nobody targets them);
-# override with SKIP_DRAFTS="draft-NN draft-MM".
-SKIP_DRAFTS="${SKIP_DRAFTS:-draft-15 draft-17}"
+# Render EVEN interop drafts only — odd drafts (15/17/19/…) are not interop
+# targets. Suppress additional drafts explicitly via SKIP_DRAFTS.
+SKIP_DRAFTS="${SKIP_DRAFTS:-}"
+keep_draft() {
+  local n="${1#draft-}"
+  [[ "$n" =~ ^[0-9]+$ ]] || return 1
+  [ $((n % 2)) -eq 0 ] && [[ " $SKIP_DRAFTS " != *" $1 "* ]]
+}
 drafts() {
   jq -r 'map(select(.view=="draft").draft) | unique | sort_by(ltrimstr("draft-")|tonumber) | .[]' <<<"$RUNS" \
-    | while IFS= read -r d; do [[ " $SKIP_DRAFTS " == *" $d "* ]] || echo "$d"; done
+    | while IFS= read -r d; do keep_draft "$d" && echo "$d"; done
 }
 clients() { jq -r 'map(.cfam)  | unique | .[]' <<<"$RUNS"; }
 relays()  { jq -r 'map(.rfam)  | unique | .[]' <<<"$RUNS"; }
@@ -132,13 +137,13 @@ cell_open() {
   local c="$1" r="$2"
   local rows; rows=$(jq -c --arg c "$c" --arg r "$r" \
       'map(select(.cfam==$c and .rfam==$r and .view=="open"))' <<<"$RUNS")
-  if [ "$(jq 'length' <<<"$rows")" -eq 0 ]; then
-    # No mutually negotiable draft — faint placeholder badge + placeholder pills,
-    # so the grid stays uniform (matches the per-draft "—" placeholders).
+  local neg=""
+  [ "$(jq 'length' <<<"$rows")" -gt 0 ] && neg=$(jq -r 'map(.draft)|unique|.[0] // empty' <<<"$rows")
+  if [ -z "$neg" ] || ! keep_draft "$neg"; then
+    # No mutually negotiable (even) draft — faint placeholder, uniform grid.
     echo "<div class=\"opencell\"><span class=\"negdraft negblank\" title=\"no mutually negotiable draft\">&mdash;</span><span class=\"openpills\">$(render_pills "[]" remote)</span></div>"
     return
   fi
-  local neg; neg=$(jq -r 'map(.draft)|unique|.[0] // empty' <<<"$rows")
   local medal="${MEDAL[$neg]:-old}" emoji=""
   case "$medal" in
     cur)  emoji="&#129351;" ;;  # 🥇
@@ -161,7 +166,7 @@ while IFS= read -r __d; do
   case $__mi in 0) MEDAL[$__d]=cur ;; 1) MEDAL[$__d]=near ;; 2) MEDAL[$__d]=back ;; *) MEDAL[$__d]=old ;; esac
   __mi=$((__mi + 1))
 done < <(jq -r 'map(.draft) | unique | sort_by(ltrimstr("draft-")|tonumber) | reverse | .[]' <<<"$RUNS" \
-          | while IFS= read -r __x; do [[ " $SKIP_DRAFTS " == *" $__x "* ]] || echo "$__x"; done)
+          | while IFS= read -r __x; do keep_draft "$__x" && echo "$__x"; done)
 
 {
 cat <<HEAD
@@ -234,7 +239,7 @@ for d in "${DRAFTS[@]}"; do
   for r in "${RELAYS[@]}"; do echo "<th>$r</th>"; done
   echo "</tr></thead><tbody>"
   for c in "${CLIENTS[@]}"; do
-    echo "<tr><td><strong>$c</strong></td>"
+    echo "<tr><td>$c</td>"
     for r in "${RELAYS[@]}"; do
       echo "<td>$(cell_html "$c" "$r" "$d")</td>"
     done
@@ -250,7 +255,7 @@ if [ "${#OPEN_RELAYS[@]}" -gt 0 ]; then
   for r in "${OPEN_RELAYS[@]}"; do echo "<th>$r</th>"; done
   echo "</tr></thead><tbody>"
   for c in "${CLIENTS[@]}"; do
-    echo "<tr><td><strong>$c</strong></td>"
+    echo "<tr><td>$c</td>"
     for r in "${OPEN_RELAYS[@]}"; do echo "<td>$(cell_open "$c" "$r")</td>"; done
     echo "</tr>"
   done
