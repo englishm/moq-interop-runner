@@ -108,14 +108,15 @@ pair_modes() {
 
 record_run() {
   # Emits the per-draft schema the renderer/merge expect.
-  local c="$1" r="$2" d="$3" transport="$4" source="$5" status="$6" passed="$7" total="$8" url="${9:-}"
+  local c="$1" r="$2" d="$3" transport="$4" source="$5" status="$6" passed="$7" total="$8" url="${9:-}" log="${10:-}"
   local tmp; tmp=$(mktemp "${SUMMARY_FILE}.XXXXXX")
   jq --arg c "$c" --arg r "$r" --arg d "$d" --arg t "$transport" --arg src "$source" \
      --arg status "$status" --argjson passed "${passed:-null}" --argjson total "${total:-null}" \
-     --arg url "$url" \
+     --arg url "$url" --arg log "$log" \
      '.runs += [{client:$c, relay:$r, draft:$d, transport:$t, source:$src,
                  status:$status, passed:$passed, total:$total,
-                 url:(if $url=="" then null else $url end)}]' \
+                 url:(if $url=="" then null else $url end),
+                 log:(if $log=="" then null else $log end)}]' \
      "$SUMMARY_FILE" > "$tmp" && mv "$tmp" "$SUMMARY_FILE" || rm -f "$tmp"
 }
 
@@ -160,6 +161,11 @@ run_docker_test() {
     if [ "$passed" = "$total" ]; then status=pass
     elif [ "$passed" = "0" ]; then status=fail
     else status=partial; fi
+  elif [ "$status" = "fail" ]; then
+    # No TAP produced and the container did not pass -> it never ran a test (image
+    # missing, crash on startup, dependency failed to start). Structural, NOT an
+    # interop result -- mark it so the report separates it from real failures.
+    status="error"
   fi
   record_run "$c" "$r" "$d" "$transport" local "$status" "$passed" "$total"
   echo "$status"

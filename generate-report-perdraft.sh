@@ -84,13 +84,15 @@ agg_line() {
     | (map(select(.status=="partial"))|length) as $pa
     | (map(select(.status=="fail"))|length) as $f
     | (map(select(.status=="skip"))|length) as $s
-    | (map(select(.status=="conn-fail" or .status=="timeout"))|length) as $c
-    | "<div class=\"agg\"><b>\($p+$pa+$f+$s+$c)</b> results &middot; "
+    | (map(select(.status=="conn-fail"))|length) as $c
+    | (map(select(.status=="error" or .status=="timeout"))|length) as $e
+    | "<div class=\"agg\"><b>\($p+$pa+$f+$s+$c+$e)</b> results &middot; "
       + "<span class=\"apass\">\($p) pass</span>"
       + (if $pa>0 then " &middot; <span class=\"apart\">\($pa) partial</span>" else "" end)
       + (if $f>0  then " &middot; <span class=\"afail\">\($f) fail</span>" else "" end)
       + (if $s>0  then " &middot; <span class=\"askip\">\($s) skip</span>" else "" end)
       + (if $c>0  then " &middot; <span class=\"aconn\">\($c) unreachable</span>" else "" end)
+      + (if $e>0  then " &middot; <span class=\"aerr\">\($e) did-not-run</span>" else "" end)
       + "</div>"
   ' <<<"$RUNS"
 }
@@ -138,6 +140,8 @@ render_pills() {
     elif [ -n "$total" ] && [ "$total" -gt 0 ]; then
       cls=partial; [ "$passed" = "$total" ] && cls=pass; [ "$passed" = "0" ] && cls=fail
       val="${passed}/${total}"; title="$loc"
+    elif [ "$status" = "error" ] || [ "$status" = "timeout" ]; then
+      cls=err; val="&#9888;"; title="did not run: container/startup failure (image or harness &mdash; not an interop result)&#10;${loc}"
     else
       cls=fail; val="$status"; title="$loc"
     fi
@@ -211,7 +215,7 @@ h1{margin-bottom:.25rem}.meta{color:var(--muted);margin-bottom:1.5rem}
 .agg{margin:0 0 .8rem;font-size:.85rem;color:var(--muted)}
 .agg b{color:var(--text);font-weight:700}
 .agg .apass{color:#34d399} .agg .apart{color:#f59e0b} .agg .afail{color:#f87171}
-.agg .askip{color:var(--muted)} .agg .aconn{color:#8696ad}
+.agg .askip{color:var(--muted)} .agg .aconn{color:#8696ad} .agg .aerr{color:#9aa6ba}
 select{background:var(--card);color:var(--text);border:1px solid #334155;border-radius:.4rem;padding:.5rem .75rem;font-size:1rem}
 table{border-collapse:collapse;background:var(--card);border-radius:.5rem;overflow:hidden}
 th,td{padding:.55rem .6rem;text-align:center;border-bottom:1px solid var(--bg);border-right:1px solid var(--bg);font-size:.8rem;white-space:nowrap}
@@ -226,6 +230,8 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .pill.skip{background:rgba(148,163,184,.14);color:var(--muted)}
 .pill.none{background:rgba(148,163,184,.06);color:#5a6680}
 .pill.conn{background:rgba(148,163,184,.07);color:#79859b}
+/* DNF: container/harness never produced a result (image/startup) — NOT interop fail. */
+.pill.err{background:repeating-linear-gradient(45deg,rgba(148,163,184,.10),rgba(148,163,184,.10) 4px,transparent 4px,transparent 8px);color:#9aa6ba;border:1px dashed #3a516e}
 .plabel{font-weight:600}
 .pval{font-weight:700}
 .pval.pass{color:var(--pass)}
@@ -233,6 +239,7 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .pval.partial{color:var(--partial)}
 .pval.skip{color:var(--muted)}
 .pval.conn{color:#79859b}
+.pval.err{color:#9aa6ba}
 .blank{color:#475569}
 .opencell{display:flex;align-items:center;gap:.55rem;justify-content:flex-start}
 .openpills{display:flex;flex-direction:column}
