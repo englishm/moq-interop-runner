@@ -1,6 +1,6 @@
 # aiomoqt adapter for MoQT interop testing (relay role)
 #
-# aiomoqt server-side control plane over WebTransport (draft-16/18):
+# aiomoqt server-side control plane over WebTransport (draft-14/16/18):
 # SETUP, PUBLISH_NAMESPACE, SUBSCRIBE. No object forwarding.
 #
 # Wraps the prebuilt aiomoqt image (MOQT_ROLE switch), pinning relay
@@ -21,7 +21,14 @@ FROM ghcr.io/gmarzot/aiomoqt:latest
 # /certs/priv.key.
 ENV MOQT_ROLE=relay
 ENV MOQT_PORT=4443
-ENV MOQT_DRAFT=16,18
+# Default advertised drafts when unconfined (existing harness / Open Relay). The
+# pinned runner overrides MOQT_DRAFT per test; the shim normalizes draft-NN -> NN.
+ENV MOQT_DRAFT=14,16,18
+
+# Strip the runner draft-NN prefix so the upstream --draft (bare ints) accepts it.
+COPY normalize-draft.sh /usr/local/bin/normalize-draft.sh
+RUN chmod +x /usr/local/bin/normalize-draft.sh
+ENTRYPOINT ["/usr/local/bin/normalize-draft.sh"]
 
 EXPOSE 4443/udp
 

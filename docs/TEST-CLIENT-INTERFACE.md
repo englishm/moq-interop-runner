@@ -34,8 +34,36 @@ For containerized testing, the following environment variables are supported:
 | `TESTCASE` | No | Specific test to run (runs all if not set) |
 | `TLS_DISABLE_VERIFY` | No | Set to `1` to skip certificate verification |
 | `VERBOSE` | No | Set to `1` for verbose output |
+| `MOQT_DRAFT` | No | Confine the client to advertise **only** this draft (e.g. `draft-16`), forcing the negotiated version. When unset, the client uses its default version behavior. |
 
 Environment variables take precedence over command-line defaults but not over explicit command-line arguments.
+
+### Version Confinement (`MOQT_DRAFT`)
+
+The version-pinned interop matrix ([ADR 003](./decisions/003-version-pinned-matrix.md))
+tests each implementation against a specific draft, so a result on draft-D's page
+genuinely exercises draft D. The harness supplies the target draft to every
+container as `MOQT_DRAFT=draft-NN`.
+
+A multi-version **client** SHOULD honor `MOQT_DRAFT` by advertising **only** that
+draft in its SETUP. The capability almost always already exists in the
+implementation core (a supported-versions list, a pin flag); the step that matters
+is for the **interop client** to read `MOQT_DRAFT` and apply it. Reference
+mappings (see [version-confinement-audit.md](./version-confinement-audit.md)):
+
+| Client | Maps `MOQT_DRAFT` to |
+|--------|----------------------|
+| moqx | `MOQX_MOQT_VERSIONS=<NN>` |
+| moq-dev-rs | `MOQ_CLIENT_VERSION=moq-transport-<NN>` |
+| aiomoqt | `DRAFT=<NN>` |
+
+A registration may instead interpolate the value declaratively
+(`${MOQT_DRAFT_NUM}` = the bare number) without changing the client — see ADR 003.
+
+A client that cannot confine to `MOQT_DRAFT` can still be tested at the version it
+negotiates. To keep the matrix sound, a client SHOULD report the **actual
+negotiated draft** in its run header (`# Draft: draft-NN`), and the harness places
+the result by that reported version — never the intended one.
 
 ## Exit Codes
 

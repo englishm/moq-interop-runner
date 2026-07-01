@@ -6,6 +6,7 @@
   "implementations": {
     "aiomoqt": {
       "name": "aiomoqt",
+      "family": "aiomoqt",
       "organization": "MarzResearch",
       "repository": "https://github.com/gmarzot/aiomoqt",
       "draft_versions": [
@@ -18,40 +19,50 @@
         "client": {
           "docker": {
             "image": "ghcr.io/gmarzot/aiomoqt:latest",
-            "notes": "Pre-built on GHCR from the upstream repo (see Dockerfile at the repo root). Available in :latest and :<version> tags."
+            "notes": "Pre-built on GHCR from the upstream repo (see Dockerfile at the repo root). Available in :latest and :<version> tags.",
+            "env": {
+              "DRAFT": "${MOQT_DRAFT_NUM}"
+            }
           }
         }
       }
     },
     "aiomoqt-relay": {
       "name": "aiomoqt (relay)",
+      "family": "aiomoqt",
       "organization": "MarzResearch",
       "repository": "https://github.com/gmarzot/aiomoqt",
       "draft_versions": [
+        "draft-14",
         "draft-16",
         "draft-18"
       ],
-      "notes": "aiomoqt server-side control plane over WebTransport (draft-16/18): SETUP, PUBLISH_NAMESPACE, SUBSCRIBE. No object forwarding.",
+      "notes": "aiomoqt server-side control plane over WebTransport (draft-14/16/18): SETUP, PUBLISH_NAMESPACE, SUBSCRIBE. No object forwarding.",
       "roles": {
         "relay": {
           "docker": {
             "image": "aiomoqt-interop-relay:latest",
             "url": "https://relay:4443",
+            "env": {
+              "DRAFT": "${MOQT_DRAFT_NUM}"
+            },
             "build": {
               "dockerfile": "adapters/aiomoqt/Dockerfile.relay",
               "context": "adapters/aiomoqt"
             },
             "upstream_image": "ghcr.io/gmarzot/aiomoqt:latest",
-            "notes": "Adapter pins relay mode + draft-16/18 WebTransport on the /certs convention (MOQT_ROLE=relay)."
+            "notes": "Adapter pins relay mode + draft-14/16/18 WebTransport on the /certs convention (MOQT_ROLE=relay); advertised draft confined to the runner-supplied MOQT_DRAFT."
           }
         }
       }
     },
     "aiomoqt-relay-quic": {
       "name": "aiomoqt (relay, raw QUIC)",
+      "family": "aiomoqt",
       "organization": "MarzResearch",
       "repository": "https://github.com/gmarzot/aiomoqt",
       "draft_versions": [
+        "draft-14",
         "draft-16",
         "draft-18"
       ],
@@ -61,12 +72,15 @@
           "docker": {
             "image": "aiomoqt-interop-relay-quic:latest",
             "url": "moqt://relay:4443",
+            "env": {
+              "DRAFT": "${MOQT_DRAFT_NUM}"
+            },
             "build": {
               "dockerfile": "adapters/aiomoqt/Dockerfile.relay.quic",
               "context": "adapters/aiomoqt"
             },
             "upstream_image": "ghcr.io/gmarzot/aiomoqt:latest",
-            "notes": "Adapter pins relay mode + raw QUIC (MOQT_QUIC=1) + draft-16/18 on the /certs convention."
+            "notes": "Adapter pins relay mode + raw QUIC (MOQT_QUIC=1) + draft-14/16/18 on the /certs convention; advertised draft confined to the runner-supplied MOQT_DRAFT."
           }
         }
       }
@@ -188,7 +202,10 @@
         "client": {
           "docker": {
             "image": "ghcr.io/englishm/moq-interop-runner-moq-dev-rs-client:latest",
-            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-dev-rs/build.sh && docker tag moq-dev-rs-client:latest ghcr.io/englishm/moq-interop-runner-moq-dev-rs-client:latest"
+            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-dev-rs/build.sh && docker tag moq-dev-rs-client:latest ghcr.io/englishm/moq-interop-runner-moq-dev-rs-client:latest",
+            "env": {
+              "MOQ_CLIENT_VERSION": "moq-transport-${MOQT_DRAFT_NUM}"
+            }
           }
         }
       }
@@ -226,6 +243,7 @@
     },
     "moq-rs": {
       "name": "moq-rs",
+      "family": "moq-rs",
       "organization": "Cloudflare",
       "repository": "https://github.com/cloudflare/moq-rs",
       "draft_versions": [
@@ -261,6 +279,7 @@
     },
     "moq-rs-draft-16": {
       "name": "moq-rs (draft-16)",
+      "family": "moq-rs",
       "organization": "Cloudflare",
       "repository": "https://github.com/itzmanish/moq-rs",
       "draft_versions": [
@@ -294,12 +313,14 @@
         }
       }
     },
-
     "moq-rs-draft-18": {
       "name": "moq-rs (draft-18)",
+      "family": "moq-rs",
       "organization": "Cloudflare",
       "repository": "https://github.com/cloudflare/moq-rs",
-      "draft_versions": ["draft-18"],
+      "draft_versions": [
+        "draft-18"
+      ],
       "notes": "Rust implementation. Deployed as a single instance relay for interop testing, tracking the draft-18-dev branch.",
       "roles": {
         "relay": {
@@ -328,7 +349,6 @@
         }
       }
     },
-
     "moqlivemock": {
       "name": "moqlivemock",
       "organization": "Eyevinn",
@@ -396,11 +416,13 @@
       "name": "moqt-nokiaresearch",
       "organization": "Nokia",
       "repository": "",
-      "draft_versions": ["draft-18"],
+      "draft_versions": [
+        "draft-18"
+      ],
       "notes": "Support native QUIC and WebTransport",
       "roles": {
         "relay": {
-           "remote": [
+          "remote": [
             {
               "url": "moqt://moqt.nokiaresearch.com:4443/moq",
               "transport": "quic",
@@ -417,7 +439,6 @@
         }
       }
     },
-
     "moqx": {
       "name": "moqx",
       "organization": "OpenMOQ",
@@ -425,7 +446,8 @@
       "draft_versions": [
         "draft-14",
         "draft-15",
-        "draft-16"
+        "draft-16",
+        "draft-18"
       ],
       "notes": "C++ relay built on moxygen. Supports multiple draft versions via version negotiation.",
       "roles": {
@@ -437,7 +459,10 @@
               "context": "adapters/moqx"
             },
             "upstream_image": "ghcr.io/openmoq/moqx:latest",
-            "notes": "Adapter wraps upstream image with /certs convention"
+            "notes": "Adapter wraps upstream image with /certs convention",
+            "env": {
+              "MOQX_MOQT_VERSIONS": "${MOQT_DRAFT_NUM}"
+            }
           },
           "remote": [
             {
@@ -454,7 +479,10 @@
         },
         "client": {
           "docker": {
-            "image": "ghcr.io/openmoq/moqx-interop-client:latest"
+            "image": "ghcr.io/openmoq/moqx-interop-client:latest",
+            "env": {
+              "MOQX_MOQT_VERSIONS": "${MOQT_DRAFT_NUM}"
+            }
           }
         },
         "publisher": {
@@ -473,14 +501,14 @@
         }
       }
     },
-
     "moxygen": {
       "name": "moxygen",
       "organization": "Meta",
       "repository": "https://github.com/facebookexperimental/moxygen",
       "draft_versions": [
         "draft-14",
-        "draft-16"
+        "draft-16",
+        "draft-18"
       ],
       "notes": "C++ implementation. Supports multiple draft versions simultaneously via version negotiation.",
       "roles": {

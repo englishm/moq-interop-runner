@@ -25,6 +25,11 @@ services:
     environment:
       - MOQT_ROLE=relay
       - MOQT_PORT=4443
+    # Version-pinned runner (run-interop-pinned.sh) injects resolved per-draft /
+    # per-peer env here. Defaults to /dev/null (no extra env) for the standard
+    # negotiated runner, so this is a no-op for run-interop-tests.sh.
+    env_file:
+      - ${PINNED_RELAY_ENV_FILE:-/dev/null}
     healthcheck:
       # Check if relay is listening on UDP port. Try multiple methods for compatibility:
       # 1. ss (iproute2) - most common on modern systems
@@ -54,6 +59,9 @@ services:
       # TLS verification disabled for self-signed test certs
       # In production, use proper certificates and set to 0
       - TLS_DISABLE_VERIFY=1
+    # Version-pinned runner injects resolved client env here; /dev/null no-op otherwise.
+    env_file:
+      - ${PINNED_CLIENT_ENV_FILE:-/dev/null}
     volumes:
       - ./mlog/client:/mlog
       # Mount the relay's cert (read-only) so clients can pin a self-signed
