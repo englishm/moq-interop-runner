@@ -55,6 +55,9 @@ jobs:
         run: |
           jq -r '.implementations[].roles[].docker.image // empty' implementations.json \
             | grep '^ghcr.io/' | sort -u | while read -r img; do docker pull "$img" || true; done
+      - name: Build adapters
+        continue-on-error: true  # match the official run: build the local adapter images
+        run: make build-adapters
       - name: Run pinned tests for ${{ matrix.draft }}
         run: |
           set -uo pipefail
