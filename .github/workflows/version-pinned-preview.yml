@@ -32,9 +32,10 @@ concurrency:
 
 jobs:
   preview:
-    # PR labeled `vpm-preview`, or a manual dispatch. Never on schedule.
+    # PR labeled `vpm-preview` (fast dummy preview) or `vpm-real` (real matrix run),
+    # or a manual dispatch. Never on schedule.
     if: >-
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'vpm-preview'))
+      (github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'vpm-preview') || contains(github.event.pull_request.labels.*.name, 'vpm-real')))
       || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 75
@@ -53,41 +54,54 @@ jobs:
           ref: gh-pages
           path: gh-pages-site
 
-      - name: Set up real Tier-A run (dispatch + run_real only)
-        if: github.event_name == 'workflow_dispatch' && inputs.run_real
+      - name: Determine mode (real vs dummy preview)
+        id: mode
+        run: |
+          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.run_real }}" = "true" ] \
+             || [ "${{ contains(github.event.pull_request.labels.*.name, 'vpm-real') }}" = "true" ]; then
+            echo "real=true"  >> "$GITHUB_OUTPUT"; echo "REAL matrix run"
+          else
+            echo "real=false" >> "$GITHUB_OUTPUT"; echo "dummy preview"
+          fi
+
+      - name: Prep images (real mode only) — build adapters + pull, like the official run
+        if: steps.mode.outputs.real == 'true'
         working-directory: main
         run: |
           ./generate-certs.sh ./certs
           jq -r '.implementations[].roles[].docker.image // empty' implementations.json \
             | grep '^ghcr.io/' | sort -u | while read -r img; do docker pull "$img" || true; done
+          make build-adapters || true
 
-      - name: Build staged summary + render
+      - name: Build summary + render
         working-directory: main
         run: |
           set -euo pipefail
           mkdir -p out
-          # Optimistic baseline = full coverage from the registry (every eligible cell = pass).
-          ./generate-dummy-results.sh > out/summary.json
-          # Overlay REAL official negotiated results (latest gh-pages run) so the matrix
-          # shows true status where we have data; baseline stays optimistic for pinned
-          # cells not yet covered. Real status always wins.
+          if [ "${{ steps.mode.outputs.real }}" = "true" ]; then
+            # REAL: run the confined per-draft matrix for every even draft (all runnable
+            # pairings actually execute). Structural container failures record as DNF, not
+            # fail, so the report separates harness gaps from real interop results.
+            for d in $(jq -r '[.implementations[].draft_versions[]?] | unique
+                        | map(select((ltrimstr("draft-")|tonumber) % 2 == 0)) | .[]' implementations.json); do
+              echo "::group::run $d"; TEST_TIMEOUT=60 ./run-interop-pinned.sh --draft "$d" --docker-only || true; echo "::endgroup::"
+            done
+            ./merge-results.sh results/*-pinned/summary.json > out/summary.json
+          else
+            # PREVIEW: optimistic dummy baseline (fast, no test execution).
+            ./generate-dummy-results.sh > out/summary.json
+          fi
+          # Open Relay view: overlay REAL official negotiated (live-endpoint) results.
           OFFICIAL=$(ls -1d ../gh-pages-site/results/*/ 2>/dev/null | sort | tail -1 || true)
           if [ -n "${OFFICIAL:-}" ] && [ -f "${OFFICIAL}summary.json" ]; then
-            echo "Seeding real results from ${OFFICIAL}summary.json"
-            ./seed-official-results.sh "${OFFICIAL}summary.json" > out/real.json
-            ./merge-results.sh out/summary.json out/real.json > out/merged.json
-            mv out/merged.json out/summary.json
-          else
-            echo "No official gh-pages results found to seed; optimistic baseline only."
-          fi
-          # Optionally overlay real Tier-A (image-pinned) results.
-          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.run_real }}" = "true" ]; then
-            ./run-interop-pinned.sh --docker-only || true
-            REAL=$(ls -1d results/*-pinned/ 2>/dev/null | sort | tail -1 || true)
-            if [ -n "${REAL:-}" ] && [ -f "$REAL/summary.json" ]; then
-              ./merge-results.sh out/summary.json "$REAL/summary.json" > out/merged.json
-              mv out/merged.json out/summary.json
+            ./seed-official-results.sh "${OFFICIAL}summary.json" > out/official.json
+            if [ "${{ steps.mode.outputs.real }}" = "true" ]; then
+              # per-draft view stays real; take only the open view from official
+              jq '.runs |= map(select(.view=="open"))' out/official.json > out/overlay.json
+            else
+              cp out/official.json out/overlay.json
             fi
+            ./merge-results.sh out/summary.json out/overlay.json > out/m.json && mv out/m.json out/summary.json
           fi
           ./generate-report-perdraft.sh out -o out/index.html
 
