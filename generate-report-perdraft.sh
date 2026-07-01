@@ -72,6 +72,29 @@ relays()  { jq -r 'map(.rfam)  | unique | .[]' <<<"$RUNS"; }
 open_relays() { jq -r 'map(select(.view=="open").rfam) | unique | .[]' <<<"$RUNS"; }
 has_open() { [ -n "$(jq -r 'map(select(.view=="open")) | length' <<<"$RUNS" | grep -v '^0$')" ]; }
 
+# Compact aggregate line for one page. $1 = a draft ("draft-16") or "open".
+# Counts result runs by status (dedup per client/relay/transport, local preferred).
+agg_line() {
+  jq -r --arg d "$1" '
+    [ .[] | if $d=="open" then select(.view=="open") else select((.view // "draft")=="draft" and .draft==$d) end ]
+    | group_by([.cfam, .rfam, .t])
+    | map( (map(select(.status=="pass" or .status=="fail" or .status=="partial"))
+            | (map(select(.source=="local"))[0] // .[0])) // .[0] )
+    | (map(select(.status=="pass"))|length) as $p
+    | (map(select(.status=="partial"))|length) as $pa
+    | (map(select(.status=="fail"))|length) as $f
+    | (map(select(.status=="skip"))|length) as $s
+    | (map(select(.status=="conn-fail" or .status=="timeout"))|length) as $c
+    | "<div class=\"agg\"><b>\($p+$pa+$f+$s+$c)</b> results &middot; "
+      + "<span class=\"apass\">\($p) pass</span>"
+      + (if $pa>0 then " &middot; <span class=\"apart\">\($pa) partial</span>" else "" end)
+      + (if $f>0  then " &middot; <span class=\"afail\">\($f) fail</span>" else "" end)
+      + (if $s>0  then " &middot; <span class=\"askip\">\($s) skip</span>" else "" end)
+      + (if $c>0  then " &middot; <span class=\"aconn\">\($c) unreachable</span>" else "" end)
+      + "</div>"
+  ' <<<"$RUNS"
+}
+
 # Render the two transport pills (QUIC, H3/WT) for a set of rows, preferring the
 # given source ($2 = local|remote). Always emits both slots for uniform height.
 render_pills() {
@@ -179,7 +202,16 @@ cat <<HEAD
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);padding:2rem;line-height:1.5}
 .container{max-width:1400px;margin:0 auto}
 h1{margin-bottom:.25rem}.meta{color:var(--muted);margin-bottom:1.5rem}
-.controls{margin-bottom:1.5rem;display:flex;gap:1.75rem;align-items:center}
+.controls{margin-bottom:1.25rem;display:flex;gap:1.75rem;align-items:center}
+.viewtabs{display:inline-flex;border:1px solid #3a516e;border-radius:.45rem;overflow:hidden}
+.vtab{padding:.4rem .9rem;font-size:.9rem;font-weight:600;color:var(--muted);cursor:pointer;user-select:none;background:transparent}
+.vtab+.vtab{border-left:1px solid #3a516e}
+.vtab:hover{color:var(--text)}
+.vtab.active{background:rgba(127,166,207,.18);color:var(--accent)}
+.agg{margin:0 0 .8rem;font-size:.85rem;color:var(--muted)}
+.agg b{color:var(--text);font-weight:700}
+.agg .apass{color:#34d399} .agg .apart{color:#f59e0b} .agg .afail{color:#f87171}
+.agg .askip{color:var(--muted)} .agg .aconn{color:#8696ad}
 select{background:var(--card);color:var(--text);border:1px solid #334155;border-radius:.4rem;padding:.5rem .75rem;font-size:1rem}
 table{border-collapse:collapse;background:var(--card);border-radius:.5rem;overflow:hidden}
 th,td{padding:.55rem .6rem;text-align:center;border-bottom:1px solid var(--bg);border-right:1px solid var(--bg);font-size:.8rem;white-space:nowrap}
@@ -222,12 +254,11 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 </style></head><body><div class="container">
 <h1>MoQT Interop <span style="font-size:.6em;color:var(--muted)">(POC)</span></h1>
 <p class="meta">Generated: ${TS}</p>
-<div class="controls"><label>View: <select id="viewSel" onchange="showView(this.value)">
-<option value="draft">Per-draft Interop</option>
+<div class="controls"><div class="viewtabs"><a id="tab-draft" class="vtab active" onclick="showView('draft')">Per-draft Interop</a>
 HEAD
 
-has_open && echo "<option value=\"open\">Open Relay Interop</option>"
-echo "</select></label> <label id=\"draftLabel\">Draft: <select id=\"draftSel\" onchange=\"showDraft(this.value)\">"
+has_open && echo "<a id=\"tab-open\" class=\"vtab\" onclick=\"showView('open')\">Open Relay Interop</a>"
+echo "</div> <label id=\"draftLabel\">Draft: <select id=\"draftSel\" onchange=\"showDraft(this.value)\">"
 # Latest draft first so it is the default landing view; older drafts follow.
 for ((i=${#DRAFTS[@]}-1; i>=0; i--)); do
   echo "<option value=\"${DRAFTS[$i]}\">${DRAFTS[$i]}</option>"
@@ -235,7 +266,7 @@ done
 echo "</select></label></div>"
 
 for d in "${DRAFTS[@]}"; do
-  echo "<div class=\"page\" data-draft=\"$d\"><table><thead><tr><th>Client ↓ / Relay →</th>"
+  echo "<div class=\"page\" data-draft=\"$d\">$(agg_line "$d")<table><thead><tr><th>Client ↓ / Relay →</th>"
   for r in "${RELAYS[@]}"; do echo "<th>$r</th>"; done
   echo "</tr></thead><tbody>"
   for c in "${CLIENTS[@]}"; do
@@ -251,7 +282,7 @@ done
 # Open Relay Interop page: clients × relays-with-live-endpoints; mutually negotiated draft.
 mapfile -t OPEN_RELAYS < <(open_relays)
 if [ "${#OPEN_RELAYS[@]}" -gt 0 ]; then
-  echo "<div class=\"page\" data-draft=\"open\"><p class=\"openmeta\">Live/public endpoints &mdash; mutually <strong>negotiated</strong> draft (no version confinement), complementing the confined per-draft matrix. The badge is the negotiated draft.</p><table><thead><tr><th>Client ↓ / Relay →</th>"
+  echo "<div class=\"page\" data-draft=\"open\">$(agg_line open)<p class=\"openmeta\">Live/public endpoints &mdash; mutually <strong>negotiated</strong> draft (no version confinement), complementing the confined per-draft matrix. The badge is the negotiated draft.</p><table><thead><tr><th>Client ↓ / Relay →</th>"
   for r in "${OPEN_RELAYS[@]}"; do echo "<th>$r</th>"; done
   echo "</tr></thead><tbody>"
   for c in "${CLIENTS[@]}"; do
@@ -274,10 +305,13 @@ function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.
 function showDraft(d){showPage(d);}
 function showView(v){
   var dl=document.getElementById('draftLabel');
+  var td=document.getElementById('tab-draft'), to=document.getElementById('tab-open');
+  if(td) td.classList.toggle('active', v==='draft');
+  if(to) to.classList.toggle('active', v==='open');
   if(v==='open'){ if(dl) dl.style.display='none'; showPage('open'); }
   else { if(dl) dl.style.display=''; showPage(document.getElementById('draftSel').value); }
 }
-document.addEventListener('DOMContentLoaded',function(){showView(document.getElementById('viewSel').value);});
+document.addEventListener('DOMContentLoaded',function(){showView('draft');});
 </script>
 </body></html>
 FOOT
