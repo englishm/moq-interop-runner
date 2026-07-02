@@ -18,11 +18,10 @@ ENV MOQX_BIND_ADDR=0.0.0.0
 ENV MOQX_CERT=/certs/cert.pem
 ENV MOQX_KEY=/certs/priv.key
 ENV MOQX_ENDPOINT=/
-# Advertise draft-18 first so negotiation lands on 18 when mutually supported.
-# moqx's binary default lists 16 first, so unconfined runs pick 16 even when 18
-# is available; ordering 18,16,14 fixes that. (A pinned runner can still override
-# MOQX_MOQT_VERSIONS to a single draft for version confinement.)
-ENV MOQX_MOQT_VERSIONS=18,16,14
+# No MOQX_MOQT_VERSIONS override: the moqx image already defaults to the YAML
+# inline list [16, 14, 18] (prefer stable 16, pre-release 18 last). NOTE the format
+# is a bracketed YAML sequence -- a bare comma string ("16,14,18") fails the config
+# parse ("moqt_versions: Could not cast to sequence") and the relay exits 1.
 
 EXPOSE 4443/udp
 
