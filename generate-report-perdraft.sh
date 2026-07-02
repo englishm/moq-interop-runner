@@ -168,7 +168,7 @@ cell_open() {
   [ "$(jq 'length' <<<"$rows")" -gt 0 ] && neg=$(jq -r 'map(.draft)|unique|.[0] // empty' <<<"$rows")
   if [ -z "$neg" ] || ! keep_draft "$neg"; then
     # No mutually negotiable (even) draft — faint placeholder, uniform grid.
-    echo "<div class=\"opencell\"><span class=\"negdraft negblank\" title=\"no mutually negotiable draft\">&mdash;</span><span class=\"openpills\">$(render_pills "[]" remote)</span></div>"
+    echo "<div class=\"opencell\"><span class=\"openpills\">$(render_pills "[]" remote)</span><span class=\"negdraft negblank\" title=\"no mutually negotiable draft\">&mdash;</span></div>"
     return
   fi
   local medal="${MEDAL[$neg]:-old}" emoji=""
@@ -177,7 +177,7 @@ cell_open() {
     near) emoji="&#129352;" ;;  # 🥈
     back) emoji="&#129353;" ;;  # 🥉
   esac
-  echo "<div class=\"opencell\"><span class=\"negdraft age-${medal}\" title=\"mutually negotiated ${neg}\"><span class=\"dnum\">${neg#draft-}</span><span class=\"dmedal\">${emoji}</span></span><span class=\"openpills\">$(render_pills "$rows" remote)</span></div>"
+  echo "<div class=\"opencell\"><span class=\"openpills\">$(render_pills "$rows" remote)</span><span class=\"negdraft age-${medal}\" title=\"mutually negotiated ${neg}\"><span class=\"dnum\">${neg#draft-}</span><span class=\"dmedal\">${emoji}</span></span></div>"
 }
 
 mapfile -t DRAFTS < <(drafts)
@@ -241,13 +241,13 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .pval.conn{color:#79859b}
 .pval.err{color:#9aa6ba}
 .blank{color:#475569}
-.opencell{display:flex;align-items:center;gap:.55rem;justify-content:flex-start}
+.opencell{display:flex;align-items:center;gap:.55rem;justify-content:flex-end}
 .openpills{display:flex;flex-direction:column}
 .openpills .pill{margin:.12rem 0}
 /* Draft recency badge: medal emoji + draft number, tinted by rank. */
 /* Explicit px knobs: padding-top = number→top, .dnum margin-bottom = number→medal,
    padding-bottom = medal→bottom. Tune these freely. */
-.negdraft{display:inline-flex;flex-direction:column;align-items:center;padding:4px 6px 9px;margin:.16rem 0;border-radius:.35rem;border:1px solid #3a516e;background:rgba(127,166,207,.16);color:var(--accent);flex:none;line-height:1}
+.negdraft{display:inline-flex;flex-direction:column;align-items:center;padding:4px 4px 9px;margin:.16rem 0;border-radius:.35rem;border:1px solid #3a516e;background:rgba(127,166,207,.16);color:var(--accent);flex:none;line-height:1}
 .negdraft .dnum{font-size:13px;font-weight:800;margin-bottom:3px}
 .negdraft .dmedal{font-size:13px;line-height:1;display:block}
 .negdraft.age-cur{background:rgba(34,197,94,.18);color:#34d399;border-color:#1f7a48}
