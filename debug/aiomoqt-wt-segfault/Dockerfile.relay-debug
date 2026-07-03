@@ -1,0 +1,29 @@
+# Debug build of the aiomoqt WebTransport relay: same relay, but with gdb so a
+# SIGSEGV in the aiopquic C extension yields a native backtrace. WebTransport mode
+# (no MOQT_QUIC) -- that's the path that crashes on SUBSCRIBE.
+#
+# Build:  docker build -t aiomoqt-relay-wtdebug -f Dockerfile.relay-debug .
+FROM ghcr.io/gmarzot/aiomoqt:latest
+
+USER root
+# python:slim is Debian-based -> apt is available. gdb for the native stack;
+# python3-dbg would add interpreter symbols but isn't required for the aiopquic frames.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends gdb valgrind \
+ && rm -rf /var/lib/apt/lists/*
+
+ENV MOQT_ROLE=relay \
+    MOQT_PORT=4443 \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONUNBUFFERED=1
+
+COPY entrypoint-debug.sh /usr/local/bin/entrypoint-debug.sh
+RUN chmod +x /usr/local/bin/entrypoint-debug.sh
+
+EXPOSE 4443/udp
+# Port-4443 healthcheck (0x115B) via /proc/net/udp, matching the interop relay.
+# Lenient: valgrind starts the relay ~20-50x slower, so give it room to bind 4443.
+HEALTHCHECK --interval=3s --timeout=5s --start-period=15s --retries=60 \
+    CMD grep -qi ":115B" /proc/net/udp6 || grep -qi ":115B" /proc/net/udp || exit 1
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-debug.sh"]
