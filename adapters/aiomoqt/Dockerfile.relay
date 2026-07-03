@@ -16,16 +16,16 @@
 FROM ghcr.io/gmarzot/aiomoqt:latest
 
 # The image's entrypoint reads these (docker-entrypoint.sh): relay role,
-# draft-16 + draft-18 (advertises both WT-protocols, server negotiates),
-# WebTransport (no MOQT_QUIC). Certs default to /certs/cert.pem +
-# /certs/priv.key.
+# draft-14/16/18 (advertises all; server negotiates), WebTransport (no MOQT_QUIC).
+# Certs default to /certs/cert.pem + /certs/priv.key. draft-14 is appended (kept
+# last) so it is offered to draft-14-only peers without changing the 16/18 order.
 ENV MOQT_ROLE=relay
 ENV MOQT_PORT=4443
-# Default advertised drafts when unconfined (existing harness / Open Relay). The
-# pinned runner overrides MOQT_DRAFT per test; the shim normalizes draft-NN -> NN.
-ENV MOQT_DRAFT=14,16,18
+# Default advertised drafts when unconfined (official runner / Open Relay): prefer
+# stable draft-16, then 14, with pre-release draft-18 LAST. The pinned runner
+# overrides MOQT_DRAFT per test; the shim normalizes draft-NN to the bare ints --draft wants.
+ENV MOQT_DRAFT=16,14,18
 
-# Strip the runner draft-NN prefix so the upstream --draft (bare ints) accepts it.
 COPY normalize-draft.sh /usr/local/bin/normalize-draft.sh
 RUN chmod +x /usr/local/bin/normalize-draft.sh
 ENTRYPOINT ["/usr/local/bin/normalize-draft.sh"]
