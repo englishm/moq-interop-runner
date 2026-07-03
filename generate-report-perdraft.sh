@@ -309,8 +309,9 @@ cat <<'FOOT'
 </div>
 <script>
 function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.draft===id));}
-function showDraft(d){showPage(d);}
+function showDraft(d){ try{localStorage.setItem('vpm_draft',d);}catch(e){} var s=document.getElementById('draftSel'); if(s)s.value=d; showPage(d); }
 function showView(v){
+  try{localStorage.setItem('vpm_view',v);}catch(e){}
   var dl=document.getElementById('draftLabel');
   var td=document.getElementById('tab-draft'), to=document.getElementById('tab-open');
   if(td) td.classList.toggle('active', v==='draft');
@@ -318,7 +319,15 @@ function showView(v){
   if(v==='open'){ if(dl) dl.style.display='none'; showPage('open'); }
   else { if(dl) dl.style.display=''; showPage(document.getElementById('draftSel').value); }
 }
-document.addEventListener('DOMContentLoaded',function(){showView('draft');});
+document.addEventListener('DOMContentLoaded',function(){
+  // Sticky across refresh: restore the last view + draft from localStorage.
+  var v='draft', d=null;
+  try{ v=localStorage.getItem('vpm_view')||'draft'; d=localStorage.getItem('vpm_draft'); }catch(e){}
+  var s=document.getElementById('draftSel');
+  if(d && s){ for(var i=0;i<s.options.length;i++){ if(s.options[i].value===d){ s.value=d; break; } } }
+  if(v==='open' && !document.getElementById('tab-open')) v='draft';   // only if the tab exists
+  showView(v);
+});
 </script>
 </body></html>
 FOOT
