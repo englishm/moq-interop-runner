@@ -1,0 +1,78 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://cdn.moq.dev/anon...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://cdn.moq.dev/anon \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+2026-07-05 00:41:10.326 ERROR: MOQT error: control task failed with exception: control stream not initialized (1)
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  [PASS (COMPAT)] subscribe-error: Non-spec error code=404 accepted as 'track not found'
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+2026-07-05 00:41:11.452 ERROR: MOQT control: truncated msg type=0x7 msg_len=1536 tell=3 buf_len=24 head_hex=0706001405020b667269656e642e666973680474616e6b00
+2026-07-05 00:41:11.452 ERROR: MOQT error: control stream: parsing failed at position: 24 of 24 bytes
+2026-07-05 00:41:11.452 ERROR: MOQT error: closing: control stream: parsing failed at position: 24 of 24 bytes (3)
+2026-07-05 00:41:11.452 WARNING: QUIC event: stream data after close: stream 4 (rate-limited to once per stream)
+  [FAIL] subscribe-before-announce: Failed: TimeoutError
+ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-44' coro=<_MOQTSessionMixin._await_response() done, defined at /app/aiomoqt/protocol.py:302> exception=MOQTRequestError('request error: code=404 reason=Broadcast not found')>
+Traceback (most recent call last):
+  File "/app/aiomoqt/protocol.py", line 328, in _await_response
+    raise MOQTRequestError(
+aiomoqt.types.MOQTRequestError: request error: code=404 reason=Broadcast not found
+TAP version 14
+# date: 2026-07-05T00:41:10Z
+# ended: 2026-07-05T00:41:17Z
+# target: https://cdn.moq.dev/anon
+# version: aiomoqt/0.10.5
+# note: preference probe pinned draft-16
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 69.4
+  connection_id: unknown
+  message: SERVER_SETUP received with compatible version
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 74.1
+  connection_id: unknown
+  message: PUBLISH_NAMESPACE_OK received
+  ...
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 181.5
+  connection_id: unknown
+  message: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 4 - subscribe-error # COMPAT
+  ---
+  duration_ms: 73.4
+  connection_id: unknown
+  message: Non-spec error code=404 accepted as 'track not found'
+  expected: SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST (0x04/0x10)
+  received: SUBSCRIBE_ERROR code=404
+  compat: true
+  compat_note: relay returns non-spec error code 404 for not-found; spec expects 0x04 (d14) or 0x10 (d16)
+  ...
+ok 5 - announce-subscribe
+  ---
+  duration_ms: 147.6
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: SUBSCRIBE_OK received — relay routed subscription
+  ...
+not ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 7007.5
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: Failed: TimeoutError
+  received: TimeoutError
+  ...
+make[1]: *** [Makefile:121: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
