@@ -192,7 +192,7 @@ interop-list:
 build-adapters:
 	@set -o pipefail; jq -r '.implementations | to_entries[] | .value.roles | to_entries[]? | select(.value.docker.build.dockerfile != null) | select(.value.docker.build.dockerfile | startswith("adapters/")) | "\(.value.docker.image)|\(.value.docker.build.dockerfile)|\(.value.docker.build.context)"' implementations.json | while IFS='|' read -r image dockerfile context; do \
 		echo "Building adapter: $$image"; \
-		docker build -t "$$image" -f "$$dockerfile" "$$context"; \
+		docker build --pull -t "$$image" -f "$$dockerfile" "$$context"; \
 	done
 
 # Build individual adapter (kept for convenience / backward compatibility)

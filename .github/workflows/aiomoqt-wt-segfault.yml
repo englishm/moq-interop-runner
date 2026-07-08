@@ -1,0 +1,49 @@
+name: aiomoqt WT segfault repro
+
+# Reproduces the aiomoqt WebTransport relay SIGSEGV (aiopquic WT TX path) and
+# captures a symbolized native stack trace. Trigger: manual dispatch, or add the
+# `aiomoqt-wt-debug` label to a PR. Uploads the stack as an artifact + job summary.
+
+on:
+  workflow_dispatch:
+    inputs:
+      client_image:
+        description: 'Trigger client image (moxygen crashes earliest)'
+        default: 'ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64'
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  repro:
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || contains(github.event.pull_request.labels.*.name, 'aiomoqt-wt-debug')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run repro harness
+        run: |
+          chmod +x debug/aiomoqt-wt-segfault/*.sh
+          ./debug/aiomoqt-wt-segfault/run.sh out \
+            "${{ github.event.inputs.client_image || 'ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64' }}"
+      - name: Post stack to the job summary
+        if: always()
+        run: |
+          {
+            echo '## aiomoqt WT segfault — captured stack'
+            echo '```'
+            cat out/stacktrace.txt 2>/dev/null || echo '(no stacktrace produced)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aiomoqt-wt-segfault-stack
+          path: |
+            out/stacktrace.txt
+            out/run.log
+          retention-days: 14

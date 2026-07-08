@@ -19,8 +19,16 @@ FROM ghcr.io/gmarzot/aiomoqt:latest
 # draft-14 appended (kept last) for draft-14-only peers; 16/18 order unchanged.
 ENV MOQT_ROLE=relay
 ENV MOQT_PORT=4443
-ENV MOQT_DRAFT=16,18,14
+# Default advertised drafts when unconfined (official runner / Open Relay): prefer
+# stable draft-16, then 14, with pre-release draft-18 LAST. The pinned runner
+# overrides MOQT_DRAFT per test; the shim normalizes draft-NN to the bare ints --draft wants.
+ENV MOQT_DRAFT=16,14,18
 ENV MOQT_QUIC=1
+
+# Strip the runner draft-NN prefix so the upstream --draft (bare ints) accepts it.
+COPY normalize-draft.sh /usr/local/bin/normalize-draft.sh
+RUN chmod +x /usr/local/bin/normalize-draft.sh
+ENTRYPOINT ["/usr/local/bin/normalize-draft.sh"]
 
 EXPOSE 4443/udp
 

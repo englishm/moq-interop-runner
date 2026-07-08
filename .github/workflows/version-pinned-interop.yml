@@ -1,0 +1,209 @@
+name: Version-Pinned Interop (sharded, real)
+
+# THE version-pinned matrix producer (ADR 003). Runs the REAL per-draft interop
+# matrix — local docker AND live remote endpoints — SHARDED BY DRAFT: each even
+# draft is an independent job (the per-draft pages are independent, so draft is a
+# clean shard key). A fan-in job merges the per-draft summaries, renders the report,
+# and publishes a non-official preview under gh-pages:previews/ (never results/,
+# never the landing index.html). The job summary reports the sharding speedup.
+#
+# 100% real data: no seed (borrowed official summary) and no dummy baseline. The
+# per-draft view is local-pinned + confined-client-vs-remote runs; the Open Relay
+# view is the real remote runs. Structural container/endpoint failures record as
+# DNF (error), kept distinct from real interop fails.
+#
+# Triggers:
+#   - pull_request labeled `vpm-real` (or `vpm-preview`) -> runs THIS branch's
+#       matrix; publishes for same-repo PRs to previews/pr-<N>/, artifact-only for
+#       forks, and posts a sticky browsable-preview link comment.
+#   - workflow_dispatch -> publishes to previews/version-pinned-real/.
+#   - schedule -> reaper (prunes previews > 14 days).
+
+on:
+  pull_request:
+    types: [labeled, synchronize]
+  workflow_dispatch:
+    inputs:
+      publish_preview:
+        description: 'Publish the rendered matrix to gh-pages previews/version-pinned-real/'
+        type: boolean
+        default: true
+  schedule:
+    - cron: '0 3 * * 0'  # weekly reaper
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vpm-interop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  drafts:
+    # PR labeled vpm-real/vpm-preview, or a manual dispatch. Never on schedule.
+    if: >-
+      (github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'vpm-real') || contains(github.event.pull_request.labels.*.name, 'vpm-preview')))
+      || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set
+        run: |
+          # Even interop drafts declared anywhere in the registry (odd drafts are
+          # not interop targets and are suppressed in the report).
+          DRAFTS=$(jq -c '[.implementations[].draft_versions[]?] | unique
+            | map(select((ltrimstr("draft-")|tonumber) % 2 == 0)) | sort' implementations.json)
+          echo "matrix={\"draft\":$DRAFTS}" >> "$GITHUB_OUTPUT"
+          echo "shard drafts: $DRAFTS"
+
+  shard:
+    needs: drafts
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.drafts.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate certs
+        run: ./generate-certs.sh ./certs
+      - name: Pull available registry images
+        run: |
+          jq -r '.implementations[].roles[].docker.image // empty' implementations.json \
+            | grep '^ghcr.io/' | sort -u | while read -r img; do docker pull "$img" || true; done
+      - name: Build adapters
+        continue-on-error: true  # match the official run: build the local adapter images
+        run: make build-adapters
+      - name: Run pinned tests for ${{ matrix.draft }}
+        run: |
+          set -uo pipefail
+          mkdir -p out
+          start=$(date +%s)
+          # Local docker + live remote endpoints (confined clients only). No --docker-only.
+          TEST_TIMEOUT=45 ./run-interop-pinned.sh --draft "${{ matrix.draft }}" || true
+          end=$(date +%s)
+          RES=$(ls -1d results/*-pinned/ | sort | tail -1)
+          cp "$RES/summary.json" "out/summary-${{ matrix.draft }}.json"
+          # Ship the per-test logs so the report's pills can link to them.
+          mkdir -p out/logs && cp "$RES"/*.log out/logs/ 2>/dev/null || true
+          echo "$((end - start))" > "out/duration-${{ matrix.draft }}.txt"
+          echo "::notice::${{ matrix.draft }} ran in $((end - start))s ($(jq '.runs|length' "out/summary-${{ matrix.draft }}.json") cells)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.draft }}
+          path: out/
+          retention-days: 14
+
+  merge-render:
+    needs: shard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # publish under previews/ (read for forks -> artifact only)
+      pull-requests: write  # post the browsable preview link as a PR comment
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: main }
+      - uses: actions/checkout@v4
+        with: { ref: gh-pages, path: gh-pages-site }
+      - uses: actions/download-artifact@v4
+        with: { path: shards, pattern: shard-*, merge-multiple: true }
+      - name: Fan-in merge + render + speedup
+        working-directory: main
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          # Fan-in: merge all per-draft REAL summaries into one matrix. 100% real —
+          # no seed overlay; the Open Relay view is fed by the real remote runs.
+          ./merge-results.sh ../shards/summary-*.json > out/summary.json
+          # Gather all shards' logs next to the report so the pill links resolve.
+          mkdir -p out/logs && cp ../shards/logs/*.log out/logs/ 2>/dev/null || true
+          ./generate-report-perdraft.sh out -o out/index.html
+          # Sharding speedup: sequential = sum of per-draft durations; sharded = slowest draft.
+          SEQ=0; MAX=0
+          for f in ../shards/duration-*.txt; do d=$(cat "$f"); SEQ=$((SEQ + d)); [ "$d" -gt "$MAX" ] && MAX=$d; done
+          {
+            echo "## Version-pinned sharding speedup"
+            echo ""
+            echo "| metric | seconds |"
+            echo "|---|---|"
+            echo "| Sequential (Σ per-draft) | ${SEQ} |"
+            echo "| Sharded (slowest draft)  | ${MAX} |"
+            awk -v s="$SEQ" -v m="$MAX" 'BEGIN{printf "| **Speedup** | **%.2fx** |\n", (m>0 ? s/m : 0)}'
+            echo ""
+            for f in ../shards/duration-*.txt; do
+              dr=$(basename "$f" .txt | sed 's/duration-//'); echo "- ${dr}: $(cat "$f")s"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: version-pinned-real
+          path: main/out/index.html
+          retention-days: 14
+      - name: Publish to gh-pages previews/ (same-repo only; off the main landing)
+        id: publish
+        if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            SLUG="pr-${{ github.event.pull_request.number }}"
+          else
+            SLUG="version-pinned-real"
+          fi
+          DEST="gh-pages-site/previews/$SLUG"
+          mkdir -p "$DEST/logs"
+          cp main/out/index.html "$DEST/index.html"
+          cp main/out/logs/*.log "$DEST/logs/" 2>/dev/null || true
+          cd gh-pages-site
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add previews
+          if git diff --cached --quiet; then
+            echo "No preview change."
+          else
+            git commit -m "Version-pinned REAL matrix: $SLUG (staged, non-official)"
+            git push origin gh-pages
+          fi
+          PAGES="https://$(echo '${{ github.repository_owner }}' | tr 'A-Z' 'a-z').github.io/$(echo '${{ github.repository }}' | cut -d/ -f2)/previews/$SLUG/"
+          echo "📊 Real sharded matrix (not official): $PAGES" >> "$GITHUB_STEP_SUMMARY"
+          echo "$PAGES" > /tmp/preview_url
+      - name: Comment the browsable preview link on the PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          URL=$(cat /tmp/preview_url)
+          MARK="<!-- vpm-preview-link -->"
+          BODY="$MARK"$'\n'"📊 **Version-pinned per-draft matrix** (real, non-official, off the main landing): $URL"
+          # Update the existing bot comment if present, else create one (no spam on re-runs).
+          ID=$(gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+                 --jq "map(select(.body | contains(\"$MARK\"))) | .[0].id // empty")
+          if [ -n "$ID" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$ID" -f body="$BODY" >/dev/null
+          else
+            gh api -X POST "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" -f body="$BODY" >/dev/null
+          fi
+
+  reap-previews:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: gh-pages, path: gh-pages-site }
+      - name: Prune previews older than 14 days
+        working-directory: gh-pages-site
+        run: |
+          [ -d previews ] || { echo "no previews/"; exit 0; }
+          find previews -mindepth 1 -maxdepth 1 -type d -mtime +14 -exec rm -rf {} +
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to reap."
+          else
+            git commit -m "Reap version-pinned previews older than 14 days"
+            git push origin gh-pages
+          fi
