@@ -51,7 +51,7 @@ norm() { jq -c --argjson fam "$FAMILY_MAP" '.runs | map(
             source: (.source // (if $m=="docker" then "local"
                                  elif ($m|startswith("remote")) then "remote" else "local" end)),
             view: (.view // "draft"),
-            status, passed, total, url, error})' "$SUMMARY"; }
+            status, passed, total, url, error, log})' "$SUMMARY"; }
 RUNS=$(norm)
 
 # Render EVEN interop drafts only — odd drafts (15/17/19/…) are not interop
@@ -68,15 +68,15 @@ drafts() {
 }
 clients() { jq -r 'map(.cfam)  | unique | .[]' <<<"$RUNS"; }
 relays()  { jq -r 'map(.rfam)  | unique | .[]' <<<"$RUNS"; }
-# relays that expose a live endpoint (have any open-view runs)
-open_relays() { jq -r 'map(select(.view=="open").rfam) | unique | .[]' <<<"$RUNS"; }
-has_open() { [ -n "$(jq -r 'map(select(.view=="open")) | length' <<<"$RUNS" | grep -v '^0$')" ]; }
+# relays that expose a live endpoint (any real remote run, or a seed open-view run)
+open_relays() { jq -r 'map(select(.view=="open" or .source=="remote").rfam) | unique | .[]' <<<"$RUNS"; }
+has_open() { [ -n "$(jq -r 'map(select(.view=="open" or .source=="remote")) | length' <<<"$RUNS" | grep -v '^0$')" ]; }
 
 # Compact aggregate line for one page. $1 = a draft ("draft-16") or "open".
 # Counts result runs by status (dedup per client/relay/transport, local preferred).
 agg_line() {
   jq -r --arg d "$1" '
-    [ .[] | if $d=="open" then select(.view=="open") else select((.view // "draft")=="draft" and .draft==$d) end ]
+    [ .[] | if $d=="open" then select(.view=="open" or .source=="remote") else select((.view // "draft")=="draft" and .draft==$d) end ]
     | group_by([.cfam, .rfam, .t])
     | map( (map(select(.status=="pass" or .status=="fail" or .status=="partial"))
             | (map(select(.source=="local"))[0] // .[0])) // .[0] )
@@ -118,7 +118,7 @@ render_pills() {
       continue
     fi
 
-    local status passed total source cls val title url err loc
+    local status passed total source cls val title url err loc logf rmt pill
     status=$(jq -r '.status' <<<"$run")
     passed=$(jq -r '.passed // empty' <<<"$run")
     total=$(jq -r '.total // empty' <<<"$run")
@@ -145,7 +145,16 @@ render_pills() {
     else
       cls=fail; val="$status"; title="$loc"
     fi
-    out+="<span class=\"pill ${cls}\" title=\"${title}\"><span class=\"plabel\">${label}</span><span class=\"pval ${cls}\">${val}</span></span>"
+    # Clickable: open this test's log (full TAP + any crash output). Remote runs get
+    # a provenance dot so live-endpoint results are distinguishable from local docker.
+    logf=$(jq -r '.log // empty' <<<"$run")
+    rmt=""; [ "$source" = "remote" ] && rmt=" rmt"
+    pill="<span class=\"pill ${cls}${rmt}\" title=\"${title}\"><span class=\"plabel\">${label}</span><span class=\"pval ${cls}\">${val}</span></span>"
+    if [ -n "$logf" ]; then
+      out+="<a class=\"plink\" href=\"${logf}\" target=\"_blank\" rel=\"noopener\">${pill}</a>"
+    else
+      out+="$pill"
+    fi
   done
   echo "$out"
 }
@@ -158,26 +167,38 @@ cell_html() {
   render_pills "$rows" local
 }
 
-# Open Relay Interop cell: a mutually-negotiated-draft badge plus the live-endpoint
-# (remote) transport pills. Blank when this pair has no live result.
+# Open Relay Interop cell: the highest draft that actually interoperated over the
+# live (remote) endpoint, plus that draft's transport pills. 100% real remote runs —
+# no borrowed/seed data. Blank when this pair has no live result.
 cell_open() {
   local c="$1" r="$2"
   local rows; rows=$(jq -c --arg c "$c" --arg r "$r" \
-      'map(select(.cfam==$c and .rfam==$r and .view=="open"))' <<<"$RUNS")
+      'map(select(.cfam==$c and .rfam==$r and (.view=="open" or .source=="remote")))' <<<"$RUNS")
+  # Prefer the highest draft with a real pass/partial; else the highest draft that
+  # produced any real result (a top-draft fail is still informative).
   local neg=""
-  [ "$(jq 'length' <<<"$rows")" -gt 0 ] && neg=$(jq -r 'map(.draft)|unique|.[0] // empty' <<<"$rows")
+  if [ "$(jq 'length' <<<"$rows")" -gt 0 ]; then
+    neg=$(jq -r '
+      (map(select(.status=="pass" or .status=="partial") | .draft)) as $ok
+      | (map(select(.status=="pass" or .status=="partial" or .status=="fail") | .draft)) as $any
+      | (if ($ok|length)>0 then $ok else $any end)
+      | map(select(. != null)) | unique
+      | sort_by(ltrimstr("draft-")|tonumber) | last // empty' <<<"$rows")
+  fi
   if [ -z "$neg" ] || ! keep_draft "$neg"; then
-    # No mutually negotiable (even) draft — faint placeholder, uniform grid.
-    echo "<div class=\"opencell\"><span class=\"openpills\">$(render_pills "[]" remote)</span><span class=\"negdraft negblank\" title=\"no mutually negotiable draft\">&mdash;</span></div>"
+    # No real live-endpoint interop — faint placeholder, uniform grid.
+    echo "<div class=\"opencell\"><span class=\"openpills\">$(render_pills "[]" remote)</span><span class=\"negdraft negblank\" title=\"no live-endpoint interop\">&mdash;</span></div>"
     return
   fi
+  # Pills for the chosen (best) draft only.
+  local prows; prows=$(jq -c --arg n "$neg" 'map(select(.draft==$n))' <<<"$rows")
   local medal="${MEDAL[$neg]:-old}" emoji=""
   case "$medal" in
     cur)  emoji="&#129351;" ;;  # 🥇
     near) emoji="&#129352;" ;;  # 🥈
     back) emoji="&#129353;" ;;  # 🥉
   esac
-  echo "<div class=\"opencell\"><span class=\"openpills\">$(render_pills "$rows" remote)</span><span class=\"negdraft age-${medal}\" title=\"mutually negotiated ${neg}\"><span class=\"dnum\">${neg#draft-}</span><span class=\"dmedal\">${emoji}</span></span></div>"
+  echo "<div class=\"opencell\"><span class=\"openpills\">$(render_pills "$prows" remote)</span><span class=\"negdraft age-${medal}\" title=\"highest interoperable draft ${neg} (live endpoint)\"><span class=\"dnum\">${neg#draft-}</span><span class=\"dmedal\">${emoji}</span></span></div>"
 }
 
 mapfile -t DRAFTS < <(drafts)
@@ -241,6 +262,13 @@ td .pill{display:flex;justify-content:space-between;align-items:baseline;width:6
 .pval.conn{color:#79859b}
 .pval.err{color:#9aa6ba}
 .blank{color:#475569}
+/* Clickable pill -> its test log. display:contents so the <a> doesn't disturb layout. */
+.plink{text-decoration:none;color:inherit;display:contents}
+.plink .pill{cursor:pointer}
+.plink:hover .pill{outline:1px solid var(--accent);outline-offset:-1px}
+/* Remote (live-endpoint) provenance dot, top-right of the pill. */
+.pill.rmt{position:relative}
+.pill.rmt::after{content:"";position:absolute;top:2px;right:2px;width:4px;height:4px;border-radius:50%;background:var(--accent);opacity:.65}
 .opencell{display:flex;align-items:center;gap:.55rem;justify-content:flex-end}
 .openpills{display:flex;flex-direction:column}
 .openpills .pill{margin:.12rem 0}
@@ -289,7 +317,7 @@ done
 # Open Relay Interop page: clients × relays-with-live-endpoints; mutually negotiated draft.
 mapfile -t OPEN_RELAYS < <(open_relays)
 if [ "${#OPEN_RELAYS[@]}" -gt 0 ]; then
-  echo "<div class=\"page\" data-draft=\"open\">$(agg_line open)<p class=\"openmeta\">Live/public endpoints &mdash; mutually <strong>negotiated</strong> draft (no version confinement), complementing the confined per-draft matrix. The badge is the negotiated draft.</p><table><thead><tr><th>Client ↓ / Relay →</th>"
+  echo "<div class=\"page\" data-draft=\"open\">$(agg_line open)<p class=\"openmeta\">Live/public endpoints &mdash; real confined-client probes against each live relay. The badge is the <strong>highest draft that interoperated</strong>. Click any pill for its test log.</p><table><thead><tr><th>Client ↓ / Relay →</th>"
   for r in "${OPEN_RELAYS[@]}"; do echo "<th>$r</th>"; done
   echo "</tr></thead><tbody>"
   for c in "${CLIENTS[@]}"; do
@@ -302,10 +330,10 @@ fi
 
 cat <<'FOOT'
 <p class="legend"><strong>draft-NN</strong> tabs: version-confined, local preferred &middot;
-<strong>Open Relay Interop</strong>: live endpoints at their <span class="negdraft" style="display:inline-block;margin:0">negotiated</span> draft &nbsp;|&nbsp;
+<strong>Open Relay Interop</strong>: live endpoints at their <span class="negdraft" style="display:inline-block;margin:0">highest interoperable</span> draft &nbsp;|&nbsp;
+<span class="pill rmt"><span class="pval">&deg;</span></span> remote (live endpoint) &middot;
 <span class="pill conn"><span class="pval conn">&#8856;</span></span> unreachable &middot;
-<span class="pill skip"><span class="pval skip">SKIP</span></span> skipped &middot;
-<strong>&mdash;</strong> not registered &middot; <span style="opacity:.7">hover for endpoint</span></p>
+<strong>&mdash;</strong> not registered &middot; <span style="opacity:.7">click a pill for its log</span></p>
 </div>
 <script>
 function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.draft===id));}
@@ -332,5 +360,13 @@ document.addEventListener('DOMContentLoaded',function(){
 </body></html>
 FOOT
 } > "$OUTPUT"
+
+# Self-contained output: copy referenced test logs next to the report (OUTDIR/logs),
+# so the clickable pills resolve wherever index.html is published.
+OUTDIR=$(dirname "$OUTPUT")
+if [ -d "$RESULTS_DIR" ] && ls "$RESULTS_DIR"/*.log >/dev/null 2>&1 && [ "$(cd "$RESULTS_DIR" && pwd)" != "$(cd "$OUTDIR/logs" 2>/dev/null && pwd || echo /nx)" ]; then
+  mkdir -p "$OUTDIR/logs"
+  cp "$RESULTS_DIR"/*.log "$OUTDIR/logs/" 2>/dev/null || true
+fi
 
 echo "Per-draft report: $OUTPUT"

@@ -59,7 +59,9 @@ SUMMARY_FILE="$RESULTS_DIR/summary.json"
 # All drafts across the registry, ascending, optionally narrowed by --draft.
 target_drafts() {
   if [ -n "$DRAFT_FILTER" ]; then echo "$DRAFT_FILTER"; return; fi
+  # Even drafts only — odd drafts (15/17/19) are pre-release/suppressed per interop policy.
   jq -r '[.implementations[].draft_versions[]?] | unique
+         | map(select((ltrimstr("draft-")|tonumber) % 2 == 0))
          | sort_by(ltrimstr("draft-")|tonumber) | .[]' "$CONFIG_FILE"
 }
 
@@ -89,6 +91,19 @@ testable() {
     end' "$CONFIG_FILE"
 }
 
+# Is client C confinable to draft D? (mirrors the $cpin test in testable).
+# Only confinable clients may use a REMOTE relay: a client offering *only* D forces
+# the unconfined remote to negotiate D, so the result is attributable to draft D.
+client_confined_to() {
+  local c="$1" d="$2"
+  jq -r --arg c "$c" --arg d "$d" '
+    .implementations as $i |
+    (($i[$c].draft_versions // [])) as $cv |
+    (($i[$c].roles.client.versions[$d] != null) or ($cv == [$d])
+       or ($i[$c].roles.client | tostring | test("MOQT_DRAFT")))
+    | if . then "yes" else "no" end' "$CONFIG_FILE"
+}
+
 # Transports to exercise for (R, D): "docker" plus any version-pinned remotes.
 pair_modes() {
   local c="$1" r="$2" d="$3"
@@ -97,9 +112,14 @@ pair_modes() {
   relay_img=$(resolve_config "$CONFIG_FILE" "$r" relay "$c" "$d" | jq -r '.image // empty')
   if [ -n "$client_img" ] && [ -n "$relay_img" ]; then echo "docker"; fi
   [ "$DOCKER_ONLY" = true ] && return
-  # version-pinned remote endpoints (versions[d].remote) on the relay
-  jq -r --arg r "$r" --arg d "$d" \
-     '.implementations[$r].roles.relay.versions[$d].remote[]? | "remote-\(.transport)"' "$CONFIG_FILE"
+  # Remote relay endpoints (roles.relay.remote[]) — only when client C is confinable
+  # to D, so the unconfined remote is forced to negotiate D (draft-attributable).
+  # Emits "remote-<transport>|<url>|<tls_disable>" for the executor.
+  [ "$(client_confined_to "$c" "$d")" = "yes" ] || return 0
+  jq -r --arg r "$r" \
+     '.implementations[$r].roles.relay.remote[]?
+        | select((.status // "active") == "active")
+        | "remote-\(.transport)|\(.url)|\(.tls_disable_verify // false)"' "$CONFIG_FILE"
 }
 
 #############################################################################
@@ -167,7 +187,49 @@ run_docker_test() {
     # interop result -- mark it so the report separates it from real failures.
     status="error"
   fi
-  record_run "$c" "$r" "$d" "$transport" local "$status" "$passed" "$total"
+  record_run "$c" "$r" "$d" "$transport" local "$status" "$passed" "$total" "" "logs/${c}_to_${r}_${d}_${transport}.log"
+  echo "$status"
+}
+
+run_remote_test() {
+  # Confined client C @ D against relay R's REMOTE endpoint. Client-only docker run
+  # via `make test-external` (no local relay). The client offers only draft D, so the
+  # unconfined remote negotiates D -> the result is attributable to draft D.
+  local c="$1" r="$2" d="$3" rmode="$4" url="$5" tls="${6:-false}"
+  local crc cimg transport
+  crc=$(resolve_config "$CONFIG_FILE" "$c" client "$r" "$d")
+  cimg=$(jq -r '.image' <<<"$crc")
+  case "$rmode" in remote-quic) transport=QUIC ;; *) transport=WT ;; esac
+  local log="$RESULTS_DIR/${c}_to_${r}_${d}_${transport}_remote.log"
+
+  # Pinned client env (MOQT_DRAFT=draft-D, ...) -> injected via docker --env-file.
+  local cenv_file="$RESULTS_DIR/.env.${c}_to_${r}_${d}.remote.client"
+  jq -r '.env_args[]' <<<"$crc" > "$cenv_file"
+
+  local status="fail"
+  if run_with_timeout "${TEST_TIMEOUT:-120}" \
+       make -C "$SCRIPT_DIR" test-external \
+         RELAY_URL="$url" CLIENT_IMAGE="$cimg" TLS_DISABLE_VERIFY="$tls" \
+         EXTRA_DOCKER_RUN_ARGS="--env-file $cenv_file" \
+       > "$log" 2>&1; then
+    status="pass"
+  else
+    [ "$?" -eq 124 ] && status="timeout"
+  fi
+
+  # Prefer real TAP counts; refine status from them.
+  local passed="" total=""
+  if parse_tap_file "$log" && [ "$TAP_TOTAL" -gt 0 ]; then
+    passed=$TAP_PASSED; total=$TAP_TOTAL
+    if [ "$passed" = "$total" ]; then status=pass
+    elif [ "$passed" = "0" ]; then status=fail
+    else status=partial; fi
+  elif [ "$status" = "fail" ]; then
+    # No TAP + non-pass -> endpoint unreachable / client crashed on startup.
+    # Structural, NOT an interop result.
+    status="error"
+  fi
+  record_run "$c" "$r" "$d" "$transport" remote "$status" "$passed" "$total" "$url" "logs/${c}_to_${r}_${d}_${transport}_remote.log"
   echo "$status"
 }
 
@@ -212,18 +274,23 @@ for d in $(target_drafts); do
       while IFS= read -r mode; do
         [ -z "$mode" ] && continue
         TOTAL=$((TOTAL+1))
+        # mode is "docker" or "remote-<transport>|<url>|<tls_disable>".
+        rmode="${mode%%|*}"; rurl=""; rtls="false"
+        if [ "$rmode" != "docker" ]; then
+          rest="${mode#*|}"; rurl="${rest%%|*}"; rtls="${rest#*|}"
+        fi
         if [ "$DRY_RUN" = true ]; then
-          echo -e "  ${GREEN}${c}${NC} → ${GREEN}${r}${NC}  ${DIM}${mode}${NC}"
+          echo -e "  ${GREEN}${c}${NC} → ${GREEN}${r}${NC}  ${DIM}${rmode}${NC}${rurl:+ ${DIM}${rurl}${NC}}"
           echo -e "      ${DIM}client:${NC} ${cimg}  ${DIM}env:${NC} ${cenv}"
-          echo -e "      ${DIM}relay :${NC} ${rimg}  ${DIM}env:${NC} ${renv}"
+          if [ "$rmode" = "docker" ]; then echo -e "      ${DIM}relay :${NC} ${rimg}  ${DIM}env:${NC} ${renv}"; fi
         else
-          if [ "$mode" = "docker" ]; then
+          if [ "$rmode" = "docker" ]; then
             st=$(run_docker_test "$c" "$r" "$d")
-            [ "$st" = "pass" ] && PASS=$((PASS+1)) || FAIL=$((FAIL+1))
-            echo -e "  ${c} → ${r} ${DIM}${mode}${NC}: ${st}"
           else
-            echo -e "  ${c} → ${r} ${DIM}${mode}${NC}: ${YELLOW}remote exec not in POC scope${NC}"
+            st=$(run_remote_test "$c" "$r" "$d" "$rmode" "$rurl" "$rtls")
           fi
+          [ "$st" = "pass" ] && PASS=$((PASS+1)) || FAIL=$((FAIL+1))
+          echo -e "  ${c} → ${r} ${DIM}${rmode}${NC}: ${st}"
         fi
       done <<< "$modes"
     done
