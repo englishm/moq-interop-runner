@@ -205,6 +205,94 @@ Either outcome is valid; the test checks for graceful handling.
 
 ---
 
+## Category: Track Publishing
+
+These tests exercise the **PUBLISH flow**: a publisher sends a `PUBLISH` message directly naming a specific track, and the relay responds with `PUBLISH_OK`. This is distinct from the `PUBLISH_NAMESPACE` + `SUBSCRIBE` flow used in earlier tests, where a publisher announces an entire namespace and the relay routes incoming `SUBSCRIBE` requests back to that publisher. In the PUBLISH flow, the publisher establishes the track directly; the relay matches any arriving `SUBSCRIBE` for that track to the active publisher and routes data accordingly.
+
+### `publish-track-only`
+
+**Protocol References**: MoQT-18 §10.10 (PUBLISH), §10.5 (REQUEST_OK / `PUBLISH_OK` alias)
+
+**Procedure**:
+
+1. Connect to relay and complete SETUP exchange
+2. Send PUBLISH naming the test track (no subscriber is present)
+3. Wait for REQUEST_OK (`PUBLISH_OK`)
+4. Write one subgroup containing a single object into the track
+5. Close the track, signalling end-of-track (PUBLISH_DONE)
+6. Wait for the PUBLISH sequence to complete, then close the connection gracefully
+
+**Test Namespace**: `moq-test/publish`  
+**Test Track**: `published-track`
+
+**Success Criteria**:
+
+- REQUEST_OK (`PUBLISH_OK`) received within timeout
+- Track data written and PUBLISH_DONE sent without error
+- Connection closes cleanly
+
+> **Note**: No subscriber is present; the relay must accept the PUBLISH and the accompanying data without error. Whether the relay buffers or discards data when no subscriber exists is implementation-defined.
+
+**Timeout**: 10 seconds
+
+**mlog Events** (relay-side, suggested):
+
+```json
+{"name":"moqt:control_message_parsed","data":{"message_type":"publish",...}}
+{"name":"moqt:control_message_created","data":{"message_type":"publish_ok",...}}
+{"name":"moqt:data_stream_closed","data":{"type":"subgroup","reason":"publisher_done",...}}
+```
+
+---
+
+### `publish-track-subscribe`
+
+**Protocol References**: MoQT-18 §10.10 (PUBLISH), §10.5 (REQUEST_OK / `PUBLISH_OK` alias), §10.7 (SUBSCRIBE), §10.8 (SUBSCRIBE_OK)
+
+**Topology**: Two concurrent connections (publisher + subscriber)
+
+**Publisher Procedure**:
+
+1. Connect to relay and complete SETUP exchange
+2. Send PUBLISH naming the test track
+3. Wait for REQUEST_OK (`PUBLISH_OK`)
+4. After receiving PUBLISH_OK: write one subgroup containing a single object (allow a brief interval for the subscriber to send its SUBSCRIBE before writing)
+5. Close the track (signal PUBLISH_DONE) once the object has been written
+
+**Subscriber Procedure** (starts after publisher has received PUBLISH_OK):
+
+1. Connect to relay and complete SETUP exchange
+2. Send SUBSCRIBE for the same test namespace and track name as the active PUBLISH
+3. Wait for SUBSCRIBE_OK (the relay must match the SUBSCRIBE to the active PUBLISH publisher)
+4. Receive one subgroup with a single object on the resulting data stream
+5. Verify the received payload matches the expected value
+
+**Test Namespace**: `moq-test/publish`  
+**Test Track**: `published-track`
+
+**Success Criteria**:
+
+- Publisher receives PUBLISH_OK
+- Subscriber receives SUBSCRIBE_OK (relay correctly maps the SUBSCRIBE to the active PUBLISH track)
+- Subscriber receives at least one object with the expected payload
+- Both connections close cleanly
+
+**Timeout**: 10 seconds
+
+**Diagnostic Roles**: `publisher`, `subscriber` — report as `publisher_connection_id` and `subscriber_connection_id` in YAML diagnostics
+
+**mlog Events** (relay-side, suggested):
+
+```json
+{"name":"moqt:control_message_parsed","data":{"message_type":"publish",...}}
+{"name":"moqt:control_message_created","data":{"message_type":"publish_ok",...}}
+{"name":"moqt:control_message_parsed","data":{"message_type":"subscribe",...}}
+{"name":"moqt:control_message_created","data":{"message_type":"subscribe_ok",...}}
+{"name":"moqt:data_stream_opened","data":{"type":"subgroup",...}}
+```
+
+---
+
 ## Future Test Cases
 
 This section outlines potential future test cases. The actual test definitions will be added as implementations mature and working group consensus develops.
@@ -213,30 +301,28 @@ This section outlines potential future test cases. The actual test definitions w
 
 | Identifier | Description | Key Protocol References |
 |------------|-------------|------------------------|
-| `single-object` | Publisher sends 1 object, subscriber receives it | §10 (Data Streams) |
+| `single-object` | Publisher sends 1 object via PUBLISH_NAMESPACE + SUBSCRIBE flow, subscriber receives it | §5.1 (Subscriptions), §10 (Data Streams) |
 | `single-group` | Publisher sends group of N objects | §2.3 (Groups) |
 | `multiple-groups` | Publisher sends 3 groups, subscriber receives all | §2.3 (Groups) |
 | `late-subscriber` | Subscriber joins mid-stream | §5.1 (Subscriptions) |
 
-### Alternative Flow Patterns
+### Message Flow Patterns
 
-Different use cases may require different message flow patterns:
+MoQT supports two primary publisher-subscriber rendezvous patterns, each exercised by separate test categories in this suite:
 
-- **PUBLISH_NAMESPACE + SUBSCRIBE flow**: Publisher announces availability, subscriber requests specific track
-- **SUBSCRIBE_NAMESPACE + PUBLISH flow**: Subscriber expresses interest in namespace prefix, publisher sends tracks
-
-As moq-rs and other implementations add support for both patterns, we should develop test cases that exercise each.
+- **PUBLISH_NAMESPACE + SUBSCRIBE flow** (Category: Subscriptions): Publisher announces namespace availability via `PUBLISH_NAMESPACE`; relay routes incoming `SUBSCRIBE` requests to the publisher. Tests: `announce-only`, `publish-namespace-done`, `announce-subscribe`, `subscribe-before-announce`.
+- **PUBLISH + SUBSCRIBE flow** (Category: Track Publishing): Publisher directly publishes a specific track via `PUBLISH`; the relay matches any incoming `SUBSCRIBE` for that track to the active publisher. Tests: `publish-track-only`, `publish-track-subscribe`.
 
 ### Test Client Capability Matrix
 
 As the test suite grows, different test clients may support different subsets of tests. A capability matrix could help:
 
-| Test Client | `setup-only` | `announce-only` | `publish-namespace-done` | `subscribe-error` | `announce-subscribe` | `subscribe-before-announce` |
-|-------------|--------------|-----------------|--------------------------|-------------------|----------------------|-----------------------------|
-| moq-test-client (moq-rs) | Yes | Yes | Yes | Yes | Yes | Yes |
-| implementation-b | Yes | Yes | No | Yes | No | No |
+| Test Client | `setup-only` | `announce-only` | `publish-namespace-done` | `subscribe-error` | `announce-subscribe` | `subscribe-before-announce` | `publish-track-only` | `publish-track-subscribe` |
+|-------------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| moq-test-client (moq-rs) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| implementation-b | ✓ | ✓ | — | ✓ | — | — | — | — |
 
-The mechanism for declaring and discovering these capabilities is TBD - potentially via a `--list` command that outputs supported test identifiers.
+Test clients declare supported tests via the `--list` command (one identifier per line). The `TESTCASE` environment variable selects a single test; exit code `127` signals an unsupported test.
 
 ---
 
