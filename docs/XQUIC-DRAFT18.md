@@ -99,11 +99,13 @@ make xquic-full-matrix-draft18 \
   XQUIC_SOURCE=/absolute/path/to/xquic
 ```
 
-The fixed peer set is aiomoqt, imquic, moq-rs-draft-18, moqx, and moxygen.
-The gate runs xquic client against all five relays and all five clients against
-the xquic relay. Its top-level `summary.json` and `report.html` use the normal
-moq-interop-runner ten-pair format, with each matrix cell showing `n/6` TAP
-results. `case-summary.json` retains the 60 individual case rows and evidence.
+The fixed external peer set is aiomoqt, imquic, moq-rs-draft-18, moqx, and
+moxygen. The gate runs xquic client against all five relays, all five clients
+against the xquic relay, and the xquic client against the xquic relay as an
+unfiltered self-pair baseline. Its top-level `summary.json` and `report.html`
+use the normal moq-interop-runner eleven-pair format, with each matrix cell
+showing `n/6` TAP results. `case-summary.json` retains the 66 individual case
+rows and evidence.
 
 tcpdump runs concurrently with every pairing. The result directory contains
 five client-side captures and six server-side captures. The xquic relay listens
@@ -182,12 +184,14 @@ local Docker run:
 | `imquic` | Fail | Fail | Fail | Fail | Fail | Fail |
 | `moq-rs-draft-18` | Pass | Pass | Pass | Pass | Pass | Pass |
 | `moqx` | Fail | Fail | Fail | Fail | Fail | Fail |
-| `moxygen` | Pass | Pass | Pass | Pass | Pass | Fail |
+| `moxygen` | Pass | Pass | Pass | Pass | Pass | Pass |
+| `xquic-draft-18` (self-pair) | Pass | Pass | Pass | Pass | Pass | Pass |
 
-The standard report records 6/10 passing client/relay pairings and 42/60
-passing individual cases. All eleven packet captures are non-empty. The logs
+The standard report records 8/11 passing client/relay pairings and 49/66
+passing individual cases. The xquic self-pair passes all six cases in this same
+complete Docker run; it is not inferred from earlier per-case snapshots. All
+eleven packet captures are non-empty. The logs
 retain the observed peer-side failures: aiomoqt sends responses that xquic
 closes with protocol error 3 after SETUP; imquic either exits unsuccessfully or
 hits the gate timeout (including an invalid-free termination); the moqx client
-image does not negotiate `moqt-18` with the xquic relay; and moxygen timed out
-in this run's server-side `subscribe-before-announce` case.
+image does not negotiate `moqt-18` with the xquic relay.

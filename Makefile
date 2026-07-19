@@ -307,7 +307,7 @@ help:
 	@echo "  xquic-client-test-draft18  Run all supported tests against draft-18 raw-QUIC relays"
 	@echo "  xquic-relay-build          Build draft-18 relay from XQUIC_SOURCE=/absolute/path/to/xquic"
 	@echo "  xquic-relay-test-draft18   Test one server case with selected draft-18 clients"
-	@echo "  xquic-full-matrix-draft18  Run 6 client + 6 server cases against five Docker peers"
+	@echo "  xquic-full-matrix-draft18  Run six cases against five Docker peers plus xquic self-pair"
 	@echo ""
 	@echo "  BUILD_ARGS examples:"
 	@echo "    --local ~/git/moq-rs    Use local checkout"

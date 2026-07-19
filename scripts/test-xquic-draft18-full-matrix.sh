@@ -1,6 +1,7 @@
 #!/bin/bash
-# Run all six draft-18 cases in both xquic roles against five local Docker
-# implementations, retaining TAP logs, relay logs, and tcpdump captures.
+# Run all six draft-18 cases in both xquic roles against five external Docker
+# implementations plus the xquic self-pair, retaining TAP logs, relay logs,
+# and tcpdump captures.
 
 set -euo pipefail
 
@@ -37,6 +38,7 @@ SERVER_CLIENTS=(
     moq-rs-draft-18
     moqx
     moxygen
+    xquic-draft-18
 )
 
 for command_name in docker jq rg git; do
@@ -162,7 +164,7 @@ jq \
     --argjson client_peers \
         '["aiomoqt-relay-quic","imquic","moq-rs-draft-18","moqx","moxygen"]' \
     --argjson server_peers \
-        '["aiomoqt","imquic","moq-rs-draft-18","moqx","moxygen"]' \
+        '["aiomoqt","imquic","moq-rs-draft-18","moqx","moxygen","xquic-draft-18"]' \
     '.testcases=$testcases | .peers["xquic-client"]=$client_peers |
      .peers["xquic-server"]=$server_peers' \
     "$SUMMARY_FILE" > "$tmp_summary"
@@ -381,7 +383,7 @@ done
 server_clients_string="${SERVER_CLIENTS[*]}"
 for testcase in "${TESTCASES[@]}"; do
     server_case_dir="$RESULT_DIR/server/$testcase"
-    echo "Server matrix: five clients -> xquic-draft-18 ($testcase)"
+    echo "Server matrix: five external clients plus xquic self -> xquic-draft-18 ($testcase)"
     set +e
     RESULT_DIR="$server_case_dir" \
         CLIENTS="$server_clients_string" \
@@ -432,7 +434,7 @@ done
 CASE_SUMMARY_FILE="$RESULT_DIR/case-summary.json"
 mv "$SUMMARY_FILE" "$CASE_SUMMARY_FILE"
 
-# Convert the 60 case-level gate rows into the runner's normal ten-run shape:
+# Convert the 66 case-level gate rows into the runner's normal eleven-run shape:
 # one six-test TAP log for each client/relay pair. generate-report.sh can then
 # render this run with exactly the same matrix and detail format as published
 # moq-interop-runner reports, while case-summary.json retains full evidence.
