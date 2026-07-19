@@ -1,0 +1,234 @@
+#!/bin/bash
+# Run one xquic draft-18 relay case against the moq-rs, moxygen, and xquic
+# interop clients. Keep the TAP logs, HTML report, relay log, and packet trace.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RUNNER_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+LOCAL_RELAY_IMAGE="xquic-moq-relay-draft-18:latest"
+REGISTERED_RELAY_IMAGE="ghcr.io/englishm/moq-interop-runner-xquic-moq-relay-draft-18:latest"
+MOXYGEN_DRAFT18_IMAGE="moxygen-interop-client-draft-18:local"
+CAPTURE_IMAGE="${CAPTURE_IMAGE:-nicolaka/netshoot:latest}"
+HOST_PORT="${HOST_PORT:-4443}"
+
+TESTCASE="${1:-}"
+case "$TESTCASE" in
+    setup-only|announce-only|publish-namespace-done|subscribe-error|announce-subscribe|subscribe-before-announce)
+        ;;
+    *)
+        echo "Usage: $0 <testcase>" >&2
+        exit 2
+        ;;
+esac
+
+if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+    echo "Docker is required and its daemon must be running." >&2
+    exit 1
+fi
+if ! command -v jq >/dev/null 2>&1; then
+    echo "jq is required." >&2
+    exit 1
+fi
+
+if [ -n "${XQUIC_SOURCE:-}" ]; then
+    "$RUNNER_ROOT/builds/xquic/build.sh" \
+        --local "$XQUIC_SOURCE" \
+        --target relay-draft-18
+fi
+
+if ! docker image inspect "$LOCAL_RELAY_IMAGE" >/dev/null 2>&1; then
+    echo "Missing local relay image: $LOCAL_RELAY_IMAGE" >&2
+    echo "Build it with XQUIC_SOURCE=/absolute/path/to/xquic." >&2
+    exit 1
+fi
+docker tag "$LOCAL_RELAY_IMAGE" "$REGISTERED_RELAY_IMAGE"
+
+docker build --platform linux/amd64 \
+    -f "$RUNNER_ROOT/builds/xquic/Dockerfile.moxygen-client-draft18" \
+    -t "$MOXYGEN_DRAFT18_IMAGE" \
+    "$RUNNER_ROOT/builds/xquic" >/dev/null
+
+client_image() {
+    local client="$1"
+    if [ "$client" = "moxygen" ]; then
+        echo "$MOXYGEN_DRAFT18_IMAGE"
+        return
+    fi
+    jq -r --arg client "$client" \
+        '.implementations[$client].roles.client.docker.image // empty' \
+        "$RUNNER_ROOT/implementations.json"
+}
+
+CLIENTS="moq-rs-draft-18 moxygen xquic-draft-18"
+for client in $CLIENTS; do
+    image=$(client_image "$client")
+    if [ -z "$image" ]; then
+        echo "No client image registered for $client" >&2
+        exit 1
+    fi
+    if ! docker image inspect "$image" >/dev/null 2>&1; then
+        if ! docker pull "$image"; then
+            docker pull --platform linux/amd64 "$image"
+        fi
+    fi
+done
+if ! docker image inspect "$CAPTURE_IMAGE" >/dev/null 2>&1; then
+    docker pull "$CAPTURE_IMAGE"
+fi
+
+if [ ! -f "$RUNNER_ROOT/certs/cert.pem" ] || [ ! -f "$RUNNER_ROOT/certs/priv.key" ]; then
+    "$RUNNER_ROOT/generate-certs.sh" "$RUNNER_ROOT/certs"
+fi
+
+timestamp=$(date +%Y-%m-%d_%H%M%S)
+RESULT_DIR="${RESULT_DIR:-$RUNNER_ROOT/results/${timestamp}-xquic-server-draft18-${TESTCASE}}"
+mkdir -p "$RESULT_DIR"
+RESULT_DIR="$(cd "$RESULT_DIR" && pwd)"
+SUMMARY_FILE="$RESULT_DIR/summary.json"
+PCAP_FILE="$RESULT_DIR/xquic-server-draft18-${TESTCASE}.pcap"
+
+suffix="$$"
+NETWORK="xquic-draft18-${TESTCASE}-${suffix}"
+RELAY_CONTAINER="xquic-draft18-relay-${suffix}"
+CAPTURE_CONTAINER="xquic-draft18-capture-${suffix}"
+CERT_LOADER_CONTAINER="xquic-draft18-certs-${suffix}"
+CERT_VOLUME="xquic-draft18-certs-${suffix}"
+CAPTURE_VOLUME="xquic-draft18-capture-${suffix}"
+
+cleanup() {
+    docker rm -f "$CAPTURE_CONTAINER" >/dev/null 2>&1 || true
+    docker rm -f "$RELAY_CONTAINER" >/dev/null 2>&1 || true
+    docker rm -f "$CERT_LOADER_CONTAINER" >/dev/null 2>&1 || true
+    docker network rm "$NETWORK" >/dev/null 2>&1 || true
+    docker volume rm "$CERT_VOLUME" >/dev/null 2>&1 || true
+    docker volume rm "$CAPTURE_VOLUME" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+jq -n \
+    --arg version "draft-18" \
+    --arg testcase "$TESTCASE" \
+    --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg pcap "$(basename "$PCAP_FILE")" \
+    --argjson port "$HOST_PORT" \
+    '{runs: [], target_version: $version, testcase: $testcase,
+      timestamp: $ts, pcap: $pcap, server_listen_port: $port}' \
+    > "$SUMMARY_FILE"
+
+docker network create "$NETWORK" >/dev/null
+docker volume create "$CERT_VOLUME" >/dev/null
+docker volume create "$CAPTURE_VOLUME" >/dev/null
+docker create --name "$CERT_LOADER_CONTAINER" \
+    -v "$CERT_VOLUME:/certs" ubuntu:22.04 true >/dev/null
+docker cp "$RUNNER_ROOT/certs/cert.pem" \
+    "$CERT_LOADER_CONTAINER:/certs/cert.pem"
+docker cp "$RUNNER_ROOT/certs/priv.key" \
+    "$CERT_LOADER_CONTAINER:/certs/priv.key"
+docker rm "$CERT_LOADER_CONTAINER" >/dev/null
+
+docker run -d \
+    --name "$RELAY_CONTAINER" \
+    --network "$NETWORK" \
+    --network-alias relay \
+    -p "${HOST_PORT}:4443/udp" \
+    -v "$CERT_VOLUME:/certs:ro" \
+    -e MOQT_ROLE=relay \
+    -e MOQT_PORT=4443 \
+    "$REGISTERED_RELAY_IMAGE" >/dev/null
+
+healthy=false
+for _attempt in $(seq 1 30); do
+    health=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+        "$RELAY_CONTAINER" 2>/dev/null || true)
+    if [ "$health" = "healthy" ]; then
+        healthy=true
+        break
+    fi
+    if [ "$health" = "exited" ] || [ "$health" = "dead" ]; then
+        break
+    fi
+    sleep 1
+done
+if [ "$healthy" != true ]; then
+    docker logs "$RELAY_CONTAINER" > "$RESULT_DIR/relay.log" 2>&1 || true
+    echo "xquic relay did not become healthy; see $RESULT_DIR/relay.log" >&2
+    exit 1
+fi
+
+docker run -d \
+    --name "$CAPTURE_CONTAINER" \
+    --network "container:$RELAY_CONTAINER" \
+    --cap-add NET_ADMIN \
+    --cap-add NET_RAW \
+    -v "$CAPTURE_VOLUME:/captures" \
+    "$CAPTURE_IMAGE" \
+    tcpdump -i any -s 0 -U -w "/captures/$(basename "$PCAP_FILE")" \
+        udp port 4443 >/dev/null
+sleep 1
+
+failed=0
+for client in $CLIENTS; do
+    image=$(client_image "$client")
+    log_file="$RESULT_DIR/${client}_to_xquic-draft-18_docker.log"
+
+    echo "Running $TESTCASE: $client -> xquic-draft-18"
+    set +e
+    docker run --rm \
+        --network "$NETWORK" \
+        -v "$CERT_VOLUME:/certs:ro" \
+        -e RELAY_URL="moqt://relay:4443" \
+        -e TESTCASE="$TESTCASE" \
+        -e TLS_DISABLE_VERIFY=1 \
+        -e VERBOSE=1 \
+        "$image" > "$log_file" 2>&1
+    exit_code=$?
+    set -e
+
+    if [ "$exit_code" -eq 0 ]; then
+        status="pass"
+        echo "  PASS"
+    else
+        status="fail"
+        failed=$((failed + 1))
+        echo "  FAIL (exit $exit_code)"
+    fi
+
+    tmp_summary=$(mktemp "${SUMMARY_FILE}.XXXXXX")
+    jq \
+        --arg client "$client" \
+        --arg testcase "$TESTCASE" \
+        --arg status "$status" \
+        --arg target "$REGISTERED_RELAY_IMAGE" \
+        --arg client_image "$image" \
+        --argjson exit_code "$exit_code" \
+        '.runs += [{client: $client, relay: "xquic-draft-18",
+                    version: "draft-18", classification: "at", mode: "docker",
+                    target: $target, client_image: $client_image, testcase: $testcase,
+                    status: $status, exit_code: $exit_code}]' \
+        "$SUMMARY_FILE" > "$tmp_summary"
+    mv "$tmp_summary" "$SUMMARY_FILE"
+done
+
+docker logs "$RELAY_CONTAINER" > "$RESULT_DIR/relay.log" 2>&1 || true
+docker cp "$RELAY_CONTAINER:/tmp/slog" \
+    "$RESULT_DIR/relay-xquic.log" >/dev/null 2>&1 || true
+docker stop --time 5 "$CAPTURE_CONTAINER" >/dev/null 2>&1 || true
+docker cp "$CAPTURE_CONTAINER:/captures/$(basename "$PCAP_FILE")" \
+    "$PCAP_FILE" >/dev/null
+docker rm "$CAPTURE_CONTAINER" >/dev/null 2>&1 || true
+
+pcap_size=$(wc -c < "$PCAP_FILE" 2>/dev/null || echo 0)
+if [ "$pcap_size" -le 24 ]; then
+    echo "Packet capture is empty: $PCAP_FILE" >&2
+    failed=$((failed + 1))
+fi
+
+"$RUNNER_ROOT/generate-report.sh" "$RESULT_DIR"
+
+echo "Results directory: $RESULT_DIR"
+echo "HTML report: $RESULT_DIR/report.html"
+echo "Packet capture: $PCAP_FILE ($pcap_size bytes)"
+echo "Server listen port: ${HOST_PORT}/udp"
+
+[ "$failed" -eq 0 ]
