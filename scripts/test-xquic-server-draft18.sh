@@ -60,6 +60,28 @@ client_image() {
         "$RUNNER_ROOT/implementations.json"
 }
 
+client_testcase() {
+    local client="$1"
+    local testcase="$2"
+    if [ "$client" = "moq-rs-draft-18" ]; then
+        case "$testcase" in
+            announce-only)
+                echo "publish-namespace-only"
+                return
+                ;;
+            announce-subscribe)
+                echo "publish-namespace-subscribe"
+                return
+                ;;
+            subscribe-before-announce)
+                echo "subscribe-before-publish-namespace"
+                return
+                ;;
+        esac
+    fi
+    echo "$testcase"
+}
+
 CLIENTS="moq-rs-draft-18 moxygen xquic-draft-18"
 for client in $CLIENTS; do
     image=$(client_image "$client")
@@ -170,6 +192,7 @@ sleep 1
 failed=0
 for client in $CLIENTS; do
     image=$(client_image "$client")
+    effective_testcase=$(client_testcase "$client" "$TESTCASE")
     log_file="$RESULT_DIR/${client}_to_xquic-draft-18_docker.log"
 
     echo "Running $TESTCASE: $client -> xquic-draft-18"
@@ -178,7 +201,7 @@ for client in $CLIENTS; do
         --network "$NETWORK" \
         -v "$CERT_VOLUME:/certs:ro" \
         -e RELAY_URL="moqt://relay:4443" \
-        -e TESTCASE="$TESTCASE" \
+        -e TESTCASE="$effective_testcase" \
         -e TLS_DISABLE_VERIFY=1 \
         -e VERBOSE=1 \
         "$image" > "$log_file" 2>&1
@@ -201,10 +224,12 @@ for client in $CLIENTS; do
         --arg status "$status" \
         --arg target "$REGISTERED_RELAY_IMAGE" \
         --arg client_image "$image" \
+        --arg client_testcase "$effective_testcase" \
         --argjson exit_code "$exit_code" \
         '.runs += [{client: $client, relay: "xquic-draft-18",
                     version: "draft-18", classification: "at", mode: "docker",
-                    target: $target, client_image: $client_image, testcase: $testcase,
+                    target: $target, client_image: $client_image,
+                    client_testcase: $client_testcase, testcase: $testcase,
                     status: $status, exit_code: $exit_code}]' \
         "$SUMMARY_FILE" > "$tmp_summary"
     mv "$tmp_summary" "$SUMMARY_FILE"
