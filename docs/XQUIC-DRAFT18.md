@@ -2,7 +2,13 @@
 
 The runner registers the draft-18 client as `xquic-draft-18`, separately from
 the existing draft-14 `xquic` relay/client entry. The client uses raw QUIC and
-currently supports `setup-only` and `announce-only`.
+currently supports `setup-only`, `announce-only`, and
+`publish-namespace-done`.
+
+In draft-18, `publish-namespace-done` is implemented by waiting for
+`REQUEST_OK` and then cancelling the PUBLISH_NAMESPACE bidirectional request
+stream with the MOQT `CANCELLED` (`0x1`) stream error code. The client does not
+send the legacy PUBLISH_NAMESPACE_DONE message.
 
 ## Build
 
@@ -42,15 +48,15 @@ with the existing report generator.
 
 ## Validation snapshot
 
-xquic commit `6c67044` on `moq/draft_18_dev` was validated on 2026-07-19:
+xquic commit `f5a8020` on `moq/draft_18_dev` was validated on 2026-07-19:
 
-| Relay | `setup-only` | `announce-only` |
-|---|---:|---:|
-| `imquic` | Pass | Pass |
-| `moq-rs-draft-18` | Pass | Pass |
-| `moqt-nr` | Pass | Pass |
-| `moqx` | Pass | Pass |
-| `moxygen` | Pass | Pass |
+| Relay | `setup-only` | `announce-only` | `publish-namespace-done` |
+|---|---:|---:|---:|
+| `imquic` | Pass | Pass | Pass |
+| `moq-rs-draft-18` | Pass | Pass | Pass |
+| `moqt-nr` | Pass | Pass | Pass |
+| `moqx` | Pass | Pass | Pass |
+| `moxygen` | Pass | Pass | Pass |
 
-The generated matrix reports 5/5 relay combinations and 10/10 case executions
+The generated matrix reports 5/5 relay combinations and 15/15 case executions
 passing.
