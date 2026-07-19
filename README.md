@@ -65,6 +65,7 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 | libquicr | Cisco | 14 | relay | `https://us-west-2.relay.quicr.org:33437/relay` |
 | imquic | Meetecho | 16-18 | relay, client | `https://lminiero.it:9000` |
 | moq-go | Vsevolod Strukchinsky | 18 | relay, client |  |
+| xquic | Alibaba | 14, 18 | relay, client |  |
 
 This table is a snapshot — run `make interop-list` or see [`implementations.json`](./implementations.json) for the current state. See [IMPLEMENTATIONS.md](./IMPLEMENTATIONS.md) for how to add your implementation.
 
