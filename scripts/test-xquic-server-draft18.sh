@@ -213,6 +213,15 @@ for client in $CLIENTS; do
     client_container="xquic-draft18-client-${client}-${suffix}"
     ACTIVE_CLIENT_CONTAINER="$client_container"
 
+    namespace_done_before=0
+    namespace_cleanup_before=0
+    if [ "$TESTCASE" = "publish-namespace-done" ]; then
+        namespace_done_before=$(docker logs "$RELAY_CONTAINER" 2>&1 \
+            | grep -c 'draft18_relay_namespace_done' || true)
+        namespace_cleanup_before=$(docker logs "$RELAY_CONTAINER" 2>&1 \
+            | grep -c 'draft18_relay_namespace_cleanup source:session_close' || true)
+    fi
+
     echo "Running $TESTCASE: $client -> xquic-draft-18"
     set +e
     docker run --name "$client_container" \
@@ -248,6 +257,24 @@ for client in $CLIENTS; do
     ACTIVE_CLIENT_CONTAINER=""
     set -e
 
+    evidence=""
+    if [ "$TESTCASE" = "publish-namespace-done" ]; then
+        # The relay entrypoint line-buffers stdout, so this checks server-side
+        # state after the client has finished instead of trusting TAP alone.
+        sleep 1
+        namespace_done_after=$(docker logs "$RELAY_CONTAINER" 2>&1 \
+            | grep -c 'draft18_relay_namespace_done' || true)
+        namespace_cleanup_after=$(docker logs "$RELAY_CONTAINER" 2>&1 \
+            | grep -c 'draft18_relay_namespace_cleanup source:session_close' || true)
+        if [ "$namespace_done_after" -gt "$namespace_done_before" ]; then
+            evidence="Relay removed the namespace after an explicit request withdrawal"
+        elif [ "$namespace_cleanup_after" -gt "$namespace_cleanup_before" ]; then
+            evidence="Relay removed the namespace on session close; no request withdrawal was observed"
+        else
+            evidence="No relay-side namespace removal was observed"
+        fi
+    fi
+
     if [ "$exit_code" -eq 0 ]; then
         status="pass"
         echo "  PASS"
@@ -265,12 +292,14 @@ for client in $CLIENTS; do
         --arg target "$REGISTERED_RELAY_IMAGE" \
         --arg client_image "$image" \
         --arg client_testcase "$effective_testcase" \
+        --arg evidence "$evidence" \
         --argjson exit_code "$exit_code" \
         '.runs += [{client: $client, relay: "xquic-draft-18",
                     version: "draft-18", classification: "at", mode: "docker",
                     target: $target, client_image: $client_image,
                     client_testcase: $client_testcase, testcase: $testcase,
-                    status: $status, exit_code: $exit_code}]' \
+                    status: $status, exit_code: $exit_code,
+                    evidence: $evidence}]' \
         "$SUMMARY_FILE" > "$tmp_summary"
     mv "$tmp_summary" "$SUMMARY_FILE"
 done

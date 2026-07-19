@@ -88,6 +88,26 @@ builds `aiomoqt-interop-client-draft-18:local` from upstream commit
 `MOQT_DRAFT` to 18. This adapter is isolated under `builds/xquic`; it does not
 change aiomoqt's registry entry or any other implementation's configuration.
 
+For `publish-namespace-done`, the relay binds each advertised namespace to its
+PUBLISH_NAMESPACE request stream and removes the registration when that stream
+is reset or ended. The gate also records relay-side removal evidence in
+`summary.json` and the HTML detail table. A draft-16-style
+PUBLISH_NAMESPACE_DONE message is accepted only as an input compatibility path;
+the xquic draft-18 client continues to cancel the request stream.
+
+The local server-side `publish-namespace-done` validation on 2026-07-19 found:
+
+| Client | TAP | Relay-side namespace removal |
+|---|---:|---|
+| `aiomoqt` | Pass | Explicit withdrawal observed (legacy input compatibility path) |
+| `moq-rs-draft-18` | Pass | Explicit request-stream withdrawal observed |
+| `moxygen` | Pass | Removed during session-close cleanup; no request withdrawal observed |
+| `xquic-draft-18` | Pass | Explicit request-stream withdrawal observed |
+
+The moxygen row is intentionally retained as a qualified result: its client
+reports PASS, but the relay-side gate does not claim an explicit draft-18
+withdrawal when only connection teardown was visible.
+
 For `announce-subscribe`, the xquic relay records the publisher's namespace,
 forwards the subscriber's request to that publisher on a new draft-18 request
 stream, and maps the publisher's `SUBSCRIBE_OK` back to the subscriber's

@@ -23,4 +23,4 @@ cp "$KEY" /tmp/server.key
 cd /tmp
 
 echo "Starting xquic draft-18 MoQ relay on UDP port $PORT"
-exec /app/moq_demo_server -p "$PORT" -l "$LOG_LEVEL" -I
+exec stdbuf -oL -eL /app/moq_demo_server -p "$PORT" -l "$LOG_LEVEL" -I
