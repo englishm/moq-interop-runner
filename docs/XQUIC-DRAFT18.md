@@ -108,6 +108,21 @@ The moxygen row is intentionally retained as a qualified result: its client
 reports PASS, but the relay-side gate does not claim an explicit draft-18
 withdrawal when only connection teardown was visible.
 
+For `subscribe-error`, an unknown namespace/track remains pending for up to
+1.5 seconds so `subscribe-before-announce` can still succeed. If no publisher
+appears, the relay returns `REQUEST_ERROR` with `DOES_NOT_EXIST` on the same
+SUBSCRIBE request stream. Allocation, request-copy, timer-setup, and upstream
+forwarding failures also terminate the request instead of leaving it pending.
+
+The local server-side `subscribe-error` validation on 2026-07-19 produced:
+
+| Client | TAP | Relay-side evidence |
+|---|---:|---|
+| `aiomoqt` | Pass | `REQUEST_ERROR(DOES_NOT_EXIST)`, write `ret:0` |
+| `moq-rs-draft-18` | Pass | `REQUEST_ERROR(DOES_NOT_EXIST)`, write `ret:0` |
+| `moxygen` | Pass | `REQUEST_ERROR(DOES_NOT_EXIST)`, write `ret:0` |
+| `xquic-draft-18` | Pass | `REQUEST_ERROR(DOES_NOT_EXIST)`, write `ret:0` |
+
 For `announce-subscribe`, the xquic relay records the publisher's namespace,
 forwards the subscriber's request to that publisher on a new draft-18 request
 stream, and maps the publisher's `SUBSCRIBE_OK` back to the subscriber's

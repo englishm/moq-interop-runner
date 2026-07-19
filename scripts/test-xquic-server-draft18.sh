@@ -215,11 +215,15 @@ for client in $CLIENTS; do
 
     namespace_done_before=0
     namespace_cleanup_before=0
+    request_error_before=0
     if [ "$TESTCASE" = "publish-namespace-done" ]; then
         namespace_done_before=$(docker logs "$RELAY_CONTAINER" 2>&1 \
             | grep -c 'draft18_relay_namespace_done' || true)
         namespace_cleanup_before=$(docker logs "$RELAY_CONTAINER" 2>&1 \
             | grep -c 'draft18_relay_namespace_cleanup source:session_close' || true)
+    elif [ "$TESTCASE" = "subscribe-error" ]; then
+        request_error_before=$(docker logs "$RELAY_CONTAINER" 2>&1 \
+            | grep -c 'draft18_relay_request_error' || true)
     fi
 
     echo "Running $TESTCASE: $client -> xquic-draft-18"
@@ -272,6 +276,15 @@ for client in $CLIENTS; do
             evidence="Relay removed the namespace on session close; no request withdrawal was observed"
         else
             evidence="No relay-side namespace removal was observed"
+        fi
+    elif [ "$TESTCASE" = "subscribe-error" ]; then
+        sleep 1
+        request_error_after=$(docker logs "$RELAY_CONTAINER" 2>&1 \
+            | grep -c 'draft18_relay_request_error' || true)
+        if [ "$request_error_after" -gt "$request_error_before" ]; then
+            evidence="Relay returned REQUEST_ERROR (DOES_NOT_EXIST) on the SUBSCRIBE request stream"
+        else
+            evidence="No relay-side REQUEST_ERROR was observed"
         fi
     fi
 
