@@ -1,7 +1,6 @@
 #!/bin/bash
-# Run one xquic draft-18 relay case against the aiomoqt, moq-rs, moxygen, and
-# xquic interop clients. Keep the TAP logs, HTML report, relay log, and packet
-# trace.
+# Run one xquic draft-18 relay case against the default or CLIENTS-selected
+# interop clients. Keep the TAP logs, HTML report, relay log, and packet trace.
 
 set -euo pipefail
 
@@ -94,7 +93,7 @@ client_testcase() {
     echo "$testcase"
 }
 
-CLIENTS="aiomoqt moq-rs-draft-18 moxygen xquic-draft-18"
+CLIENTS="${CLIENTS:-aiomoqt moq-rs-draft-18 moxygen xquic-draft-18}"
 for client in $CLIENTS; do
     image=$(client_image "$client")
     if [ -z "$image" ]; then

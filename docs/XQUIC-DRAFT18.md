@@ -76,8 +76,9 @@ make xquic-relay-test-draft18 \
   XQUIC_TEST_ARGS=announce-subscribe
 ```
 
-The relay gate runs aiomoqt, moq-rs-draft-18, moxygen, and xquic-draft-18 as
-clients. It captures UDP/4443 with tcpdump while the clients run, then retains
+By default, the relay gate runs aiomoqt, moq-rs-draft-18, moxygen, and
+xquic-draft-18 as clients; `CLIENTS` can select a different local set. It
+captures UDP/4443 with tcpdump while the clients run, then retains
 the TAP logs, relay log, `summary.json`, `report.html`, and `.pcap` under one
 timestamped `results/` directory. Each client is bounded by
 `CLIENT_TIMEOUT_SECONDS` (60 seconds by default).
@@ -87,6 +88,28 @@ builds `aiomoqt-interop-client-draft-18:local` from upstream commit
 `fdb41348376f1286a09d11352e15a288c620485a` and pins both `DRAFT` and
 `MOQT_DRAFT` to 18. This adapter is isolated under `builds/xquic`; it does not
 change aiomoqt's registry entry or any other implementation's configuration.
+
+## Run the complete local bidirectional matrix
+
+Build both xquic roles from the current checkout and run all six cases against
+five local Docker implementations:
+
+```bash
+make xquic-full-matrix-draft18 \
+  XQUIC_SOURCE=/absolute/path/to/xquic
+```
+
+The fixed peer set is aiomoqt, imquic, moq-rs-draft-18, moqx, and moxygen.
+The gate runs xquic client against all five relays and all five clients against
+the xquic relay. Its top-level `summary.json` and `report.html` use the normal
+moq-interop-runner ten-pair format, with each matrix cell showing `n/6` TAP
+results. `case-summary.json` retains the 60 individual case rows and evidence.
+
+tcpdump runs concurrently with every pairing. The result directory contains
+five client-side captures and six server-side captures. The xquic relay listens
+on UDP/4443. The native aiomoqt relay used by this gate is built from the same
+pinned commit as the native aiomoqt client and is isolated under `builds/xquic`;
+the shared aiomoqt registry entry and adapter remain unchanged.
 
 For `publish-namespace-done`, the relay binds each advertised namespace to its
 PUBLISH_NAMESPACE request stream and removes the registration when that stream
@@ -139,17 +162,32 @@ The local server-side validation on 2026-07-19 produced this matrix:
 | `moxygen` | Pass | Pass (`REQUEST_ERROR`) |
 | `xquic-draft-18` | Pass | Pass (`SUBSCRIBE_OK`) |
 
-## Validation snapshot
+## Complete local validation snapshot
 
-xquic commit `4115531` on `moq/draft_18_dev` was validated on 2026-07-19:
+xquic commit `2fed664` on `moq/draft_18_dev` was rebuilt from a clean checkout
+and validated on 2026-07-19. These are the unmodified results from that complete
+local Docker run:
 
-| Relay | `setup-only` | `announce-only` | `publish-namespace-done` | `subscribe-error` | `announce-subscribe` | `subscribe-before-announce` |
+| xquic client → relay | setup | announce | namespace done | subscribe error | announce + subscribe | subscribe before announce |
 |---|---:|---:|---:|---:|---:|---:|
+| `aiomoqt` | Pass | Fail | Fail | Fail | Fail | Fail |
 | `imquic` | Pass | Pass | Pass | Pass | Pass | Pass |
 | `moq-rs-draft-18` | Pass | Pass | Pass | Pass | Pass | Pass |
-| `moqt-nr` | Pass | Pass | Pass | Pass | Pass | Pass |
 | `moqx` | Pass | Pass | Pass | Pass | Pass | Pass |
 | `moxygen` | Pass | Pass | Pass | Pass | Pass | Pass |
 
-The generated matrix reports 5/5 relay combinations and 30/30 case executions
-passing.
+| client → xquic relay | setup | announce | namespace done | subscribe error | announce + subscribe | subscribe before announce |
+|---|---:|---:|---:|---:|---:|---:|
+| `aiomoqt` | Pass | Pass | Pass | Pass | Pass | Pass |
+| `imquic` | Fail | Fail | Fail | Fail | Fail | Fail |
+| `moq-rs-draft-18` | Pass | Pass | Pass | Pass | Pass | Pass |
+| `moqx` | Fail | Fail | Fail | Fail | Fail | Fail |
+| `moxygen` | Pass | Pass | Pass | Pass | Pass | Fail |
+
+The standard report records 6/10 passing client/relay pairings and 42/60
+passing individual cases. All eleven packet captures are non-empty. The logs
+retain the observed peer-side failures: aiomoqt sends responses that xquic
+closes with protocol error 3 after SETUP; imquic either exits unsuccessfully or
+hits the gate timeout (including an invalid-free termination); the moqx client
+image does not negotiate `moqt-18` with the xquic relay; and moxygen timed out
+in this run's server-side `subscribe-before-announce` case.
