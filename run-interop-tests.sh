@@ -21,7 +21,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/implementations.json"
-RESULTS_DIR="${RESULTS_DIR:-$SCRIPT_DIR/results/$(date +%Y-%m-%d_%H%M%S)}"
+RESULTS_DIR="$SCRIPT_DIR/results/$(date +%Y-%m-%d_%H%M%S)"
 
 # Colors for output (only if stdout is a TTY)
 if [[ -t 1 ]]; then
@@ -48,10 +48,6 @@ CLASSIFICATION_FILTER=""  # "", "at", "ahead", or "behind"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --config)
-            [[ -n "${2:-}" ]] || { echo "Error: --config requires a value"; exit 1; }
-            CONFIG_FILE="$2"; shift 2
-            ;;
         --docker-only) DOCKER_ONLY=true; shift ;;
         --remote-only) REMOTE_ONLY=true; shift ;;
         --list) LIST_ONLY=true; shift ;;
@@ -87,7 +83,6 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --config FILE             Read implementations from FILE (default: implementations.json)"
             echo "  --docker-only             Only test Docker images"
             echo "  --remote-only             Only test remote endpoints"
             echo "  --transport TYPE          Filter remote endpoints by transport (quic or webtransport)"
@@ -111,11 +106,6 @@ while [[ $# -gt 0 ]]; do
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
-
-if [ ! -r "$CONFIG_FILE" ]; then
-    echo "Error: config file is not readable: $CONFIG_FILE"
-    exit 1
-fi
 
 # Validate flag combinations
 if [ -n "$TRANSPORT_FILTER" ] && [ "$TRANSPORT_FILTER" != "quic" ] && [ "$TRANSPORT_FILTER" != "webtransport" ]; then

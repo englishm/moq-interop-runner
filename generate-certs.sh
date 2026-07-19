@@ -23,16 +23,10 @@ mkdir -p "$CERTS_DIR"
 # ECDSA P-256 with a short (10-day) validity so the cert satisfies the WebTransport
 # `serverCertificateHashes` policy (ECDSA key + <=14-day validity), letting browser
 # and node/bun clients pin it by hash without a trusted CA.
-# Generate the EC key separately. macOS LibreSSL's `req -newkey ec` encodes
-# explicit curve parameters, which rustls/ring-based relays reject. `ecparam`
-# keeps prime256v1 as a named-curve OID and is accepted by those relays.
-openssl ecparam -name prime256v1 -genkey -noout \
-    -out "$CERTS_DIR/priv.key"
-
-openssl req -x509 -new \
-    -key "$CERTS_DIR/priv.key" \
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+    -keyout "$CERTS_DIR/priv.key" \
     -out "$CERTS_DIR/cert.pem" \
-    -days 10 \
+    -days 10 -nodes \
     -subj "/CN=localhost" \
     -addext "subjectAltName=DNS:localhost,DNS:relay,DNS:moq-relay,IP:127.0.0.1"
 
