@@ -181,11 +181,6 @@ generate_detail() {
     local PASSED=$(jq '[.runs[] | select(.status == "pass")] | length' "$SUMMARY_FILE")
     local FAILED=$(jq '[.runs[] | select(.status == "fail")] | length' "$SUMMARY_FILE")
     local SKIPPED_COUNT=$(jq '[.runs[] | select(.status == "skip")] | length' "$SUMMARY_FILE")
-    local HAS_EVIDENCE=$(jq 'any(.runs[]; ((.evidence // "") | length) > 0)' "$SUMMARY_FILE")
-    local DETAIL_COLSPAN=6
-    if [ "$HAS_EVIDENCE" = "true" ]; then
-        DETAIL_COLSPAN=7
-    fi
 
     # Classification counts (backward compat: compute from version vs target_version if absent)
     local classify_expr='
@@ -459,17 +454,11 @@ MATRIXHEAD
                     <th>Version</th>
                     <th>Transport</th>
                     <th>Tests</th>
-MATRIXFOOT
-
-    if [ "$HAS_EVIDENCE" = "true" ]; then
-        echo "                    <th>Relay evidence</th>" >> "$OUTPUT_FILE"
-    fi
-    cat >> "$OUTPUT_FILE" << 'DETAILHEAD'
                     <th>Log</th>
                 </tr>
             </thead>
             <tbody>
-DETAILHEAD
+MATRIXFOOT
 
     # Track which (client, relay) pairs have had their anchor emitted
     _emitted_anchors=""
@@ -487,7 +476,7 @@ DETAILHEAD
         [ "$class_runs" -eq 0 ] && return
 
         # Emit section header
-        echo "                <tr class=\"section-header\"><td colspan=\"$DETAIL_COLSPAN\">$label</td></tr>" >> "$OUTPUT_FILE"
+        echo "                <tr class=\"section-header\"><td colspan=\"6\">$label</td></tr>" >> "$OUTPUT_FILE"
 
         # Emit each run in this group
         while IFS= read -r run; do
@@ -497,7 +486,6 @@ DETAILHEAD
             local mode=$(echo "$run" | jq -r '.mode')
             local status=$(echo "$run" | jq -r '.status')
             local classification=$(echo "$run" | jq -r '.classification')
-            local evidence=$(echo "$run" | jq -r '(.evidence // "") | @html')
 
             local log_file="$RESULTS_DIR/${client}_to_${relay}_${mode}.log"
             local test_display
@@ -548,11 +536,7 @@ DETAILHEAD
             else
                 log_link="<a href=\"${client}_to_${relay}_${mode}.log\">log</a>"
             fi
-            local evidence_cell=""
-            if [ "$HAS_EVIDENCE" = "true" ]; then
-                evidence_cell="<td>$evidence</td>"
-            fi
-            echo "<tr${row_id_attr}><td>$client</td><td>$relay</td><td><code class=\"$classification\" title=\"$version_tooltip\">$version</code></td><td>$mode</td><td>$test_display</td>${evidence_cell}<td>$log_link</td></tr>" >> "$OUTPUT_FILE"
+            echo "<tr${row_id_attr}><td>$client</td><td>$relay</td><td><code class=\"$classification\" title=\"$version_tooltip\">$version</code></td><td>$mode</td><td>$test_display</td><td>$log_link</td></tr>" >> "$OUTPUT_FILE"
         done < <(jq -c --arg cl "$class" \
             '.target_version as $tv |
             ($tv | ltrimstr("draft-") | tonumber) as $tn |
