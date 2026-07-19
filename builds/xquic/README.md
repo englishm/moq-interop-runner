@@ -75,6 +75,21 @@ docker run --rm \
 | `MOQT_KEY`  | Path to TLS private key       | `/certs/priv.key`   |
 | `MOQT_LOG`  | Log level (e/w/i/d)          | `d`                 |
 
+## Draft-18 Client
+
+The `client-draft-18` target builds the native interop client from xquic's
+`moq/draft_18_dev` branch without changing the existing draft-14 images:
+
+```bash
+./builds/xquic/build.sh \
+  --ref moq/draft_18_dev \
+  --target client-draft-18
+```
+
+Its local image is `xquic-moq-client-draft-18:latest`; the registered CI image
+is `ghcr.io/englishm/moq-interop-runner-xquic-moq-client-draft-18:latest`.
+The client currently supports `setup-only` and `announce-only` over raw QUIC.
+
 ## Pushing to GHCR
 
 ```bash

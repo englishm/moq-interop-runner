@@ -6,6 +6,7 @@
 #   ./build.sh --ref moq-interop            # Clone specific branch/tag/commit
 #   ./build.sh --local ~/github_xquic/xquic # Use local checkout
 #   ./build.sh --target relay               # Build only relay image
+#   ./build.sh --target client-draft-18      # Build only draft-18 client image
 #
 # This builds xquic with MoQ support (-DXQC_ENABLE_MOQ=1) and produces
 # a Docker image containing moq_demo_server as the relay endpoint.
@@ -90,7 +91,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --ref REF       Git ref to checkout (branch/tag/commit)"
             echo "  --repo URL      Clone from a different repository (fork)"
             echo "  --local PATH    Use local xquic checkout instead of cloning"
-            echo "  --target NAME   Build only specific target (relay)"
+            echo "  --target NAME   Build only specific target (relay, client, or client-draft-18)"
             echo "  --help          Show this help"
             echo ""
             echo "Examples:"
@@ -183,8 +184,12 @@ build_target() {
             image_name="xquic-moq-client"
             entrypoint_script="${BUILD_DIR}/entrypoint-client.sh"
             ;;
+        client-draft-18)
+            dockerfile="${BUILD_DIR}/Dockerfile.client.draft18"
+            image_name="xquic-moq-client-draft-18"
+            ;;
         *)
-            error "Unknown target: $target (supported: relay, client)"
+            error "Unknown target: $target (supported: relay, client, client-draft-18)"
             ;;
     esac
 
@@ -192,16 +197,23 @@ build_target() {
     log "  Dockerfile: ${dockerfile}"
     log "  Context: ${SOURCE_DIR}"
 
-    local entrypoint_dest="${SOURCE_DIR}/$(basename "$entrypoint_script")"
-    cp "$entrypoint_script" "$entrypoint_dest"
+    local entrypoint_dest=""
+    if [[ -n "$entrypoint_script" ]]; then
+        entrypoint_dest="${SOURCE_DIR}/$(basename "$entrypoint_script")"
+        cp "$entrypoint_script" "$entrypoint_dest"
+    fi
 
     if docker build \
         -f "${dockerfile}" \
         -t "${image_name}:latest" \
         "$SOURCE_DIR"; then
-        rm -f "$entrypoint_dest"
+        if [[ -n "$entrypoint_dest" ]]; then
+            rm -f "$entrypoint_dest"
+        fi
     else
-        rm -f "$entrypoint_dest"
+        if [[ -n "$entrypoint_dest" ]]; then
+            rm -f "$entrypoint_dest"
+        fi
         error "Docker build failed for ${target}"
     fi
 

@@ -1,0 +1,50 @@
+# Dockerfile for the xquic draft-18 MoQ interop test client
+#
+# The build context is an xquic checkout on moq/draft_18_dev.
+
+FROM ubuntu:22.04 AS builder
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        build-essential git cmake make autoconf automake libtool \
+        libevent-dev ca-certificates pkg-config && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+RUN git clone --depth 1 --branch 8.4.0 https://github.com/Tongsuo-Project/Tongsuo.git /build/babassl && \
+    cd /build/babassl && \
+    ./Configure --api=1.1.1 no-deprecated && \
+    make -j$(nproc)
+
+COPY . /build/xquic
+
+RUN mkdir -p /build/xquic_bin && \
+    cd /build/xquic_bin && \
+    cmake -DSSL_TYPE="babassl" \
+          -DSSL_PATH="/build/babassl" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DXQC_ENABLE_MOQ=1 \
+          -DXQC_ENABLE_TESTING=1 \
+          -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--allow-multiple-definition" \
+          -DCMAKE_EXE_LINKER_FLAGS="-Wl,--allow-multiple-definition" \
+          /build/xquic/ && \
+    make -j$(nproc) xquic moq_interop_client
+
+FROM ubuntu:22.04 AS runtime
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        libevent-dev iproute2 ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=builder /build/xquic_bin/moq/demo/moq_interop_client /app/moq_interop_client
+COPY --from=builder /build/xquic_bin/libxquic.so /app/libxquic.so
+
+RUN ldconfig
+
+ENV LD_LIBRARY_PATH=/app:/usr/lib
+
+ENTRYPOINT ["/app/moq_interop_client"]
