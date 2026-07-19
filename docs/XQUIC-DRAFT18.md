@@ -3,7 +3,8 @@
 The runner registers the draft-18 client as `xquic-draft-18`, separately from
 the existing draft-14 `xquic` relay/client entry. The client uses raw QUIC and
 currently supports `setup-only`, `announce-only`,
-`publish-namespace-done`, `subscribe-error`, and `announce-subscribe`.
+`publish-namespace-done`, `subscribe-error`, `announce-subscribe`, and
+`subscribe-before-announce`.
 
 In draft-18, `publish-namespace-done` is implemented by waiting for
 `REQUEST_OK` and then cancelling the PUBLISH_NAMESPACE bidirectional request
@@ -21,6 +22,13 @@ namespace. A separate subscriber then sends `SUBSCRIBE`; the relay forwards the
 request to the publisher, which returns `SUBSCRIBE_OK` on the same bidirectional
 request stream. The subscriber passes only after receiving its corresponding
 `SUBSCRIBE_OK`.
+
+For `subscribe-before-announce`, the subscriber completes SETUP and sends
+`SUBSCRIBE` before the publisher exists. The publisher connection is created
+500 ms after that SUBSCRIBE is sent and advertises the namespace. Both legal
+draft-18 outcomes are accepted: an immediate `REQUEST_ERROR`, or a later
+`SUBSCRIBE_OK`. In either path, the test also waits for the publisher's matching
+`REQUEST_OK`, so both sides of the topology are exercised.
 
 ## Build
 
@@ -60,15 +68,15 @@ with the existing report generator.
 
 ## Validation snapshot
 
-xquic commit `8821333` on `moq/draft_18_dev` was validated on 2026-07-19:
+xquic commit `4115531` on `moq/draft_18_dev` was validated on 2026-07-19:
 
-| Relay | `setup-only` | `announce-only` | `publish-namespace-done` | `subscribe-error` | `announce-subscribe` |
-|---|---:|---:|---:|---:|---:|
-| `imquic` | Pass | Pass | Pass | Pass | Pass |
-| `moq-rs-draft-18` | Pass | Pass | Pass | Pass | Pass |
-| `moqt-nr` | Pass | Pass | Pass | Pass | Pass |
-| `moqx` | Pass | Pass | Pass | Pass | Pass |
-| `moxygen` | Pass | Pass | Pass | Pass | Pass |
+| Relay | `setup-only` | `announce-only` | `publish-namespace-done` | `subscribe-error` | `announce-subscribe` | `subscribe-before-announce` |
+|---|---:|---:|---:|---:|---:|---:|
+| `imquic` | Pass | Pass | Pass | Pass | Pass | Pass |
+| `moq-rs-draft-18` | Pass | Pass | Pass | Pass | Pass | Pass |
+| `moqt-nr` | Pass | Pass | Pass | Pass | Pass | Pass |
+| `moqx` | Pass | Pass | Pass | Pass | Pass | Pass |
+| `moxygen` | Pass | Pass | Pass | Pass | Pass | Pass |
 
-The generated matrix reports 5/5 relay combinations and 25/25 case executions
+The generated matrix reports 5/5 relay combinations and 30/30 case executions
 passing.
