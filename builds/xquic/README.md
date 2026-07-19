@@ -89,12 +89,15 @@ The `client-draft-18` target builds the native interop client from xquic's
 Its local image is `xquic-moq-client-draft-18:latest`; the registered CI image
 is `ghcr.io/englishm/moq-interop-runner-xquic-moq-client-draft-18:latest`.
 The client currently supports `setup-only`, `announce-only`,
-`publish-namespace-done`, and `subscribe-error` over raw QUIC. For draft-18,
+`publish-namespace-done`, `subscribe-error`, and `announce-subscribe` over raw
+QUIC. For draft-18,
 `publish-namespace-done` withdraws the PUBLISH_NAMESPACE by cancelling its
 bidirectional request stream with the MOQT `CANCELLED` (`0x1`) stream error
 code; it does not send the legacy PUBLISH_NAMESPACE_DONE message.
 `subscribe-error` sends SUBSCRIBE on its own bidirectional request stream and
 expects the generic REQUEST_ERROR response on that stream.
+`announce-subscribe` uses separate publisher and subscriber sessions and
+requires the matching SUBSCRIBE_OK response before reporting success.
 
 ## Pushing to GHCR
 

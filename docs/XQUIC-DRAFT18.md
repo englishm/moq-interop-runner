@@ -3,7 +3,7 @@
 The runner registers the draft-18 client as `xquic-draft-18`, separately from
 the existing draft-14 `xquic` relay/client entry. The client uses raw QUIC and
 currently supports `setup-only`, `announce-only`,
-`publish-namespace-done`, and `subscribe-error`.
+`publish-namespace-done`, `subscribe-error`, and `announce-subscribe`.
 
 In draft-18, `publish-namespace-done` is implemented by waiting for
 `REQUEST_OK` and then cancelling the PUBLISH_NAMESPACE bidirectional request
@@ -15,6 +15,12 @@ the draft-18 `SUBSCRIBE` message for `nonexistent/namespace` and `test-track`,
 and passes only after receiving a `REQUEST_ERROR` on that same stream. Its
 request ID is correlated with the stream metadata before the subscription is
 cleaned up.
+
+For `announce-subscribe`, the publisher first receives `REQUEST_OK` for its
+namespace. A separate subscriber then sends `SUBSCRIBE`; the relay forwards the
+request to the publisher, which returns `SUBSCRIBE_OK` on the same bidirectional
+request stream. The subscriber passes only after receiving its corresponding
+`SUBSCRIBE_OK`.
 
 ## Build
 
@@ -54,15 +60,15 @@ with the existing report generator.
 
 ## Validation snapshot
 
-xquic commit `eda88ce` on `moq/draft_18_dev` was validated on 2026-07-19:
+xquic commit `8821333` on `moq/draft_18_dev` was validated on 2026-07-19:
 
-| Relay | `setup-only` | `announce-only` | `publish-namespace-done` | `subscribe-error` |
-|---|---:|---:|---:|---:|
-| `imquic` | Pass | Pass | Pass | Pass |
-| `moq-rs-draft-18` | Pass | Pass | Pass | Pass |
-| `moqt-nr` | Pass | Pass | Pass | Pass |
-| `moqx` | Pass | Pass | Pass | Pass |
-| `moxygen` | Pass | Pass | Pass | Pass |
+| Relay | `setup-only` | `announce-only` | `publish-namespace-done` | `subscribe-error` | `announce-subscribe` |
+|---|---:|---:|---:|---:|---:|
+| `imquic` | Pass | Pass | Pass | Pass | Pass |
+| `moq-rs-draft-18` | Pass | Pass | Pass | Pass | Pass |
+| `moqt-nr` | Pass | Pass | Pass | Pass | Pass |
+| `moqx` | Pass | Pass | Pass | Pass | Pass |
+| `moxygen` | Pass | Pass | Pass | Pass | Pass |
 
-The generated matrix reports 5/5 relay combinations and 20/20 case executions
+The generated matrix reports 5/5 relay combinations and 25/25 case executions
 passing.
