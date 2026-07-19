@@ -3,9 +3,9 @@
 #
 # Usage:
 #   ./build.sh                              # Clone from GitHub (main branch)
-#   ./build.sh --ref moq-interop            # Clone specific branch/tag/commit
+#   ./build.sh --ref moq/draft_18_dev       # Clone a specific branch/tag/commit
 #   ./build.sh --local ~/github_xquic/xquic # Use local checkout
-#   ./build.sh --target relay               # Build only relay image
+#   ./build.sh --target client-draft-18      # Build only the draft-18 client image
 #
 # This builds xquic with MoQ support (-DXQC_ENABLE_MOQ=1) and produces
 # a Docker image containing moq_demo_server as the relay endpoint.
@@ -90,7 +90,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --ref REF       Git ref to checkout (branch/tag/commit)"
             echo "  --repo URL      Clone from a different repository (fork)"
             echo "  --local PATH    Use local xquic checkout instead of cloning"
-            echo "  --target NAME   Build only specific target (relay)"
+            echo "  --target NAME   Build only specific target (relay, client, or client-draft-18)"
             echo "  --help          Show this help"
             echo ""
             echo "Examples:"
@@ -160,6 +160,24 @@ fi
 SOURCE_COMMIT=$(get_git_commit "$SOURCE_DIR")
 SOURCE_DIRTY=$(is_git_dirty "$SOURCE_DIR")
 
+# Build from a lightweight temporary view of the checkout. --link-dest keeps
+# files as hard links on the host, while the excludes prevent host build output
+# and Git history from becoming Docker context/layers.
+BUILD_CONTEXT=$(mktemp -d "${TMPDIR:-/tmp}/xquic-docker-context.XXXXXX")
+cleanup_build_context() {
+    rm -rf "$BUILD_CONTEXT"
+}
+trap cleanup_build_context EXIT
+
+rsync -a \
+    --link-dest="$SOURCE_DIR" \
+    --exclude='.git/' \
+    --exclude='.codex/' \
+    --exclude='build/' \
+    --exclude='cmake-build-*/' \
+    --exclude='interop_clog' \
+    "$SOURCE_DIR/" "$BUILD_CONTEXT/"
+
 #############################################################################
 # Docker Builds
 #############################################################################
@@ -183,25 +201,37 @@ build_target() {
             image_name="xquic-moq-client"
             entrypoint_script="${BUILD_DIR}/entrypoint-client.sh"
             ;;
+        client-draft-18)
+            dockerfile="${BUILD_DIR}/Dockerfile.client.draft18"
+            image_name="xquic-moq-client-draft-18"
+            ;;
         *)
-            error "Unknown target: $target (supported: relay, client)"
+            error "Unknown target: $target (supported: relay, client, client-draft-18)"
             ;;
     esac
 
     log "Building ${target} -> ${image_name}:latest"
     log "  Dockerfile: ${dockerfile}"
-    log "  Context: ${SOURCE_DIR}"
+    log "  Source:  ${SOURCE_DIR}"
+    log "  Context: ${BUILD_CONTEXT}"
 
-    local entrypoint_dest="${SOURCE_DIR}/$(basename "$entrypoint_script")"
-    cp "$entrypoint_script" "$entrypoint_dest"
+    local entrypoint_dest=""
+    if [[ -n "$entrypoint_script" ]]; then
+        entrypoint_dest="${BUILD_CONTEXT}/$(basename "$entrypoint_script")"
+        cp "$entrypoint_script" "$entrypoint_dest"
+    fi
 
     if docker build \
         -f "${dockerfile}" \
         -t "${image_name}:latest" \
-        "$SOURCE_DIR"; then
-        rm -f "$entrypoint_dest"
+        "$BUILD_CONTEXT"; then
+        if [[ -n "$entrypoint_dest" ]]; then
+            rm -f "$entrypoint_dest"
+        fi
     else
-        rm -f "$entrypoint_dest"
+        if [[ -n "$entrypoint_dest" ]]; then
+            rm -f "$entrypoint_dest"
+        fi
         error "Docker build failed for ${target}"
     fi
 

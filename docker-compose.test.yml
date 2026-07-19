@@ -20,8 +20,8 @@ services:
     ports:
       - "4443:4443/udp"
     volumes:
-      - ./certs:/certs:ro
-      - ./mlog/relay:/mlog
+      - ${MOQT_HOST_IO_ROOT:-.}/certs:/certs:ro
+      - ${MOQT_HOST_IO_ROOT:-.}/mlog/relay:/mlog
     environment:
       - MOQT_ROLE=relay
       - MOQT_PORT=4443
@@ -30,7 +30,7 @@ services:
       # 1. ss (iproute2) - most common on modern systems
       # 2. netstat (net-tools) - fallback for older systems
       # 3. /proc/net/udp{,6} - works without any tools, converts port to hex
-      test: ["CMD", "sh", "-c", "PORT=${MOQT_PORT:-4443}; ss -uln 2>/dev/null | grep -q \":$PORT\" || netstat -uln 2>/dev/null | grep -q \":$PORT\" || { HEX=$(printf '%X' $PORT); grep -qi \":$HEX\" /proc/net/udp 2>/dev/null || grep -qi \":$HEX\" /proc/net/udp6 2>/dev/null; } || exit 1"]
+      test: ["CMD", "sh", "-c", "PORT=$${MOQT_PORT:-4443}; ss -uln 2>/dev/null | grep -q \":$$PORT\" || netstat -uln 2>/dev/null | grep -q \":$$PORT\" || { HEX=$$(printf '%X' $$PORT); grep -qi \":$$HEX\" /proc/net/udp 2>/dev/null || grep -qi \":$$HEX\" /proc/net/udp6 2>/dev/null; } || exit 1"]
       interval: 2s
       timeout: 5s
       retries: 10
@@ -55,12 +55,12 @@ services:
       # In production, use proper certificates and set to 0
       - TLS_DISABLE_VERIFY=1
     volumes:
-      - ./mlog/client:/mlog
+      - ${MOQT_HOST_IO_ROOT:-.}/mlog/client:/mlog
       # Mount the relay's cert (read-only) so clients can pin a self-signed
       # cert via its hash (e.g. WebTransport serverCertificateHashes) instead of
       # relying on a relay-specific fingerprint endpoint. Ignored by clients
       # that don't need it.
-      - ./certs:/certs:ro
+      - ${MOQT_HOST_IO_ROOT:-.}/certs:/certs:ro
     # Resource limits
     deploy:
       resources:

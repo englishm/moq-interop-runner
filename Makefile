@@ -17,7 +17,9 @@ SHELL := /bin/bash
 .PHONY: test test-verbose test-single test-external clean mlog-clean certs \
         interop-all interop-docker interop-remote interop-relay interop-client interop-list \
         relay-start relay-stop logs logs-relay logs-client \
-        build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report help _ensure-certs
+        build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report help _ensure-certs \
+        local-runtime-bootstrap local-runtime-start local-runtime-status \
+        xquic-client-build xquic-client-test-draft18 xquic-local-pipeline
 
 #############################################################################
 # Image Configuration
@@ -88,7 +90,7 @@ test: _ensure-certs mlog-clean
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
 	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
-		docker compose -f docker-compose.test.yml up --abort-on-container-exit
+		docker compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from test-client
 	@echo ""
 	@echo "Test results in mlog/"
 
@@ -99,7 +101,7 @@ test-verbose: _ensure-certs mlog-clean
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
 	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) VERBOSE=1 \
-		docker compose -f docker-compose.test.yml up --abort-on-container-exit
+		docker compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from test-client
 
 # Run a specific test
 test-single:
@@ -233,6 +235,38 @@ build-moq-go:
 	@./builds/moq-go/build.sh $(BUILD_ARGS)
 
 #############################################################################
+# Repository-local container runtime (macOS/Apple Silicon)
+#############################################################################
+
+local-runtime-bootstrap:
+	@./scripts/bootstrap-container-runtime.sh
+
+local-runtime-start: local-runtime-bootstrap
+	@./scripts/local-container-env.sh colima start --vm-type vz --cpu 4 --memory 4 --disk 20
+
+local-runtime-status:
+	@./scripts/local-container-env.sh colima status
+	@./scripts/local-container-env.sh docker version
+	@./scripts/local-container-env.sh docker compose version
+
+#############################################################################
+# xquic draft-18 client development loop
+#############################################################################
+
+xquic-client-build:
+	@if [ -z "$(XQUIC_SOURCE)" ]; then \
+		echo "Usage: make xquic-client-build XQUIC_SOURCE=/absolute/path/to/xquic"; \
+		exit 1; \
+	fi
+	@./scripts/local-container-env.sh ./builds/xquic/build.sh --local "$(XQUIC_SOURCE)" --target client-draft-18
+
+xquic-client-test-draft18:
+	@XQUIC_SOURCE="$(XQUIC_SOURCE)" ./scripts/test-xquic-draft18.sh $(XQUIC_TEST_ARGS)
+
+xquic-local-pipeline:
+	@XQUIC_SOURCE="$(XQUIC_SOURCE)" ./scripts/test-xquic-draft18.sh --local-relay $(XQUIC_TEST_ARGS)
+
+#############################################################################
 # Report Generation
 #############################################################################
 
@@ -252,6 +286,7 @@ help:
 	@echo "Quick Start:"
 	@echo "  make interop-list     List registered implementations"
 	@echo "  make interop-remote   Test all public relay endpoints"
+	@echo "  make local-runtime-start  Start the repository-local container runtime"
 	@echo ""
 	@echo "Interop Tests (config-driven from implementations.json):"
 	@echo "  interop-all           Run all tests (Docker + remote endpoints)"
@@ -272,6 +307,11 @@ help:
 	@echo "  build-impl            Build from source: make build-impl IMPL=moq-rs"
 	@echo "  build-moq-rs          Convenience target for moq-rs"
 	@echo "  build-moq-go          Convenience target for moq-go"
+	@echo ""
+	@echo "xquic draft-18 development:"
+	@echo "  xquic-client-build         Build from XQUIC_SOURCE=/absolute/path/to/xquic"
+	@echo "  xquic-client-test-draft18  Run all supported tests against draft-18 raw-QUIC relays"
+	@echo "  xquic-local-pipeline       Build/test against local draft-18 relay and generate HTML"
 	@echo ""
 	@echo "  BUILD_ARGS examples:"
 	@echo "    --local ~/git/moq-rs    Use local checkout"

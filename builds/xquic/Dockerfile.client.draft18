@@ -1,11 +1,6 @@
-# Dockerfile for xquic MoQ interop test client
+# Dockerfile for the xquic draft-18 MoQ interop test client
 #
-# This Dockerfile is used by the moq-interop-runner builds framework.
-# It expects to be run with the xquic repository root as the build context.
-#
-# Usage (via build.sh):
-#   ./builds/xquic/build.sh --target client
-#   ./builds/xquic/build.sh --local ~/path/to/xquic --target client
+# The build context is an xquic checkout on moq/draft_18_dev.
 
 FROM ubuntu:22.04 AS builder
 
@@ -15,12 +10,12 @@ RUN apt-get update && \
         libevent-dev ca-certificates pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
+WORKDIR /build
+
 RUN git clone --depth 1 --branch 8.4.0 https://github.com/Tongsuo-Project/Tongsuo.git /build/babassl && \
     cd /build/babassl && \
     ./Configure --api=1.1.1 no-deprecated && \
     make -j$(nproc)
-
-WORKDIR /build
 
 COPY . /build/xquic
 
@@ -50,9 +45,6 @@ COPY --from=builder /build/xquic_bin/libxquic.so /app/libxquic.so
 
 RUN ldconfig
 
-COPY entrypoint-client.sh /app/run_endpoint.sh
-RUN chmod +x /app/run_endpoint.sh
-
 ENV LD_LIBRARY_PATH=/app:/usr/lib
 
-ENTRYPOINT ["/app/run_endpoint.sh"]
+ENTRYPOINT ["/app/moq_interop_client"]
