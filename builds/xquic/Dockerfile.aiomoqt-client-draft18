@@ -1,0 +1,22 @@
+FROM python:3.12-slim
+
+ARG AIOMOQT_REPOSITORY=https://github.com/gmarzot/aiomoqt.git
+ARG AIOMOQT_REF=fdb41348376f1286a09d11352e15a288c620485a
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git init /src/aiomoqt \
+    && git -C /src/aiomoqt remote add origin "${AIOMOQT_REPOSITORY}" \
+    && git -C /src/aiomoqt fetch --depth 1 origin "${AIOMOQT_REF}" \
+    && git -C /src/aiomoqt checkout --detach FETCH_HEAD \
+    && test "$(git -C /src/aiomoqt rev-parse HEAD)" = "${AIOMOQT_REF}" \
+    && pip install --no-cache-dir /src/aiomoqt \
+    && rm -rf /src/aiomoqt
+
+ENV DRAFT=18
+ENV MOQT_DRAFT=18
+
+ENTRYPOINT ["python", "-m", "aiomoqt.examples.moq_interop_client"]

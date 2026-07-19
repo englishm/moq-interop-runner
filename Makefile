@@ -302,7 +302,7 @@ help:
 	@echo "  xquic-client-build         Build from XQUIC_SOURCE=/absolute/path/to/xquic"
 	@echo "  xquic-client-test-draft18  Run all supported tests against draft-18 raw-QUIC relays"
 	@echo "  xquic-relay-build          Build draft-18 relay from XQUIC_SOURCE=/absolute/path/to/xquic"
-	@echo "  xquic-relay-test-draft18   Test one server case with three draft-18 clients"
+	@echo "  xquic-relay-test-draft18   Test one server case with four draft-18 clients"
 	@echo ""
 	@echo "  BUILD_ARGS examples:"
 	@echo "    --local ~/git/moq-rs    Use local checkout"

@@ -1,6 +1,7 @@
 #!/bin/bash
-# Run one xquic draft-18 relay case against the moq-rs, moxygen, and xquic
-# interop clients. Keep the TAP logs, HTML report, relay log, and packet trace.
+# Run one xquic draft-18 relay case against the aiomoqt, moq-rs, moxygen, and
+# xquic interop clients. Keep the TAP logs, HTML report, relay log, and packet
+# trace.
 
 set -euo pipefail
 
@@ -8,9 +9,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUNNER_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOCAL_RELAY_IMAGE="xquic-moq-relay-draft-18:latest"
 REGISTERED_RELAY_IMAGE="ghcr.io/englishm/moq-interop-runner-xquic-moq-relay-draft-18:latest"
+AIOMOQT_DRAFT18_IMAGE="aiomoqt-interop-client-draft-18:local"
 MOXYGEN_DRAFT18_IMAGE="moxygen-interop-client-draft-18:local"
 CAPTURE_IMAGE="${CAPTURE_IMAGE:-nicolaka/netshoot:latest}"
 HOST_PORT="${HOST_PORT:-4443}"
+CLIENT_TIMEOUT_SECONDS="${CLIENT_TIMEOUT_SECONDS:-60}"
 
 TESTCASE="${1:-}"
 case "$TESTCASE" in
@@ -44,6 +47,11 @@ if ! docker image inspect "$LOCAL_RELAY_IMAGE" >/dev/null 2>&1; then
 fi
 docker tag "$LOCAL_RELAY_IMAGE" "$REGISTERED_RELAY_IMAGE"
 
+docker build \
+    -f "$RUNNER_ROOT/builds/xquic/Dockerfile.aiomoqt-client-draft18" \
+    -t "$AIOMOQT_DRAFT18_IMAGE" \
+    "$RUNNER_ROOT/builds/xquic" >/dev/null
+
 docker build --platform linux/amd64 \
     -f "$RUNNER_ROOT/builds/xquic/Dockerfile.moxygen-client-draft18" \
     -t "$MOXYGEN_DRAFT18_IMAGE" \
@@ -51,6 +59,10 @@ docker build --platform linux/amd64 \
 
 client_image() {
     local client="$1"
+    if [ "$client" = "aiomoqt" ]; then
+        echo "$AIOMOQT_DRAFT18_IMAGE"
+        return
+    fi
     if [ "$client" = "moxygen" ]; then
         echo "$MOXYGEN_DRAFT18_IMAGE"
         return
@@ -82,7 +94,7 @@ client_testcase() {
     echo "$testcase"
 }
 
-CLIENTS="moq-rs-draft-18 moxygen xquic-draft-18"
+CLIENTS="aiomoqt moq-rs-draft-18 moxygen xquic-draft-18"
 for client in $CLIENTS; do
     image=$(client_image "$client")
     if [ -z "$image" ]; then
@@ -117,8 +129,12 @@ CAPTURE_CONTAINER="xquic-draft18-capture-${suffix}"
 CERT_LOADER_CONTAINER="xquic-draft18-certs-${suffix}"
 CERT_VOLUME="xquic-draft18-certs-${suffix}"
 CAPTURE_VOLUME="xquic-draft18-capture-${suffix}"
+ACTIVE_CLIENT_CONTAINER=""
 
 cleanup() {
+    if [ -n "$ACTIVE_CLIENT_CONTAINER" ]; then
+        docker rm -f "$ACTIVE_CLIENT_CONTAINER" >/dev/null 2>&1 || true
+    fi
     docker rm -f "$CAPTURE_CONTAINER" >/dev/null 2>&1 || true
     docker rm -f "$RELAY_CONTAINER" >/dev/null 2>&1 || true
     docker rm -f "$CERT_LOADER_CONTAINER" >/dev/null 2>&1 || true
@@ -194,18 +210,42 @@ for client in $CLIENTS; do
     image=$(client_image "$client")
     effective_testcase=$(client_testcase "$client" "$TESTCASE")
     log_file="$RESULT_DIR/${client}_to_xquic-draft-18_docker.log"
+    client_container="xquic-draft18-client-${client}-${suffix}"
+    ACTIVE_CLIENT_CONTAINER="$client_container"
 
     echo "Running $TESTCASE: $client -> xquic-draft-18"
     set +e
-    docker run --rm \
+    docker run --name "$client_container" \
         --network "$NETWORK" \
         -v "$CERT_VOLUME:/certs:ro" \
         -e RELAY_URL="moqt://relay:4443" \
         -e TESTCASE="$effective_testcase" \
+        -e DRAFT=18 \
+        -e MOQT_DRAFT=18 \
         -e TLS_DISABLE_VERIFY=1 \
         -e VERBOSE=1 \
-        "$image" > "$log_file" 2>&1
-    exit_code=$?
+        "$image" > "$log_file" 2>&1 &
+    docker_pid=$!
+    deadline=$((SECONDS + CLIENT_TIMEOUT_SECONDS))
+    timed_out=0
+    while kill -0 "$docker_pid" >/dev/null 2>&1; do
+        if [ "$SECONDS" -ge "$deadline" ]; then
+            timed_out=1
+            docker rm -f "$client_container" >/dev/null 2>&1
+            wait "$docker_pid" >/dev/null 2>&1
+            break
+        fi
+        sleep 1
+    done
+    if [ "$timed_out" -eq 1 ]; then
+        exit_code=124
+        echo "client timed out after ${CLIENT_TIMEOUT_SECONDS}s" >> "$log_file"
+    else
+        wait "$docker_pid"
+        exit_code=$?
+    fi
+    docker rm -f "$client_container" >/dev/null 2>&1
+    ACTIVE_CLIENT_CONTAINER=""
     set -e
 
     if [ "$exit_code" -eq 0 ]; then
@@ -235,6 +275,7 @@ for client in $CLIENTS; do
     mv "$tmp_summary" "$SUMMARY_FILE"
 done
 
+docker stop --time 5 "$RELAY_CONTAINER" >/dev/null 2>&1 || true
 docker logs "$RELAY_CONTAINER" > "$RESULT_DIR/relay.log" 2>&1 || true
 docker cp "$RELAY_CONTAINER:/tmp/slog" \
     "$RESULT_DIR/relay-xquic.log" >/dev/null 2>&1 || true

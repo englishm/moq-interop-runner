@@ -66,6 +66,44 @@ The command runs only draft-18 raw-QUIC endpoints, writes the normal runner
 `summary.json` and endpoint logs under `results/`, and generates `report.html`
 with the existing report generator.
 
+## Run the draft-18 relay matrix
+
+Build the relay from the current xquic checkout and run one server-side case:
+
+```bash
+make xquic-relay-test-draft18 \
+  XQUIC_SOURCE=/absolute/path/to/xquic \
+  XQUIC_TEST_ARGS=announce-subscribe
+```
+
+The relay gate runs aiomoqt, moq-rs-draft-18, moxygen, and xquic-draft-18 as
+clients. It captures UDP/4443 with tcpdump while the clients run, then retains
+the TAP logs, relay log, `summary.json`, `report.html`, and `.pcap` under one
+timestamped `results/` directory. Each client is bounded by
+`CLIENT_TIMEOUT_SECONDS` (60 seconds by default).
+
+The upstream aiomoqt image is amd64-only. For native arm64 local runs, the gate
+builds `aiomoqt-interop-client-draft-18:local` from upstream commit
+`fdb41348376f1286a09d11352e15a288c620485a` and pins both `DRAFT` and
+`MOQT_DRAFT` to 18. This adapter is isolated under `builds/xquic`; it does not
+change aiomoqt's registry entry or any other implementation's configuration.
+
+For `announce-subscribe`, the xquic relay records the publisher's namespace,
+forwards the subscriber's request to that publisher on a new draft-18 request
+stream, and maps the publisher's `SUBSCRIBE_OK` back to the subscriber's
+original request stream. For `subscribe-before-announce`, it holds the request
+for up to 1.5 seconds. A matching namespace advertisement wakes the request;
+otherwise the relay returns `REQUEST_ERROR` with `DOES_NOT_EXIST`.
+
+The local server-side validation on 2026-07-19 produced this matrix:
+
+| Client | `announce-subscribe` | `subscribe-before-announce` |
+|---|---:|---:|
+| `aiomoqt` | Pass | Pass (`SUBSCRIBE_OK`) |
+| `moq-rs-draft-18` | Pass | Pass (`SUBSCRIBE_OK`) |
+| `moxygen` | Pass | Pass (`REQUEST_ERROR`) |
+| `xquic-draft-18` | Pass | Pass (`SUBSCRIBE_OK`) |
+
 ## Validation snapshot
 
 xquic commit `4115531` on `moq/draft_18_dev` was validated on 2026-07-19:
