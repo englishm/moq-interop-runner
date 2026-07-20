@@ -1,0 +1,50 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://cdn.moq.dev/anon...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://cdn.moq.dev/anon \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://cdn.moq.dev/anon
+# Transport: WebTransport
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 57
+  info: SETUP exchange completed successfully
+  ...
+E0720 01:09:41.448669     1 MoQRelaySession.cpp:880] PublishNamespaceDone for unknown publishNamespace, sess=0x5616ba92c4e0
+ok 2 - announce-only
+  ---
+  duration_ms: 33
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 15
+  info: Subscribe correctly returned error: Session closed
+  ...
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 64
+  error: Subscribe failed: Session closed
+  ...
+E0720 01:09:41.554266     1 MoQWebTransportClient.cpp:181] Failed to get web transport, exiting
+E20260720 01:09:41.563192     1 HQSession.cpp:579] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=e735fec7a4032854, local=10.1.0.182:57073, 172.238.168.17:443=upstream, drain=none
+not ok 5 - publish-namespace-done
+  ---
+  duration_ms: 4000
+  error: Timed out waiting for PUBLISH_NAMESPACE response
+  ...
+E0720 01:09:45.529069     1 MoQWebTransportClient.cpp:147] folly::OperationCancelled: coroutine operation cancelled
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 527
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Session closed
+  ...
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
