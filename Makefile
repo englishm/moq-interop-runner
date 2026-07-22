@@ -18,7 +18,7 @@ SHELL := /bin/bash
         interop-all interop-docker interop-remote interop-relay interop-client interop-list \
         relay-start relay-stop logs logs-relay logs-client \
         build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report help _ensure-certs \
-        xquic-client-build xquic-client-test-draft18
+        xquic-client-build xquic-client-test-draft18 xquic-relay-build
 
 #############################################################################
 # Image Configuration
@@ -247,6 +247,13 @@ xquic-client-build:
 xquic-client-test-draft18:
 	@XQUIC_SOURCE="$(XQUIC_SOURCE)" ./scripts/test-xquic-draft18.sh $(XQUIC_TEST_ARGS)
 
+xquic-relay-build:
+	@if [ -z "$(XQUIC_SOURCE)" ]; then \
+		echo "Usage: make xquic-relay-build XQUIC_SOURCE=/absolute/path/to/xquic"; \
+		exit 1; \
+	fi
+	@./builds/xquic/build.sh --local "$(XQUIC_SOURCE)" --target relay-draft-18
+
 #############################################################################
 # Report Generation
 #############################################################################
@@ -291,6 +298,7 @@ help:
 	@echo "xquic draft-18 development:"
 	@echo "  xquic-client-build         Build from XQUIC_SOURCE=/absolute/path/to/xquic"
 	@echo "  xquic-client-test-draft18  Run all supported tests against draft-18 raw-QUIC relays"
+	@echo "  xquic-relay-build          Build draft-18 relay from XQUIC_SOURCE=/absolute/path/to/xquic"
 	@echo ""
 	@echo "  BUILD_ARGS examples:"
 	@echo "    --local ~/git/moq-rs    Use local checkout"

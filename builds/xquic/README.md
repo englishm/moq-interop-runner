@@ -88,7 +88,23 @@ The `client-draft-18` target builds the native interop client from xquic's
 
 Its local image is `xquic-moq-client-draft-18:latest`; the registered CI image
 is `ghcr.io/englishm/moq-interop-runner-xquic-moq-client-draft-18:latest`.
-The client currently supports `setup-only` and `announce-only` over raw QUIC.
+The client supports all six core cases over raw QUIC: `setup-only`,
+`announce-only`, `publish-namespace-done`, `subscribe-error`,
+`announce-subscribe`, and `subscribe-before-announce`.
+
+## Draft-18 Relay
+
+The `relay-draft-18` target builds the native xquic relay from the same branch:
+
+```bash
+./builds/xquic/build.sh \
+  --ref moq/draft_18_dev \
+  --target relay-draft-18
+```
+
+Its local image is `xquic-moq-relay-draft-18:latest`; the registered image is
+`ghcr.io/englishm/moq-interop-runner-xquic-moq-relay-draft-18:latest`. The
+relay listens on UDP/4443 and supports the same six core cases.
 
 ## Pushing to GHCR
 
