@@ -9,7 +9,7 @@ on:
         type: choice
         options:
           - moq-rs
-          - moq-rs-draft-16
+          - moq-rs-draft-14
           - moxygen
           - moq-dev-rs
           - moq-dev-rs-client
@@ -23,6 +23,19 @@ on:
           - moq-rs-draft-18-relay
           - moq-rs-draft-18-client
           - moq-go
+          - moqtopus-client
+      ref:
+        description: 'Git ref for source builds (branch/tag/commit). Ignored for adapters.'
+        required: false
+        type: string
+  # Called by rebuild-all-images.yml (and any future scheduled workflows).
+  # workflow_call uses type: string for inputs; type: choice is workflow_dispatch-only.
+  workflow_call:
+    inputs:
+      implementation:
+        description: 'Implementation to build'
+        required: true
+        type: string
       ref:
         description: 'Git ref for source builds (branch/tag/commit). Ignored for adapters.'
         required: false
@@ -55,13 +68,13 @@ jobs:
               echo "build_command=./builds/moq-rs/build.sh --ref $REF" >> "$GITHUB_OUTPUT"
               echo 'images=[{"local":"moq-relay-ietf:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-relay-ietf"},{"local":"moq-test-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-test-client"}]' >> "$GITHUB_OUTPUT"
               ;;
-            moq-rs-draft-16)
+            moq-rs-draft-14)
               REF="${{ inputs.ref }}"
-              REF="${REF:-me/draft-16-interop}"
+              REF="${REF:-draft-ietf-moq-transport-14}"
               echo "build_type=build" >> "$GITHUB_OUTPUT"
               echo "ref=$REF" >> "$GITHUB_OUTPUT"
-              echo "build_command=./builds/moq-rs/build.sh --repo https://github.com/englishm-cloudflare/moq-rs-1 --ref $REF" >> "$GITHUB_OUTPUT"
-              echo 'images=[{"local":"moq-relay-ietf:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-16"},{"local":"moq-test-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-16"}]' >> "$GITHUB_OUTPUT"
+              echo "build_command=./builds/moq-rs/build.sh --repo https://github.com/cloudflare/moq-rs --ref $REF" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"moq-relay-ietf:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-14"},{"local":"moq-test-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-14"}]' >> "$GITHUB_OUTPUT"
               ;;
             quiche-moq)
               REF="${{ inputs.ref }}"
@@ -155,6 +168,14 @@ jobs:
               echo "build_command=./builds/moq-go/build.sh --ref $REF" >> "$GITHUB_OUTPUT"
               echo 'images=[{"local":"moq-go-relay:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-go-relay"},{"local":"moq-go-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moq-go-client"}]' >> "$GITHUB_OUTPUT"
               ;;
+            moqtopus-client)
+              REF="${{ inputs.ref }}"
+              REF="${REF:-main}"
+              echo "build_type=build" >> "$GITHUB_OUTPUT"
+              echo "ref=$REF" >> "$GITHUB_OUTPUT"
+              echo "build_command=./builds/moqtopus/build.sh --ref $REF --target client" >> "$GITHUB_OUTPUT"
+              echo 'images=[{"local":"moqtopus-interop-client:latest","ghcr":"ghcr.io/englishm/moq-interop-runner-moqtopus-interop-client"}]' >> "$GITHUB_OUTPUT"
+              ;;
             *)
               echo "::error::Unknown implementation: $IMPL"
               exit 1
@@ -173,13 +194,15 @@ jobs:
           # Extract source commit from the build provenance
           IMPL_DIR=""
           case "${{ inputs.implementation }}" in
-            moq-rs|moq-rs-draft-16) IMPL_DIR="builds/moq-rs" ;;
+            moq-rs|moq-rs-draft-14) IMPL_DIR="builds/moq-rs" ;;
             quiche-moq)             IMPL_DIR="builds/quiche-moq" ;;
             moq-dev-rs-client)      IMPL_DIR="builds/moq-dev-rs" ;;
             moq-dev-js-client)      IMPL_DIR="builds/moq-dev-js" ;;
             xquic-relay|xquic-client|xquic-draft-18-client) IMPL_DIR="builds/xquic" ;;
             imquic-relay|imquic-client) IMPL_DIR="builds/imquic" ;;
             moq-rs-draft-18-relay|moq-rs-draft-18-client) IMPL_DIR="builds/moq-rs-draft-18" ;;
+            moq-go)                                       IMPL_DIR="builds/moq-go" ;;
+            moqtopus-client)                              IMPL_DIR="builds/moqtopus" ;;
           esac
 
           if [[ -f "$IMPL_DIR/.last-build.json" ]]; then
