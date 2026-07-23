@@ -1,0 +1,102 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://cdn.moq.dev/anon...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://cdn.moq.dev/anon \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+2026-07-23 00:34:55.161 ERROR: MOQT error: control task failed with exception: control stream not initialized (1)
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+2026-07-23 00:34:55.170 ERROR: MOQT error: control task failed with exception: control stream not initialized (1)
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+2026-07-23 00:34:55.307 ERROR: handle_control_message: error handling control message: BufferReadError: BufferReadError('read out of bounds')
+2026-07-23 00:34:55.308 ERROR: handle_control_message: traceback:
+Traceback (most recent call last):
+  File "/app/aiomoqt/protocol.py", line 504, in _moqt_handle_control_message
+    msg_len = buf.pull_uint16()
+              ^^^^^^^^^^^^^^^^^
+  File "src/aiopquic/_binding/_buffer.pyx", line 144, in aiopquic._binding._buffer.Buffer.pull_uint16
+  File "src/aiopquic/_binding/_buffer.pyx", line 146, in aiopquic._binding._buffer.Buffer.pull_uint16
+aiopquic._binding._buffer.BufferReadError: read out of bounds
+
+ERROR asyncio: Exception in callback _Dispatcher._drain()
+handle: <Handle _Dispatcher._drain()>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/usr/local/lib/python3.12/site-packages/aiopquic/asyncio/webtransport.py", line 840, in _drain
+    session._on_event(ev)
+  File "/app/aiomoqt/protocol.py", line 2866, in _on_event
+    self.quic_event_received(StreamDataReceived(
+  File "/app/aiomoqt/protocol.py", line 1285, in quic_event_received
+    self._drain_control_buffer(msg_buf, msg_len)
+  File "/app/aiomoqt/protocol.py", line 1133, in _drain_control_buffer
+    msg = self._moqt_handle_control_message(msg_buf)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/aiomoqt/protocol.py", line 504, in _moqt_handle_control_message
+    msg_len = buf.pull_uint16()
+              ^^^^^^^^^^^^^^^^^
+  File "src/aiopquic/_binding/_buffer.pyx", line 144, in aiopquic._binding._buffer.Buffer.pull_uint16
+  File "src/aiopquic/_binding/_buffer.pyx", line 146, in aiopquic._binding._buffer.Buffer.pull_uint16
+aiopquic._binding._buffer.BufferReadError: read out of bounds
+2026-07-23 00:34:55.310 ERROR: MOQT control: truncated msg type=0x0 msg_len=6144 tell=19 buf_len=42 head_hex=0018004194001342726f616463617374206e6f7420666f756e64
+2026-07-23 00:34:55.310 ERROR: MOQT error: control stream: parsing failed at position: 42 of 42 bytes
+2026-07-23 00:34:55.310 ERROR: MOQT error: closing: control stream: parsing failed at position: 42 of 42 bytes (3)
+2026-07-23 00:34:55.312 WARNING: QUIC event: stream data after close: stream 4 (rate-limited to once per stream)
+  [FAIL] subscribe-error: Failed: TimeoutError
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+  [PASS (COMPAT)] subscribe-before-announce: Non-spec error code=404 accepted as benign 'did not buffer'
+2026-07-23 00:35:00.850 ERROR: MOQT error: control task failed with exception: control stream not initialized (1)
+TAP version 14
+# date: 2026-07-23T00:34:54Z
+# ended: 2026-07-23T00:35:00Z
+# target: https://cdn.moq.dev/anon
+# version: aiomoqt/0.10.6
+# note: preference probe pinned draft-16
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 9.9
+  connection_id: unknown
+  message: SERVER_SETUP received with compatible version
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 12.2
+  connection_id: unknown
+  message: PUBLISH_NAMESPACE_OK received
+  ...
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 113.5
+  connection_id: unknown
+  message: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+not ok 4 - subscribe-error
+  ---
+  duration_ms: 5006.1
+  message: Failed: TimeoutError
+  expected: error response
+  received: TimeoutError
+  ...
+ok 5 - announce-subscribe
+  ---
+  duration_ms: 26.4
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: SUBSCRIBE_OK received — relay routed subscription
+  ...
+ok 6 - subscribe-before-announce # COMPAT
+  ---
+  duration_ms: 521.5
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: Non-spec error code=404 accepted as benign 'did not buffer'
+  compat: true
+  compat_note: relay returns non-spec error code 404 for not-found; spec expects a benign code
+  ...
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
