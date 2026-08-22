@@ -1,0 +1,98 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://cdn.moq.dev/anon...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://cdn.moq.dev/anon \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+2026-08-22 00:15:57.477 ERROR: handle_control_message: error handling control message: BufferReadError: BufferReadError('read out of bounds')
+2026-08-22 00:15:57.478 ERROR: handle_control_message: traceback:
+Traceback (most recent call last):
+  File "/app/aiomoqt/protocol.py", line 504, in _moqt_handle_control_message
+    msg_len = buf.pull_uint16()
+              ^^^^^^^^^^^^^^^^^
+  File "src/aiopquic/_binding/_buffer.pyx", line 144, in aiopquic._binding._buffer.Buffer.pull_uint16
+  File "src/aiopquic/_binding/_buffer.pyx", line 146, in aiopquic._binding._buffer.Buffer.pull_uint16
+aiopquic._binding._buffer.BufferReadError: read out of bounds
+
+ERROR asyncio: Exception in callback _Dispatcher._drain()
+handle: <Handle _Dispatcher._drain()>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+  File "/usr/local/lib/python3.12/site-packages/aiopquic/asyncio/webtransport.py", line 840, in _drain
+    session._on_event(ev)
+  File "/app/aiomoqt/protocol.py", line 2866, in _on_event
+    self.quic_event_received(StreamDataReceived(
+  File "/app/aiomoqt/protocol.py", line 1279, in quic_event_received
+    self._handle_bidi_stream(stream_id, msg_buf, msg_len)
+  File "/app/aiomoqt/protocol.py", line 1736, in _handle_bidi_stream
+    msg = self._moqt_handle_control_message(buf)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/aiomoqt/protocol.py", line 504, in _moqt_handle_control_message
+    msg_len = buf.pull_uint16()
+              ^^^^^^^^^^^^^^^^^
+  File "src/aiopquic/_binding/_buffer.pyx", line 144, in aiopquic._binding._buffer.Buffer.pull_uint16
+  File "src/aiopquic/_binding/_buffer.pyx", line 146, in aiopquic._binding._buffer.Buffer.pull_uint16
+aiopquic._binding._buffer.BufferReadError: read out of bounds
+2026-08-22 00:15:57.479 ERROR: MOQT control: truncated msg type=0x0 msg_len=1025 tell=3 buf_len=6 head_hex=000401000100
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  [PASS (COMPAT)] subscribe-error: Non-spec error code=404 accepted as 'track not found'
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+  [PASS (COMPAT)] subscribe-before-announce: Non-spec error code=404 accepted as benign 'did not buffer'
+TAP version 14
+# date: 2026-08-22T00:15:56Z
+# ended: 2026-08-22T00:16:02Z
+# target: https://cdn.moq.dev/anon
+# version: aiomoqt/0.10.6
+# note: preference probe pinned draft-14
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 38.1
+  connection_id: unknown
+  message: SERVER_SETUP received with compatible version
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 47.1
+  connection_id: unknown
+  message: PUBLISH_NAMESPACE_OK received
+  ...
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 133.2
+  connection_id: unknown
+  message: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 4 - subscribe-error # COMPAT
+  ---
+  duration_ms: 41.2
+  connection_id: unknown
+  message: Non-spec error code=404 accepted as 'track not found'
+  expected: SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST (0x04/0x10)
+  received: SUBSCRIBE_ERROR code=404
+  compat: true
+  compat_note: relay returns non-spec error code 404 for not-found; spec expects 0x04 (d14) or 0x10 (d16)
+  ...
+ok 5 - announce-subscribe
+  ---
+  duration_ms: 92.2
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: SUBSCRIBE_OK received — relay routed subscription
+  ...
+ok 6 - subscribe-before-announce # COMPAT
+  ---
+  duration_ms: 556.3
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: Non-spec error code=404 accepted as benign 'did not buffer'
+  compat: true
+  compat_note: relay returns non-spec error code 404 for not-found; spec expects a benign code
+  ...
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
