@@ -1,0 +1,57 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against moqt://draft-18-interop.cloudflare.mediaoverquic.com:443...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://draft-18-interop.cloudflare.mediaoverquic.com:443 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://draft-18-interop.cloudflare.mediaoverquic.com:443
+# Transport: QUIC
+# Offered ALPNs: moqt-18, moqt-16, moqt-15, moq-00
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 86
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E0826 00:37:52.006534     1 MoQRelaySession.cpp:1116] PublishNamespaceDone for unknown publishNamespace, sess=0x56016f2665c0
+ok 2 - announce-only
+  ---
+  duration_ms: 85
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E0826 00:37:52.076777     1 MoQSession.cpp:4989] No matching subscribe ID=0 sess=0x56016f256900
+ok 3 - subscribe-error
+  ---
+  duration_ms: 70
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: Session closed
+  ...
+E0826 00:37:52.254938     1 MoQSession.cpp:4989] No matching subscribe ID=0 sess=0x56016f275850
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 177
+  negotiated_version: draft-18
+  error: Subscribe failed: peer FINed without terminal reply
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 79
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E0826 00:37:52.420270     1 MoQSession.cpp:4989] No matching subscribe ID=0 sess=0x56016f26f590
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 685
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Session closed
+  ...
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
