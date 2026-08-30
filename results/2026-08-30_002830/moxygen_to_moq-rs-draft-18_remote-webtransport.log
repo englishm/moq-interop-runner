@@ -1,0 +1,62 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16, moqt-15, moq-00
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 94
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E0830 00:56:06.217236     1 MoQRelaySession.cpp:1116] PublishNamespaceDone for unknown publishNamespace, sess=0x55ad43e77420
+ok 2 - announce-only
+  ---
+  duration_ms: 92
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E20260830 00:56:06.294013     1 HQControlCodec.h:58] Unexpected control stream EOF
+E20260830 00:56:06.294946     1 HQSession.cpp:3115] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=0962032a144adec0, local=10.1.0.165:47594, 8.228.3.228:443=upstream, drain=pending
+E0830 00:56:06.294999     1 MoQWebTransportClient.cpp:200] proxygen::HTTPException: Got error=ApplicationError: 260, HTTP error on control stream
+ok 3 - subscribe-error
+  ---
+  duration_ms: 77
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: Session closed
+  ...
+E0830 00:56:06.541983     1 MoQSession.cpp:4984] No matching subscribe ID=0 sess=0x55ad43fba050
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 247
+  negotiated_version: draft-18
+  error: Subscribe failed: peer FINed without terminal reply
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 150
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E0830 00:56:06.838506     1 MoQSession.cpp:4984] No matching subscribe ID=0 sess=0x55ad43fb39c0
+E20260830 00:56:06.838972     1 HQControlCodec.h:58] Unexpected control stream EOF
+E20260830 00:56:06.839035     1 HQSession.cpp:3115] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=aab6358f4efb1cb3, local=10.1.0.165:51198, 8.228.3.228:443=upstream, drain=pending
+E0830 00:56:06.839169     1 MoQWebTransportClient.cpp:200] proxygen::HTTPException: Got error=ApplicationError: 260, HTTP error on control stream
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 732
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): peer FINed without terminal reply
+  ...
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
