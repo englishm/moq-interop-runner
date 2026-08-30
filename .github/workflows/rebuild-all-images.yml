@@ -1,0 +1,69 @@
+# Rebuild All Docker Images
+#
+# Provides a manual "Rebuild All" button in the GitHub Actions tab, and is
+# structured so that enabling nightly rebuilds requires only uncommenting the
+# schedule block below (phase-2 follow-up PR, refs #96).
+#
+# Two-phase approach:
+#   Phase 1 (this PR): workflow_dispatch only. Operators trigger a full rebuild
+#     on demand — useful before major interop events or when upstream deps drift.
+#   Phase 2 (follow-up PR): Uncomment the schedule block. Nightly rebuilds keep
+#     every GHCR image fresh without operator intervention.
+#
+# Build time vs. freshness tradeoff is documented in issue #96.
+
+name: Rebuild All Docker Images
+
+on:
+  workflow_dispatch:
+  # Uncomment to enable nightly rebuilds (see issue #96 follow-up PR):
+  #  schedule:
+  #    - cron: '0 22 * * *'  # Nightly at 10pm UTC — images ready before the midnight interop run
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    strategy:
+      max-parallel: 4
+      matrix:
+        include:
+          - implementation: moq-rs
+            ref: ''
+          - implementation: moq-rs-draft-14
+            ref: ''
+          - implementation: moxygen
+            ref: ''
+          - implementation: moq-dev-rs
+            ref: ''
+          - implementation: moq-dev-rs-client
+            ref: ''
+          - implementation: moq-dev-js-client
+            ref: ''
+          - implementation: quiche-moq
+            ref: ''
+          - implementation: xquic-relay
+            ref: ''
+          - implementation: xquic-client
+            ref: ''
+          - implementation: xquic-draft-18-client
+            ref: ''
+          - implementation: imquic-relay
+            ref: ''
+          - implementation: imquic-client
+            ref: ''
+          - implementation: moq-rs-draft-18-relay
+            ref: ''
+          - implementation: moq-rs-draft-18-client
+            ref: ''
+          - implementation: moq-go
+            ref: ''
+          - implementation: moqtopus-client
+            ref: ''
+    uses: ./.github/workflows/build-images.yml
+    with:
+      implementation: ${{ matrix.implementation }}
+      ref: ${{ matrix.ref }}
+    secrets: inherit

@@ -200,9 +200,9 @@
       "organization": "floatdrop",
       "repository": "https://github.com/floatdrop/moq-go",
       "draft_versions": [
-        "draft-18"
+        "draft-19"
       ],
-      "notes": "Go implementation of MoQT (draft-ietf-moq-transport-18): transport-agnostic session library, single-instance reference relay, and an interop test client. Both relay and client images are built in-tree (cmd/relay, cmd/interop-client) and follow the runner conventions.",
+      "notes": "Go implementation of MoQT (draft-ietf-moq-transport-19): transport-agnostic session library, single-instance reference relay, and an interop test client. Advertises the moqt-19 ALPN only. Both relay and client images are built in-tree (cmd/relay, cmd/interop-client) and follow the runner conventions.",
       "roles": {
         "relay": {
           "docker": {
@@ -231,14 +231,37 @@
       "organization": "Cloudflare",
       "repository": "https://github.com/cloudflare/moq-rs",
       "draft_versions": [
-        "draft-14"
+        "draft-16"
       ],
-      "notes": "Rust implementation. Test client reference implementation.",
+      "notes": "Rust implementation. Test client reference implementation. Main branch now supports draft-16 (merged via https://github.com/cloudflare/moq-rs/pull/170).",
       "roles": {
         "relay": {
           "docker": {
             "image": "ghcr.io/englishm/moq-interop-runner-moq-relay-ietf:latest",
-            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs/build.sh && docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf:latest"
+            "notes": "Pre-built on GHCR. To build from source (main branch, draft-16): ./builds/moq-rs/build.sh && docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf:latest"
+          }
+        },
+        "client": {
+          "docker": {
+            "image": "ghcr.io/englishm/moq-interop-runner-moq-test-client:latest",
+            "notes": "Pre-built on GHCR. To build from source (main branch, draft-16): ./builds/moq-rs/build.sh && docker tag moq-test-client:latest ghcr.io/englishm/moq-interop-runner-moq-test-client:latest"
+          }
+        }
+      }
+    },
+    "moq-rs-draft-14": {
+      "name": "moq-rs (draft-14)",
+      "organization": "Cloudflare",
+      "repository": "https://github.com/cloudflare/moq-rs",
+      "draft_versions": [
+        "draft-14"
+      ],
+      "notes": "Rust implementation. Draft-14 support maintained on the draft-ietf-moq-transport-14 branch (https://github.com/cloudflare/moq-rs/tree/draft-ietf-moq-transport-14).",
+      "roles": {
+        "relay": {
+          "docker": {
+            "image": "ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-16:latest",
+            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs/build.sh --repo https://github.com/cloudflare/moq-rs --ref draft-ietf-moq-transport-14 --target relay && docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-16:latest"
           },
           "remote": [
             {
@@ -255,43 +278,8 @@
         },
         "client": {
           "docker": {
-            "image": "ghcr.io/englishm/moq-interop-runner-moq-test-client:latest",
-            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs/build.sh && docker tag moq-test-client:latest ghcr.io/englishm/moq-interop-runner-moq-test-client:latest"
-          }
-        }
-      }
-    },
-    "moq-rs-draft-16": {
-      "name": "moq-rs (draft-16)",
-      "organization": "Cloudflare",
-      "repository": "https://github.com/itzmanish/moq-rs",
-      "draft_versions": [
-        "draft-16"
-      ],
-      "notes": "Rust implementation. Draft-16 branch from itzmanish (Manish Pandit), based on https://github.com/cloudflare/moq-rs/pull/131.",
-      "roles": {
-        "relay": {
-          "docker": {
-            "image": "ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-16:latest",
-            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs/build.sh --repo https://github.com/itzmanish/moq-rs --ref draft-16 --target relay && docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-16:latest"
-          },
-          "remote": [
-            {
-              "url": "moqt://draft-16-manish.cloudflare.mediaoverquic.com:443",
-              "transport": "quic",
-              "notes": "Raw QUIC endpoint"
-            },
-            {
-              "url": "https://draft-16-manish.cloudflare.mediaoverquic.com:443/moq",
-              "transport": "webtransport",
-              "notes": "WebTransport endpoint"
-            }
-          ]
-        },
-        "client": {
-          "docker": {
             "image": "ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-16:latest",
-            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs/build.sh --repo https://github.com/itzmanish/moq-rs --ref draft-16 --target client && docker tag moq-test-client:latest ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-16:latest"
+            "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs/build.sh --repo https://github.com/cloudflare/moq-rs --ref draft-ietf-moq-transport-14 --target client && docker tag moq-test-client:latest ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-16:latest"
           }
         }
       }
@@ -456,7 +444,8 @@
         },
         "client": {
           "docker": {
-            "image": "ghcr.io/openmoq/moqx-interop-client:latest"
+            "image": "ghcr.io/openmoq/moqx-interop-client:latest",
+            "notes": "Pre-built on GHCR. moqx is built on moxygen; if the client binary shares moxygen's MoQInteropClient, it may also be missing moqt-18 from its ALPN list and thus unable to negotiate draft-18 against draft-18-only relays. Verify and remove this note once confirmed or fixed."
           }
         },
         "publisher": {
@@ -485,7 +474,7 @@
         "draft-16",
         "draft-18"
       ],
-      "notes": "C++ implementation. Supports multiple draft versions simultaneously via version negotiation.",
+      "notes": "C++ implementation. Supports multiple draft versions simultaneously via version negotiation. The relay correctly advertises and negotiates draft-18. The interop client image has a known gap: kInteropAlpns in MoQInteropClient.cpp did not include moqt-18 when the current image was built, so client sessions against draft-18-only relays fail at the TLS/QUIC handshake. A fix has been sent upstream; remove the client notes below once a new image is published from the patched source.",
       "roles": {
         "relay": {
           "docker": {
@@ -514,7 +503,8 @@
         },
         "client": {
           "docker": {
-            "image": "ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64"
+            "image": "ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64",
+            "notes": "Pre-built on GHCR. Draft-18 ALPN negotiation is not yet working in this image: kInteropAlpns in MoQInteropClient.cpp was missing moqt-18 at build time. Fix tracked in facebookexperimental/moxygen (branch add-moqt-18-interop-alpn). Remove this note once a new image is built from the patched source."
           }
         }
       }
@@ -542,6 +532,36 @@
         }
       }
     },
+    "stitcher-moq": {
+      "name": "stitcher-moq relay (moq-dev deployment)",
+      "organization": "Pluto TV / Paramount",
+      "repository": "https://github.com/moq-dev/moq",
+      "draft_versions": [
+        "draft-14",
+        "draft-15",
+        "draft-16",
+        "draft-17",
+        "draft-18",
+        "draft-19"
+      ],
+      "notes": "Stock moq-dev moq-relay (v0.14.8) fronting Pluto TV's MoQ SSAI sandbox on GCP. Anonymous subscribe; anonymous publish scoped to the moq-test prefix. Single UDP+TCP 443 via L4 passthrough LB, ACME certificate. Publishes live demo channels 24/7.",
+      "roles": {
+        "relay": {
+          "remote": [
+            {
+              "url": "https://34-72-6-160.sslip.io:443",
+              "transport": "webtransport",
+              "notes": "WebTransport endpoint"
+            },
+            {
+              "url": "moqt://34-72-6-160.sslip.io:443",
+              "transport": "quic",
+              "notes": "Raw QUIC endpoint"
+            }
+          ]
+        }
+      }
+    },
     "xquic": {
       "name": "xquic",
       "organization": "Alibaba",
@@ -566,6 +586,30 @@
         }
       }
     },
+    "xquic-draft-18": {
+      "name": "xquic (draft-18)",
+      "organization": "Alibaba",
+      "repository": "https://github.com/alibaba/xquic",
+      "draft_versions": [
+        "draft-18"
+      ],
+      "notes": "C interop client and relay on the moq/draft_18_dev branch. Raw QUIC transport only (moqt://); both roles support all six core cases.",
+      "roles": {
+        "relay": {
+          "docker": {
+            "image": "ghcr.io/englishm/moq-interop-runner-xquic-moq-relay-draft-18:latest",
+            "url": "moqt://relay:4443",
+            "notes": "Build locally from the draft-18 checkout with: make xquic-relay-build XQUIC_SOURCE=/absolute/path/to/xquic"
+          }
+        },
+        "client": {
+          "docker": {
+            "image": "ghcr.io/englishm/moq-interop-runner-xquic-moq-client-draft-18:latest",
+            "notes": "Build locally from the draft-18 checkout with: make xquic-client-build XQUIC_SOURCE=/absolute/path/to/xquic"
+          }
+        }
+      }
+    },
     "moq5": {
       "name": "MOQ5",
       "organization": "Red5 Pro",
@@ -580,6 +624,23 @@
           "docker": {
             "image": "ghcr.io/openmoq/moq5-interop-client:latest",
             "notes": "Pre-built on GHCR (published by openmoq/moq5 CI; pinned :<git-sha> tags too). To build from source: ./builds/moq5/build.sh && docker tag moq5-client-interop:latest ghcr.io/openmoq/moq5-interop-client:latest"
+          }
+        }
+      }
+    },
+    "moqtopus": {
+      "name": "Moqtopus",
+      "organization": "Kota Yatagai (Keio University)",
+      "repository": "https://github.com/kota-yata/Moqtopus",
+      "draft_versions": [
+        "draft-18"
+      ],
+      "notes": "C++ client using MsQuic. The interop client supports raw QUIC.",
+      "roles": {
+        "client": {
+          "docker": {
+            "image": "ghcr.io/englishm/moq-interop-runner-moqtopus-interop-client:latest",
+            "notes": "Pre-built on GHCR. To build from source: ./builds/moqtopus/build.sh --target client"
           }
         }
       }

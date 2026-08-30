@@ -2,7 +2,7 @@
 # build.sh - Build moq-go Docker images from source
 #
 # Usage:
-#   ./build.sh                       # Clone from default ref (draft-18)
+#   ./build.sh                       # Clone from default ref (draft-19)
 #   ./build.sh --ref feature-branch  # Clone specific branch/tag/commit
 #   ./build.sh --repo URL            # Clone from a different repository (fork)
 #   ./build.sh --local ~/moq-go      # Use local checkout
@@ -24,7 +24,7 @@ set -euo pipefail
 
 IMPL_NAME="moq-go"
 REPO_URL="https://github.com/floatdrop/moq-go"
-DEFAULT_REF="draft-18"
+DEFAULT_REF="draft-19"
 
 # Build directory (where this script lives)
 BUILD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
