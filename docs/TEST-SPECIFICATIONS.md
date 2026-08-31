@@ -7,6 +7,8 @@ This document has been reorganized into separate, focused documents:
 | **[tests/TEST-CASES.md](./tests/TEST-CASES.md)** | Test case definitions with protocol references |
 | **[TEST-CLIENT-INTERFACE.md](./TEST-CLIENT-INTERFACE.md)** | CLI, environment variables, exit codes, output format |
 | **[IMPLEMENTING-A-TEST-CLIENT.md](./IMPLEMENTING-A-TEST-CLIENT.md)** | Guide for implementing a compatible test client |
+| **[TARGET-DRAFT-POLICY.md](./TARGET-DRAFT-POLICY.md)** | Identifier lifecycle and target-draft review checklist |
+| **[tests/retired-test-identifiers.json](./tests/retired-test-identifiers.json)** | Retired identifier tombstones and replacements |
 
 ## Quick Reference
 
@@ -20,6 +22,8 @@ This document has been reorganized into separate, focused documents:
 | `subscribe-error` | Subscription | Error for non-existent track |
 | `announce-subscribe` | Subscription | Relay routes subscription to publisher |
 | `subscribe-before-announce` | Subscription | Out-of-order subscribe/announce |
+| `publish-without-subscriber` | Track publishing | Exercise the Forward-State-aware lifecycle without a subscriber |
+| `publish-to-pending-subscription` | Track publishing | Rendezvous a subscriber-first request with PUBLISH delivery |
 
 ### Interface Summary
 

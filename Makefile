@@ -17,7 +17,7 @@ SHELL := /bin/bash
 .PHONY: test test-verbose test-single test-external clean mlog-clean certs \
         interop-all interop-docker interop-remote interop-relay interop-client interop-list \
         relay-start relay-stop logs logs-relay logs-client \
-        build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report help _ensure-certs \
+        build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report validate-target-draft test-target-draft-validator help _ensure-certs \
         xquic-client-build xquic-client-test-draft18 xquic-relay-build
 
 #############################################################################
@@ -261,6 +261,13 @@ xquic-relay-build:
 report:
 	@./generate-report.sh
 
+# Validate canonical test specs against implementations.json.current_target.
+validate-target-draft:
+	@./scripts/validate-target-draft.sh $(if $(PREVIOUS_RETIRED),--previous-retired $(PREVIOUS_RETIRED)) $(SPEC_FILES)
+
+test-target-draft-validator:
+	@./scripts/test-validate-target-draft.sh
+
 #############################################################################
 # Help
 #############################################################################
@@ -311,6 +318,8 @@ help:
 	@echo "  relay-stop            Stop relay container"
 	@echo "  clean                 Remove containers, mlog, and certs"
 	@echo "  report                Generate HTML report from results"
+	@echo "  validate-target-draft Validate target, IDs, and retirement history"
+	@echo "  test-target-draft-validator  Test target-draft and retirement policy checks"
 	@echo ""
 	@echo "Image Configuration:"
 	@echo "  RELAY_IMAGE           Relay Docker image (default: moq-relay-ietf:latest)"
