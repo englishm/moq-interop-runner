@@ -211,25 +211,26 @@ These tests exercise the **PUBLISH flow**: a publisher sends a `PUBLISH` message
 
 ### `publish-track-only`
 
-**Protocol References**: MoQT-18 §10.10 (PUBLISH), §10.5 (REQUEST_OK / `PUBLISH_OK` alias)
+**Protocol References**: MoQT-18 §5.1 (Subscriptions), §9.5 (Publisher Interactions), §10.2.12 (FORWARD), §10.5 (REQUEST_OK / `PUBLISH_OK` alias), §10.10 (PUBLISH), §10.11 (PUBLISH_DONE), §11.4 (Streams)
 
 **Procedure**:
 
 1. Connect to relay and complete SETUP exchange
 2. Send PUBLISH naming the test track (no subscriber is present)
-3. Wait for REQUEST_OK (`PUBLISH_OK`)
-4. Write one subgroup containing a single object into the track
-5. Close the track, signalling end-of-track (PUBLISH_DONE)
-6. Wait for the PUBLISH sequence to complete, then close the connection gracefully
+3. Wait for REQUEST_OK (`PUBLISH_OK`) and record its effective Forward State; an omitted FORWARD parameter means 1
+4. If Forward State is 1, write Group 0, Subgroup 0, Object 0 with payload `moqt18-publish-track-only`, then close the subgroup stream with FIN; if it is 0, send no track data
+5. Close the track with PUBLISH_DONE/TRACK_ENDED and an accurate Stream Count: 1 if a subgroup stream was opened, otherwise 0
+6. Finish the request stream after PUBLISH_DONE and wait for the PUBLISH sequence to complete
 
-**Test Namespace**: `moq-test/publish`  
+**Test Namespace**: `moq-test/publish`
+
 **Test Track**: `published-track`
 
 **Success Criteria**:
 
 - REQUEST_OK (`PUBLISH_OK`) received within timeout
-- Track data written and PUBLISH_DONE sent without error
-- Connection closes cleanly
+- The publisher honors the returned Forward State
+- PUBLISH_DONE/TRACK_ENDED carries the exact Stream Count and is followed by request-stream FIN
 
 > **Note**: No subscriber is present; the relay must accept the PUBLISH and the accompanying data without error. Whether the relay buffers or discards data when no subscriber exists is implementation-defined.
 
@@ -247,35 +248,44 @@ These tests exercise the **PUBLISH flow**: a publisher sends a `PUBLISH` message
 
 ### `publish-track-subscribe`
 
-**Protocol References**: MoQT-18 §10.10 (PUBLISH), §10.5 (REQUEST_OK / `PUBLISH_OK` alias), §10.7 (SUBSCRIBE), §10.8 (SUBSCRIBE_OK)
+**Protocol References**: MoQT-18 §5.1 (Subscriptions), §9.5 (Publisher Interactions), §10.2.6 (RENDEZVOUS_TIMEOUT), §10.2.12 (FORWARD), §10.5 (REQUEST_OK / `PUBLISH_OK` alias), §10.7 (SUBSCRIBE), §10.8 (SUBSCRIBE_OK), §10.10 (PUBLISH), §10.11 (PUBLISH_DONE), §11.4 (Streams)
 
 **Topology**: Two concurrent connections (publisher + subscriber)
+
+**Subscriber Procedure**:
+
+1. Connect to relay and complete SETUP exchange
+2. Send SUBSCRIBE for the test namespace and track with RENDEZVOUS_TIMEOUT set to 5000 ms
+3. After the SUBSCRIBE bytes have been sent, keep the request pending while the publisher connects
 
 **Publisher Procedure**:
 
 1. Connect to relay and complete SETUP exchange
-2. Send PUBLISH naming the test track
-3. Wait for REQUEST_OK (`PUBLISH_OK`)
-4. After receiving PUBLISH_OK: write one subgroup containing a single object (allow a brief interval for the subscriber to send its SUBSCRIBE before writing)
-5. Close the track (signal PUBLISH_DONE) once the object has been written
+2. Send PUBLISH naming the same test track
+3. Wait for REQUEST_OK (`PUBLISH_OK`) with effective Forward State 1; an omitted FORWARD parameter means 1
+4. Require the subscriber to receive SUBSCRIBE_OK
+5. Write Group 0, Subgroup 0, Object 0 with payload `moqt18-publish-track-subscribe`
+6. Close the subgroup stream with FIN
+7. Send PUBLISH_DONE/TRACK_ENDED with Stream Count 1, then finish the request stream
 
-**Subscriber Procedure** (starts after publisher has received PUBLISH_OK):
+**Subscriber Completion**:
 
-1. Connect to relay and complete SETUP exchange
-2. Send SUBSCRIBE for the same test namespace and track name as the active PUBLISH
-3. Wait for SUBSCRIBE_OK (the relay must match the SUBSCRIBE to the active PUBLISH publisher)
-4. Receive one subgroup with a single object on the resulting data stream
-5. Verify the received payload matches the expected value
+1. Receive exactly Group 0, Subgroup 0, Object 0
+2. Verify the exact expected payload
+3. Require PUBLISH_DONE/TRACK_ENDED with Stream Count 1; it may arrive before the subgroup stream, but retain subscription state until the one counted stream closes
 
-**Test Namespace**: `moq-test/publish`  
+**Test Namespace**: `moq-test/publish`
+
 **Test Track**: `published-track`
 
 **Success Criteria**:
 
 - Publisher receives PUBLISH_OK
+- PUBLISH_OK has Forward State 1 before the publisher sends data
 - Subscriber receives SUBSCRIBE_OK (relay correctly maps the SUBSCRIBE to the active PUBLISH track)
-- Subscriber receives at least one object with the expected payload
-- Both connections close cleanly
+- Subscriber receives exactly one object with the expected payload
+- The publisher sends PUBLISH_DONE/TRACK_ENDED with Stream Count 1 only after closing its subgroup stream, then finishes its request stream
+- The subscriber processes exactly one counted subgroup stream and the exact payload even if PUBLISH_DONE arrives first
 
 **Timeout**: 10 seconds
 
@@ -301,7 +311,7 @@ This section outlines potential future test cases. The actual test definitions w
 
 | Identifier | Description | Key Protocol References |
 |------------|-------------|------------------------|
-| `single-object` | Publisher sends 1 object via PUBLISH_NAMESPACE + SUBSCRIBE flow, subscriber receives it | §5.1 (Subscriptions), §10 (Data Streams) |
+| `single-object` | Publisher sends 1 object via PUBLISH_NAMESPACE + SUBSCRIBE flow, subscriber receives it | §5.1 (Subscriptions), §11 (Data Streams and Datagrams) |
 | `single-group` | Publisher sends group of N objects | §2.3 (Groups) |
 | `multiple-groups` | Publisher sends 3 groups, subscriber receives all | §2.3 (Groups) |
 | `late-subscriber` | Subscriber joins mid-stream | §5.1 (Subscriptions) |
@@ -319,10 +329,11 @@ As the test suite grows, different test clients may support different subsets of
 
 | Test Client | `setup-only` | `announce-only` | `publish-namespace-done` | `subscribe-error` | `announce-subscribe` | `subscribe-before-announce` | `publish-track-only` | `publish-track-subscribe` |
 |-------------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| moq-test-client (moq-rs) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| implementation-b | ✓ | ✓ | — | ✓ | — | — | — | — |
+| moq-test-client (moq-rs) | Yes | Name mismatch | Yes | Yes | Name mismatch | Name mismatch | Needs alignment | Needs alignment |
 
-Test clients declare supported tests via the `--list` command (one identifier per line). The `TESTCASE` environment variable selects a single test; exit code `127` signals an unsupported test.
+`moq-test-client` currently lists `publish-namespace-only`, `publish-namespace-subscribe`, and `subscribe-before-publish-namespace` for the three cells marked Name mismatch; the runner does not translate those identifiers. Its two direct-PUBLISH scenarios also require alignment with the procedures above. A listed implementation is a capability claim, not an interoperability result.
+
+Test clients declare available tests via the `--list` command (one identifier per line). The `TESTCASE` environment variable selects a single test; exit code `127` signals an unsupported test.
 
 ---
 
@@ -349,6 +360,6 @@ This approach could enable more sophisticated validation (e.g., verifying relay 
 
 ## References
 
-- [draft-ietf-moq-transport-14](https://www.ietf.org/archive/id/draft-ietf-moq-transport-14.html) - MoQT Protocol Specification
+- [draft-ietf-moq-transport-18](https://www.ietf.org/archive/id/draft-ietf-moq-transport-18.html) - MoQT Protocol Specification
 - [RFC 2026 §4](https://www.rfc-editor.org/rfc/rfc2026#section-4) - IETF interoperability testing requirements
 - [QUIC Interop Runner](https://github.com/quic-interop/quic-interop-runner) - Inspiration for this framework
