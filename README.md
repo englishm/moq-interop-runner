@@ -84,6 +84,13 @@ Tests are organized by functional category:
 | `subscribe-before-announce` | Subscription | Subscribe before publisher announces |
 | `publish-without-subscriber` | Track publishing | Exercise the Forward-State-aware PUBLISH lifecycle without a subscriber |
 | `publish-to-pending-subscription` | Track publishing | Deliver PUBLISH data to a subscriber-first pending request |
+| `subscribe-one-subgroup-per-group` | Data plane | Deliver one Subgroup in each of multiple Groups |
+| `subscribe-one-subgroup-per-object` | Data plane | Deliver every Object in a distinct Subgroup |
+| `subscribe-two-subgroups-per-group` | Data plane | Deliver two interleaved Subgroups in one Group |
+| `subscribe-nonzero-start-group` | Data plane | Begin publication at a nonzero Group ID |
+| `subscribe-nonzero-start-object` | Data plane | Begin publication at a nonzero Object ID |
+| `subscribe-sparse-group-object-ids` | Data plane | Deliver sparse Group and Object identifiers |
+| `subscribe-object-properties` | Data plane | Preserve application-specific Object Properties |
 
 See [docs/tests/TEST-CASES.md](./docs/tests/TEST-CASES.md) for detailed specifications with protocol references.
 

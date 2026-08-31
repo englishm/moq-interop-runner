@@ -2,7 +2,7 @@
 
 > **This is the reference specification for test cases.** To propose new test cases, open a PR against this file. To implement these tests in your MoQT stack, see [IMPLEMENTING-A-TEST-CLIENT.md](../IMPLEMENTING-A-TEST-CLIENT.md).
 
-This document defines interoperability test cases for Media over QUIC Transport (MoQT). These specifications are designed to be implementation-neutral and precise enough that any MoQT implementation can build a compatible test client.
+This document defines interoperability test cases for Media over QUIC Transport (MoQT) with procedures and pass criteria for compatible test clients.
 
 **Target Draft**: `draft-18`
 **Identifier Semantics Reviewed For**: `draft-18`
@@ -212,14 +212,12 @@ Either outcome is valid; the test checks for graceful handling.
 
 These tests exercise the **PUBLISH flow**: a publisher sends a `PUBLISH` message directly naming a specific track, and the relay responds with `PUBLISH_OK`. This is distinct from the `PUBLISH_NAMESPACE` + `SUBSCRIBE` flow used in earlier tests, where a publisher announces an entire namespace and the relay routes incoming `SUBSCRIBE` requests back to that publisher. In the PUBLISH flow, the publisher establishes the track directly; the relay matches any arriving `SUBSCRIBE` for that track to the active publisher and routes data accordingly.
 
-Each run generates a fresh 128-bit Run ID encoded as 32 lowercase hexadecimal characters. The Full Track Name is unique to the run:
+Each run uses a cryptographically secure random generator to produce a fresh 128-bit Run ID encoded as exactly 32 lowercase hexadecimal characters. The Full Track Name is unique to the run:
 
-- Track Namespace: `("moq-interop", <test-id>, <run-id>)`
-- Track Name: `test`
+- Track Namespace: `("moq-interop", <test-id>)`
+- Track Name: `<run-id>`
 
-Publisher and subscriber roles use the same Full Track Name and report the Run ID in diagnostics. A fixed track name must not be reused across runs because stale state or a concurrent run could satisfy the test.
-
-The two tests below are new runner-owned semantic specifications. Their presence does not claim that any implementation currently exposes or passes them.
+Publisher and subscriber roles use the same Full Track Name and report the Run ID in diagnostics. Generation failure fails the test; predictable or fixed Track Name fallbacks are forbidden because stale state or a concurrent run could satisfy the test.
 
 ### `publish-without-subscriber`
 
@@ -272,9 +270,9 @@ The two tests below are new runner-owned semantic specifications. Their presence
 
 1. Connect to relay and complete SETUP exchange
 2. Send PUBLISH naming the same test track
-3. Wait for REQUEST_OK (`PUBLISH_OK`) with effective Forward State 1; an omitted FORWARD parameter means 1
-4. Require the subscriber to receive SUBSCRIBE_OK
-5. Write Group 0, Subgroup 0, Object 0 with payload `publish-to-pending-subscription`
+3. Wait for REQUEST_OK (`PUBLISH_OK`) and record its effective Forward State; an omitted FORWARD parameter means 1
+4. Require the subscriber to receive SUBSCRIBE_OK; if the PUBLISH response had Forward State 0, require and successfully answer REQUEST_UPDATE setting it to 1
+5. After Forward State is 1 and SUBSCRIBE_OK has arrived, write Group 0, Subgroup 0, Object 0 with payload `publish-to-pending-subscription`
 6. Close the subgroup stream with FIN
 7. Send PUBLISH_DONE/TRACK_ENDED with Stream Count 1, then finish the request stream
 
@@ -289,7 +287,7 @@ The two tests below are new runner-owned semantic specifications. Their presence
 **Success Criteria**:
 
 - Publisher receives PUBLISH_OK
-- PUBLISH_OK has Forward State 1 before the publisher sends data
+- The effective Forward State reaches 1, through PUBLISH_OK or REQUEST_UPDATE, before the publisher sends data
 - Subscriber receives SUBSCRIBE_OK (relay correctly maps the SUBSCRIBE to the active PUBLISH track)
 - Subscriber receives exactly one object with the expected payload
 - The publisher sends PUBLISH_DONE/TRACK_ENDED with Stream Count 1 only after closing its subgroup stream, then finishes its request stream
@@ -311,6 +309,40 @@ The two tests below are new runner-owned semantic specifications. Their presence
 
 ---
 
+## Category: Data Plane
+
+These tests exercise direct-PUBLISH delivery through a relay with coordinated publisher and subscriber sessions. Their shared procedure, fixtures, and success criteria are defined in [DATA-PLANE.md](./DATA-PLANE.md).
+
+### `subscribe-one-subgroup-per-group`
+
+Publish one subgroup in each of multiple Groups and verify exact Object delivery and terminal state.
+
+### `subscribe-one-subgroup-per-object`
+
+Publish each Object in a distinct Subgroup and verify exact Object delivery and terminal state.
+
+### `subscribe-two-subgroups-per-group`
+
+Interleave two Subgroups in a Group while requiring order only within each Subgroup.
+
+### `subscribe-nonzero-start-group`
+
+Begin publication at a nonzero Group ID and verify that exact vector without inferring earlier Groups.
+
+### `subscribe-nonzero-start-object`
+
+Begin a Group at a nonzero Object ID and verify that exact vector without inferring earlier Objects.
+
+### `subscribe-sparse-group-object-ids`
+
+Publish sparse Group and Object IDs without inferring the existence or nonexistence of omitted identifiers.
+
+### `subscribe-object-properties`
+
+Publish deterministic application-specific Object Properties and verify their exact types, value forms, and values.
+
+---
+
 ## Future Test Cases
 
 This section outlines potential future test cases. The actual test definitions will be added as implementations mature and working group consensus develops.
@@ -329,11 +361,11 @@ This section outlines potential future test cases. The actual test definitions w
 MoQT supports two primary publisher-subscriber rendezvous patterns, each exercised by separate test categories in this suite:
 
 - **PUBLISH_NAMESPACE + SUBSCRIBE flow** (Category: Subscriptions): Publisher announces namespace availability via `PUBLISH_NAMESPACE`; relay routes incoming `SUBSCRIBE` requests to the publisher. Tests: `announce-only`, `publish-namespace-done`, `announce-subscribe`, `subscribe-before-announce`.
-- **PUBLISH + SUBSCRIBE flow** (Category: Track Publishing): Publisher directly publishes a specific track via `PUBLISH`; the relay matches any incoming `SUBSCRIBE` for that track to the active publisher. Tests: `publish-without-subscriber`, `publish-to-pending-subscription`.
+- **PUBLISH + SUBSCRIBE flow** (Categories: Track Publishing and Data Plane): Publisher directly publishes a specific track via `PUBLISH`; the relay matches any incoming `SUBSCRIBE` for that track to the active publisher. Tests: `publish-without-subscriber`, `publish-to-pending-subscription`, and the seven tests defined in [DATA-PLANE.md](./DATA-PLANE.md).
 
-### Test Client Support
+### Running Tests
 
-This specification does not maintain a prose capability matrix. Evolving support claims belong in machine-readable conformance profiles with pinned implementation provenance and evidence. Run-specific observations belong in result artifacts. Test clients still declare available tests through `--list`; `TESTCASE` selects one test and exit code `127` signals an unsupported test.
+Test clients list available tests through `--list`. `TESTCASE` selects one test, known unsupported tests use TAP `SKIP`, and exit code `127` signals an unknown selected ID.
 
 ---
 

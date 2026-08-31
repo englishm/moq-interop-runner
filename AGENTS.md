@@ -80,10 +80,10 @@ Full walkthrough: `docs/GETTING-STARTED.md`
 Test clients must follow the interface contract in `docs/TEST-CLIENT-INTERFACE.md`:
 
 - **Output**: TAP version 14 on stdout
-- **Exit codes**: 0 = all passed, 1 = failure, 127 = unsupported test
+- **Exit codes**: 0 = all executed tests passed or skipped, 1 = failure, 127 = unknown selected test ID
 - **Environment variables**: `RELAY_URL`, `TESTCASE`, `TLS_DISABLE_VERIFY`, `VERBOSE`
 
-Reference implementations to use as templates:
+Client build examples:
 
 - `builds/moq-rs/` - Rust client (from upstream moq-rs)
 - `builds/moq-dev-rs/` - Rust client (self-contained)
@@ -103,8 +103,17 @@ Test cases are defined in `docs/tests/TEST-CASES.md`. Current tests:
 | `subscribe-error` | Subscription | Error for non-existent track |
 | `announce-subscribe` | Subscription | Publisher announces, subscriber subscribes |
 | `subscribe-before-announce` | Subscription | Out-of-order subscribe/announce |
+| `publish-without-subscriber` | Track publishing | PUBLISH lifecycle without a subscriber |
+| `publish-to-pending-subscription` | Track publishing | PUBLISH to a pending exact-track subscription |
+| `subscribe-one-subgroup-per-group` | Data plane | One Subgroup in each of multiple Groups |
+| `subscribe-one-subgroup-per-object` | Data plane | One Subgroup per Object |
+| `subscribe-two-subgroups-per-group` | Data plane | Two interleaved Subgroups in one Group |
+| `subscribe-nonzero-start-group` | Data plane | Nonzero starting Group ID |
+| `subscribe-nonzero-start-object` | Data plane | Nonzero starting Object ID |
+| `subscribe-sparse-group-object-ids` | Data plane | Sparse Group and Object IDs |
+| `subscribe-object-properties` | Data plane | Application-specific Object Properties |
 
-When adding tests, follow the existing format (identifier, protocol refs, procedure, success criteria). Both the spec doc and test client implementations need updates.
+When adding tests, follow the existing format (identifier, protocol refs, procedure, success criteria). Clients may implement a subset; known unsupported tests use TAP `SKIP` when selected explicitly.
 
 ### Maintaining the Framework
 
@@ -153,7 +162,7 @@ Implementation keys must match `^[a-z][a-z0-9-]*$` (lowercase, hyphens, digits).
 
 - **Environment**: `RELAY_URL` (required), `TESTCASE`, `TLS_DISABLE_VERIFY`, `VERBOSE`
 - **Output**: TAP version 14 on stdout
-- **Exit codes**: 0 = all passed, 1 = failure, 127 = unsupported test
+- **Exit codes**: 0 = all executed tests passed or skipped, 1 = failure, 127 = unknown selected test ID
 
 ### Naming Conventions
 
@@ -203,3 +212,15 @@ python3 -m json.tool implementations.json > /dev/null
 - Dockerfiles: `Dockerfile.<role>` naming convention
 - Entrypoint scripts: `entrypoint-<role>.sh` naming convention
 - Build configs: `builds/<impl>/config.json` with `targets` keyed by role name
+
+## Public Change Hygiene
+
+Branches, commit messages, pull requests, public comments, and documentation describe the final change: its motivation, behavior, validation, limitations, and natural prior-art credit. Do not publish internal prompts, agent workflow, reviewer choreography, recovery history, design-instruction archaeology, or debates framed around terms such as "implementation-neutral," "privileged," or "reference implementation." Keep detailed process notes in private journals or issues when they are useful.
+
+Before publication:
+
+- Review the branch name and every commit subject/body for product-focused language.
+- Review the complete diff and all untracked files for process narration, internal instructions, and stale attribution.
+- Review the pull request title and body for an accurate summary, motivation, behavior, validation, and limitations.
+- Keep acknowledgments concise, factual, and linked to the relevant prior art.
+- Verify the public diff and rendered comments after pushing.

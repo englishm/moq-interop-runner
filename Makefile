@@ -17,7 +17,8 @@ SHELL := /bin/bash
 .PHONY: test test-verbose test-single test-external clean mlog-clean certs \
         interop-all interop-docker interop-remote interop-relay interop-client interop-list \
         relay-start relay-stop logs logs-relay logs-client \
-        build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report validate-target-draft test-target-draft-validator help _ensure-certs \
+        build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report validate-target-draft test-target-draft-validator \
+        validate-data-plane-vectors test-data-plane-vector-validator help _ensure-certs \
         xquic-client-build xquic-client-test-draft18 xquic-relay-build
 
 #############################################################################
@@ -268,6 +269,12 @@ validate-target-draft:
 test-target-draft-validator:
 	@./scripts/test-validate-target-draft.sh
 
+validate-data-plane-vectors:
+	@./scripts/validate-data-plane-vectors.sh
+
+test-data-plane-vector-validator:
+	@./scripts/test-validate-data-plane-vectors.sh
+
 #############################################################################
 # Help
 #############################################################################
@@ -320,6 +327,8 @@ help:
 	@echo "  report                Generate HTML report from results"
 	@echo "  validate-target-draft Validate target, IDs, and retirement history"
 	@echo "  test-target-draft-validator  Test target-draft and retirement policy checks"
+	@echo "  validate-data-plane-vectors  Validate data-plane vector and specification integrity"
+	@echo "  test-data-plane-vector-validator  Test data-plane vector validation mutations"
 	@echo ""
 	@echo "Image Configuration:"
 	@echo "  RELAY_IMAGE           Relay Docker image (default: moq-relay-ietf:latest)"

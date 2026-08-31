@@ -1,308 +1,111 @@
 # Implementing a MoQT Test Client
 
-> **This is a how-to guide for test client authors.** If you just want to run existing tests against your relay, see [Getting Started](./GETTING-STARTED.md). For the exact interface specification, see [TEST-CLIENT-INTERFACE.md](./TEST-CLIENT-INTERFACE.md).
+> **This is an implementation guide.** The client interface is [TEST-CLIENT-INTERFACE.md](./TEST-CLIENT-INTERFACE.md), and test procedures are defined in [tests/TEST-CASES.md](./tests/TEST-CASES.md).
 
-This guide explains how to implement a test client for your MoQT stack that's compatible with the moq-interop-runner framework.
+Build one client image whose invocation executes tests and validates their results. The runner does not require or register a separate publisher role.
 
-## Why Standardized Test Cases?
+## Invocation Model
 
-Most MoQT implementations already have CLI tools (moq-rs has `moq-pub`/`moq-sub`/`moq-clock`, moxygen has `moqtest_client`, etc.), but each exercises different scenarios with different output. The goal here is **multiple implementations of the *same* test cases** — standard identifiers (`setup-only`, `announce-subscribe`, ...) with precise success criteria so we can automate the full client x relay matrix with machine-parseable results instead of ad-hoc commands and manual spreadsheet tracking.
+Treat one invocation as the test coordinator. It owns every logical MoQT session needed by the selected test and emits one TAP stream for the invocation.
 
-If you already have a MoQT implementation, building a test client mostly means wiring your existing protocol logic to the scenarios defined in [TEST-CASES.md](./tests/TEST-CASES.md).
+For data-plane tests, create logical publisher and subscriber sessions against the same `RELAY_URL`. They can share a process or run as subprocesses inside the image. Keep coordination and result aggregation in the invoking client so only one image lifecycle and one TAP producer are visible to the runner.
 
-## Overview
+The current runner invokes that image once per client/relay endpoint without first using `--list` to schedule individual cases. With no `TESTCASE`, run all supported tests. Still implement exact-ID `--list` and `TESTCASE` behavior so direct and future per-case invocations have the same semantics.
 
-A test client is a standalone executable that:
+## Identifier Handling
 
-1. Connects to a MoQT relay
-2. Executes one or more test cases
-3. Reports results in a standard format
+Use the semantic IDs from the test specifications unchanged:
 
-The test client handles both test execution AND result validation - it determines whether each test passed or failed.
+- Print the same ID from `--list` that `TESTCASE` accepts.
+- Use that exact ID as the TAP test-point name.
+- Use the specified ID directly without translating it.
+- Exit `127` for an unknown selected ID.
+- Emit `ok ... # SKIP` for a known test the client does not support.
 
-## Interface Requirements
+## Data-Plane Run State
 
-Your test client MUST implement the interface defined in [TEST-CLIENT-INTERFACE.md](./TEST-CLIENT-INTERFACE.md):
+Create isolated state for each data-plane test:
 
-- Parse command line arguments or environment variables
-- Output results in the expected format
-- Return appropriate exit codes
+- Generate a fresh 128-bit Run ID with a cryptographically secure random generator and encode it as exactly 32 lowercase hexadecimal characters. Fail rather than substituting a predictable value if secure generation is unavailable.
+- Construct Track Namespace `("moq-interop", <semantic-test-id>)` as a tuple of namespace fields.
+- Use the 32-character lowercase hexadecimal Run ID as the ASCII Track Name.
+- Load the selected fixture vector, including its revision and digest.
+- Record publisher and subscriber connection IDs, target draft, and each role's negotiated draft.
 
-## Test Case Implementation
+Do not flatten the namespace tuple into a path unless the selected protocol encoding requires that representation. Publish the Objects described by the selected vector.
 
-For each test case you support, implement the procedure described in [tests/TEST-CASES.md](./tests/TEST-CASES.md).
+## Subscriber-First Coordination
 
-### Example: `setup-only`
+Use an explicit synchronization point between the logical roles:
 
-```python
-def test_setup_only(relay_url):
-    """Verify basic connection and SETUP exchange."""
-    start = time.now()
-    
-    try:
-        # 1. Connect to relay
-        conn = connect(relay_url, timeout=2.0)
-        
-        # 2. Send CLIENT_SETUP
-        conn.send_client_setup(supported_versions=[DRAFT_14])
-        
-        # 3. Receive SERVER_SETUP
-        msg = conn.recv(timeout=2.0)
-        if msg.type != SERVER_SETUP:
-            return TestResult.fail(
-                f"Expected SERVER_SETUP, got {msg.type}",
-                duration=time.now() - start,
-                connection_id=conn.id
-            )
-        
-        # 4. Close gracefully
-        conn.close()
-        
-        return TestResult.pass(
-            duration=time.now() - start,
-            connection_id=conn.id
-        )
-        
-    except Timeout:
-        return TestResult.fail(
-            "Timeout waiting for SERVER_SETUP",
-            duration=time.now() - start
-        )
-    except Exception as e:
-        return TestResult.fail(
-            str(e),
-            duration=time.now() - start
-        )
-```
+1. Complete the subscriber SETUP exchange.
+2. Send exact-track `SUBSCRIBE` with a bounded rendezvous timeout.
+3. Flush the complete request to the transport.
+4. Signal the publisher role only after that flush completes.
+5. Complete the publisher SETUP exchange and direct `PUBLISH` the identical Full Track Name.
+6. Require a successful PUBLISH response and record its effective Forward State; omitted `FORWARD` means `1`.
+7. Start or continue the bounded wait for subscriber `SUBSCRIBE_OK`.
+8. If the effective Forward State is `0`, process the relay's `REQUEST_UPDATE` concurrently with the subscriber wait, require it to set Forward State `1`, and send the successful update response without waiting for `SUBSCRIBE_OK`.
+9. Only after Forward State is `1` and `SUBSCRIBE_OK` has arrived, drive the publication from the selected vector.
 
-### Example: `subscribe-error`
+Bound every step. A local queue insertion is not proof that `SUBSCRIBE` was flushed, and an arbitrary sleep is not a synchronization mechanism.
 
-This test expects an error response - the test passes when the relay returns SUBSCRIBE_ERROR:
+## Publishing the Vector
 
-```python
-def test_subscribe_error(relay_url):
-    """Verify relay returns error for non-existent track."""
-    start = time.now()
-    
-    try:
-        conn = connect(relay_url)
-        conn.send_client_setup(supported_versions=[DRAFT_14])
-        conn.recv_server_setup()
-        
-        # Subscribe to a namespace that doesn't exist
-        conn.send_subscribe(
-            namespace="nonexistent/namespace",
-            track="test-track"
-        )
-        
-        msg = conn.recv(timeout=2.0)
-        
-        if msg.type == SUBSCRIBE_ERROR:
-            # This is the EXPECTED outcome - test passes!
-            conn.close()
-            return TestResult.pass(
-                duration=time.now() - start,
-                connection_id=conn.id
-            )
-        elif msg.type == SUBSCRIBE_OK:
-            # Unexpected success
-            return TestResult.fail(
-                "Expected SUBSCRIBE_ERROR, got SUBSCRIBE_OK",
-                duration=time.now() - start,
-                connection_id=conn.id
-            )
-        else:
-            return TestResult.fail(
-                f"Unexpected message type: {msg.type}",
-                duration=time.now() - start,
-                connection_id=conn.id
-            )
-            
-    except Timeout:
-        return TestResult.fail(
-            "Timeout waiting for SUBSCRIBE_ERROR",
-            duration=time.now() - start
-        )
-```
+The publisher fixture reads each subgroup and Object from the selected vector.
 
-### Example: `announce-subscribe` (Multi-Connection)
+For each vector subgroup:
 
-Some tests require multiple concurrent connections:
+- Write each object exactly as specified and in that subgroup's vector order.
+- Permit subgroup streams to progress independently; no global order exists across streams.
+- Close the subgroup stream with FIN after its final object.
 
-```python
-def test_announce_subscribe(relay_url):
-    """Verify relay routes subscription to publisher."""
-    start = time.now()
-    
-    namespace = "moq-test/interop"
-    track = "test-track"
-    
-    try:
-        # Publisher connection
-        pub = connect(relay_url)
-        pub.send_client_setup(supported_versions=[DRAFT_14])
-        pub.recv_server_setup()
-        
-        # Publisher announces namespace
-        pub.send_publish_namespace(namespace)
-        msg = pub.recv(timeout=2.0)
-        if msg.type != PUBLISH_NAMESPACE_OK:
-            return TestResult.fail(
-                f"Publisher: expected PUBLISH_NAMESPACE_OK, got {msg.type}"
-            )
-        
-        # Subscriber connection
-        sub = connect(relay_url)
-        sub.send_client_setup(supported_versions=[DRAFT_14])
-        sub.recv_server_setup()
-        
-        # Subscriber subscribes
-        sub.send_subscribe(namespace, track)
-        msg = sub.recv(timeout=2.0)
-        
-        if msg.type == SUBSCRIBE_OK:
-            pub.close()
-            sub.close()
-            return TestResult.pass(
-                duration=time.now() - start,
-                extra=f"pub={pub.id[:8]}, sub={sub.id[:8]}"
-            )
-        else:
-            return TestResult.fail(
-                f"Subscriber: expected SUBSCRIBE_OK, got {msg.type}"
-            )
-            
-    except Timeout:
-        return TestResult.fail("Timeout", duration=time.now() - start)
-```
+After every opened subgroup stream is finished, send `PUBLISH_DONE`/`TRACK_ENDED` with Stream Count equal to the number of opened subgroup streams, then finish the PUBLISH request stream.
 
-## Output Formatting
+## Independent Verification
 
-Test clients output [TAP version 14](https://testanything.org/tap-version-14-specification.html). See [TEST-CLIENT-INTERFACE.md](./TEST-CLIENT-INTERFACE.md) for the full specification.
+Build expected state directly from the selected vector before processing subscriber observations. Decode subscriber-side protocol and data-stream observations into actual state, then compare:
 
-### Main Entry Point
+- Full Track Name
+- subgroup and object coordinates and order within each subgroup
+- Publisher Priority, status, forwarding preference, FIRST_OBJECT, and END_OF_GROUP
+- payload bytes
+- Object Properties
+- subgroup FIN
+- PUBLISH_DONE status and valid reason phrase
+- exact Stream Count
+- SUBSCRIBE request-stream response FIN
 
-```python
-def main():
-    args = parse_args()  # or parse environment variables
+Keep expected-state construction separate from publisher output and generation. Shared decoding and byte-comparison utilities are acceptable.
 
-    tests_to_run = get_tests(args.test)  # specific test or all
+Compare each subgroup independently. Cross-stream arrival order is irrelevant. If `PUBLISH_DONE`/`TRACK_ENDED` arrives before data streams, retain the subscription and terminal metadata until every counted stream closes, then perform the final comparison. Separately, the publisher role verifies that its PUBLISH request stream sent FIN after PUBLISH_DONE.
 
-    # TAP header and run-level comments
-    print("TAP version 14")
-    print(f"# {CLIENT_NAME} v{CLIENT_VERSION}")
-    print(f"# Relay: {args.relay_url}")
-    print(f"1..{len(tests_to_run)}")
+## TAP and Diagnostics
 
-    failed = 0
-    for i, test in enumerate(tests_to_run, 1):
-        result = run_test(test, args.relay_url)
-        print(format_tap_result(i, result))
-        if not result.passed:
-            failed += 1
+Emit one TAP point per executed test. Successful executed data-plane points include YAML diagnostics for:
 
-    sys.exit(1 if failed > 0 else 0)
+- `publisher_connection_id`
+- `subscriber_connection_id`
+- `run_id`
+- `target_draft`
+- `publisher_negotiated_draft`
+- `subscriber_negotiated_draft`
+- `vector_revision`
+- `vector_digest`
 
+Failed data-plane points include all values captured before failure. Skipped points do not require diagnostics. Add concise expected/received details for response, timeout, stream-count, FIN, ordering, coordinate, or payload mismatches.
 
-def format_tap_result(number, result):
-    """Format a test result as a TAP test point with optional YAML diagnostics."""
-    status = "ok" if result.passed else "not ok"
-    line = f"{status} {number} - {result.name}"
+## Implementation Checklist
 
-    # Add SKIP directive if applicable
-    if result.skipped:
-        line += f" # SKIP {result.skip_reason}"
-        return line
+Before packaging the image, verify:
 
-    # Add YAML diagnostic block for richer context
-    yaml_lines = []
-    if result.duration_ms is not None:
-        yaml_lines.append(f"  duration_ms: {result.duration_ms}")
-    if result.connection_id:
-        yaml_lines.append(f"  connection_id: {result.connection_id}")
-    if not result.passed and result.message:
-        yaml_lines.append(f"  message: \"{result.message}\"")
-    if result.expected:
-        yaml_lines.append(f"  expected: {result.expected}")
-    if result.received:
-        yaml_lines.append(f"  received: {result.received}")
-
-    if yaml_lines:
-        line += "\n  ---\n"
-        line += "\n".join(yaml_lines)
-        line += "\n  ..."
-
-    return line
-```
-
-## Timeouts
-
-Each test case specifies a timeout. Implement timeouts at multiple levels:
-
-1. **Connection timeout**: How long to wait for initial connection
-2. **Message timeout**: How long to wait for each expected message
-3. **Test timeout**: Overall timeout for the entire test
-
-Don't let tests hang indefinitely - always fail with a clear timeout message.
-
-## TLS Configuration
-
-When `--tls-disable-verify` is set (or `TLS_DISABLE_VERIFY=1`), disable certificate verification. This is necessary for testing with self-signed certificates in containerized environments.
-
-## Connection ID Extraction
-
-Extract the QUIC connection ID for mlog correlation and include it in the YAML diagnostic block. This is typically available from your QUIC implementation:
-
-```python
-# Example with quinn (Rust)
-let cid = connection.stable_id();
-
-# Example with aioquic (Python)  
-cid = connection._quic.host_cid.hex()
-```
-
-In TAP output, the connection ID appears in the YAML diagnostics:
-
-```tap
-ok 1 - setup-only
-  ---
-  duration_ms: 24
-  connection_id: 84ee7793841adcadd926a1baf1c677cc
-  ...
-```
-
-For multi-connection tests, include both IDs:
-
-```tap
-ok 2 - announce-subscribe
-  ---
-  duration_ms: 156
-  publisher_connection_id: abc12345
-  subscriber_connection_id: def67890
-  ...
-```
-
-## Docker Considerations
-
-When containerizing your test client:
-
-1. **Entry point**: Parse `RELAY_URL`, `TESTCASE`, `TLS_DISABLE_VERIFY` from environment
-2. **DNS resolution**: The relay hostname must be resolvable within the Docker network
-3. **Exit code**: Ensure your container exits with the correct code (0 or 1)
-
-Example Dockerfile pattern:
-
-```dockerfile
-FROM rust:1.75 as builder
-WORKDIR /app
-COPY . .
-RUN cargo build --release --bin moq-test-client
-
-FROM debian:bookworm-slim
-COPY --from=builder /app/target/release/moq-test-client /usr/local/bin/
-ENTRYPOINT ["moq-test-client"]
-```
-
-## Example Implementation
-
-See [moq-test-client](https://github.com/cloudflare/moq-rs/tree/main/moq-test-client) in the moq-rs repository for a complete Rust implementation.
+- One invocation coordinates both roles against the same `RELAY_URL`.
+- Subscriber request flush gates direct PUBLISH.
+- PUBLISH succeeds, any Forward State `0` transition is handled through `REQUEST_UPDATE`, effective Forward State reaches `1`, and subscriber receives `SUBSCRIBE_OK` before Objects are sent.
+- Publisher and verifier read the same vector separately.
+- Verification imposes order only within each subgroup.
+- Every subgroup stream ends at its vector-declared Object, the publisher sends PUBLISH_DONE and FIN on its PUBLISH request direction, and the subscriber observes the exact Stream Count plus FIN on the SUBSCRIBE response direction.
+- Semantic IDs are identical in `--list`, `TESTCASE`, and TAP.
+- Unknown IDs exit `127`; known unsupported cases use TAP `SKIP`.
+- Role connection IDs, Run ID, draft values, and vector identity appear in diagnostics.
+- Every wait is bounded and every failure produces one unambiguous result.
