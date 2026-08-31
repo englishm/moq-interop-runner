@@ -203,8 +203,8 @@ if ! jq -e --slurpfile profile "$PROFILE" '
    else
      all($phase_keys[]; . == "setup_ms" or . == "readiness_ms" or . == "delivery_terminal_ms") and
      ((.phase_timings_ms | has("setup_ms") | not) or (.phase_timings_ms.setup_ms | integer and . >= 0)) and
-     ((.phase_timings_ms | has("readiness_ms") | not) or (.phase_timings_ms.readiness_ms | integer and . >= 0 and . <= $p.execution_policy.independent_driver_timeout_components_ms.rendezvous)) and
-     ((.phase_timings_ms | has("delivery_terminal_ms") | not) or (.phase_timings_ms.delivery_terminal_ms | integer and . >= 0 and . <= $p.execution_policy.independent_driver_timeout_components_ms.delivery_and_terminal_margin)) and
+     ((.phase_timings_ms | has("readiness_ms") | not) or (.phase_timings_ms.readiness_ms | integer and . >= 0 and . <= $p.execution_policy.independent_driver_timeout_components_ms.client_readiness_ceiling)) and
+     ((.phase_timings_ms | has("delivery_terminal_ms") | not) or (.phase_timings_ms.delivery_terminal_ms | integer and . >= 0 and . <= $p.execution_policy.independent_driver_timeout_components_ms.delivery_and_terminal)) and
      .duration_ms >= ((.phase_timings_ms.setup_ms // 0) + (.phase_timings_ms.readiness_ms // 0) + (.phase_timings_ms.delivery_terminal_ms // 0))
    end) and
   (.reproduction | keys == ["command","environment","per_case_timeout_ms","relay_endpoint"]) and

@@ -113,36 +113,38 @@
     "diagnostic_gate_timeouts_ms": {
       "subscribe-one-subgroup-per-group": {
         "moxygen_driver": 10000,
-        "independent_driver": 20000
+        "independent_driver": 22000
       },
       "subscribe-one-subgroup-per-object": {
         "moxygen_driver": 10000,
-        "independent_driver": 20000
+        "independent_driver": 22000
       },
       "subscribe-two-subgroups-per-group": {
         "moxygen_driver": 10000,
-        "independent_driver": 20000
+        "independent_driver": 22000
       },
       "subscribe-nonzero-start-group": {
         "moxygen_driver": 10000,
-        "independent_driver": 20000
+        "independent_driver": 22000
       },
       "subscribe-nonzero-start-object": {
         "moxygen_driver": 10000,
-        "independent_driver": 20000
+        "independent_driver": 22000
       },
       "subscribe-sparse-group-object-ids": {
         "moxygen_driver": 10000,
-        "independent_driver": 20000
+        "independent_driver": 22000
       },
       "subscribe-object-properties": {
         "moxygen_driver": 10000,
-        "independent_driver": 20000
+        "independent_driver": 22000
       }
     },
     "independent_driver_timeout_components_ms": {
-      "rendezvous": 10000,
-      "delivery_and_terminal_margin": 10000
+      "peer_rendezvous": 10000,
+      "client_readiness_margin": 2000,
+      "client_readiness_ceiling": 12000,
+      "delivery_and_terminal": 10000
     },
     "intended_case_timeouts_ms": {
       "subscribe-one-subgroup-per-group": 10000,
@@ -173,7 +175,7 @@
       "subscribe-sparse-groups-large-step": 10000,
       "subscribe-delivery-timeout": 10000
     },
-    "rule": "Each result selects its diagnostic gate timeout by gate ID and driver binding. The moxygen wrapper starts its 10000 ms timeout after publisher readiness. The independent Rust binding has 10000 ms for rendezvous from immediately before SUBSCRIBE plus 10000 ms for delivery and terminal observation, for a 20000 ms result timeout. Intended moxygen source-case timeouts are unchanged. The seven-gate TAP-only moxygen registration uses 70000 ms of case windows and must complete within the 120000 ms runner whole-container limit."
+    "rule": "Each result selects its diagnostic gate timeout by gate ID and driver binding. The moxygen wrapper starts its 10000 ms timeout after publisher readiness. The independent driver allows 10000 ms for peer rendezvous plus a 2000 ms client readiness margin, producing a 12000 ms readiness ceiling, followed by 10000 ms for delivery and terminal observation, for a 22000 ms result timeout. Intended moxygen source-case timeouts are unchanged. The seven-gate TAP-only moxygen registration uses 70000 ms of case windows and must complete within the 120000 ms runner whole-container limit."
   },
   "executable_requirements": {
     "tls_disable_verify": "A future moxygen conformance driver must honor TLS_DISABLE_VERIFY exactly; baseline source behavior that always installs an insecure verifier is not acceptable executable provenance.",
@@ -342,7 +344,7 @@
       "rule": "A deployment with no verifiable image digest must use visibility=opaque, image_digest=null, and a non-empty opaque reason and locator. It must not use a guessed digest or be described as reproducible.",
       "result_handling": "Opaque runs may report protocol observations, but the record must set reproducibility=opaque and preserve the limitation in every exported claim."
     },
-    "phase_timing_rule": "independent_driver optionally records setup_ms as concurrent role setup wall time, then records readiness_ms at most 10000 and delivery_terminal_ms at most 10000. moxygen_driver records publisher_readiness_ms at most 10000 and case_ms at most its selected 10000 gate timeout. duration_ms is aggregate process time and must be at least the sum of the binding's recorded sequential wall-clock phases.",
+    "phase_timing_rule": "independent_driver optionally records setup_ms as concurrent role setup wall time, then records readiness_ms at most the 12000 peer-rendezvous-plus-client-margin ceiling and delivery_terminal_ms at most 10000. moxygen_driver records publisher_readiness_ms at most 10000 and case_ms at most its selected 10000 gate timeout. duration_ms is aggregate process time and must be at least the sum of the binding's recorded sequential wall-clock phases.",
     "assertion_linkage_rule": "Every assertion ID belongs to the selected gate required_assertion_ids. A pass contains exactly that complete set with pass status and non-empty evidence references.",
     "driver_provenance_rule": "driver_review_baseline_sha resolves through the selected profile binding; driver_landing_sha equals publisher and subscriber deployment source_sha for that binding.",
     "verification_rule": "reproducibility and independence_class are submitted claims. A publishable evaluator pass requires evidence_integrity_verification=verified and provenance_verification=verified from external publication tooling.",

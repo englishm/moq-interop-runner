@@ -81,9 +81,11 @@ if ! jq -e '
   .definitions.semantic_id.pattern == "^[a-z]+(?:-[a-z]+)*$" and
   .definitions.binding_gate_timeouts.required == ["moxygen_driver","independent_driver"] and
   .definitions.binding_gate_timeouts.properties.moxygen_driver.const == 10000 and
-  .definitions.binding_gate_timeouts.properties.independent_driver.const == 20000 and
-  .properties.execution_policy.properties.independent_driver_timeout_components_ms.properties.rendezvous.const == 10000 and
-  .properties.execution_policy.properties.independent_driver_timeout_components_ms.properties.delivery_and_terminal_margin.const == 10000 and
+  .definitions.binding_gate_timeouts.properties.independent_driver.const == 22000 and
+  .properties.execution_policy.properties.independent_driver_timeout_components_ms.properties.peer_rendezvous.const == 10000 and
+  .properties.execution_policy.properties.independent_driver_timeout_components_ms.properties.client_readiness_margin.const == 2000 and
+  .properties.execution_policy.properties.independent_driver_timeout_components_ms.properties.client_readiness_ceiling.const == 12000 and
+  .properties.execution_policy.properties.independent_driver_timeout_components_ms.properties.delivery_and_terminal.const == 10000 and
   .definitions.retired_identifier.required == ["kind","id","last_valid_target","last_valid_profile_revision","reason"] and
   .properties.identifier_history.properties.reviewed_for_target.const == "draft-18" and
   .properties.support_verification.properties.target_draft.const == "draft-18" and
@@ -93,7 +95,7 @@ if ! jq -e '
   .definitions.verified_implementation_revision.properties.source_sha.pattern == "^[0-9a-f]{40}$" and
   .definitions.verified_implementation_revision.properties.image_digest.pattern == "^sha256:[0-9a-f]{64}$" and
   (.definitions.assertion_id.enum | length) == 21 and
-  .definitions.phase_timings.properties.readiness_ms.maximum == 10000 and
+  .definitions.phase_timings.properties.readiness_ms.maximum == 12000 and
   .definitions.phase_timings.properties.publisher_readiness_ms.maximum == 10000 and
   .definitions.phase_timings.properties.delivery_terminal_ms.maximum == 10000 and
   .definitions.phase_timings.properties.case_ms.maximum == 10000 and
@@ -112,7 +114,7 @@ if ! jq -e '
   .definitions.result_record.allOf[1].then.properties.assertions.minItems == 3 and
   .definitions.result_record.allOf[1].then.properties.assertions.maxItems == 3 and
   .definitions.result_record.allOf[5].then.properties.reproduction.properties.per_case_timeout_ms.const == 10000 and
-  .definitions.result_record.allOf[6].then.properties.reproduction.properties.per_case_timeout_ms.const == 20000 and
+  .definitions.result_record.allOf[6].then.properties.reproduction.properties.per_case_timeout_ms.const == 22000 and
   (.definitions.result_record.allOf[7].then.properties.phase_timings_ms.required | contains(["publisher_readiness_ms","case_ms"])) and
   (.definitions.result_record.allOf[8].then.properties.phase_timings_ms.required | contains(["setup_ms","readiness_ms","delivery_terminal_ms"])) and
   .definitions.result_record.allOf[9].then.properties.failure_classification.enum == ["none","driver-inconclusive"] and
@@ -137,7 +139,7 @@ if ! jq -e '
   .definitions.independent_driver_binding.properties.repository.const == "https://github.com/cloudflare/moq-rs" and
   .definitions.independent_driver_binding.properties.independence_classification.const == "independently-authored-generator-and-observer" and
   .definitions.evidence.properties.sha256.pattern == "^[0-9a-f]{64}$" and
-  .definitions.reproduction.properties.per_case_timeout_ms.enum == [10000,20000] and
+  .definitions.reproduction.properties.per_case_timeout_ms.enum == [10000,22000] and
   .definitions.deployment.properties.image_digest.oneOf[0].pattern == "^sha256:[0-9a-f]{64}$"
 ' "$SCHEMA" >/dev/null; then
   echo "ERROR: schema-critical JSON Schema shape is invalid" >&2
@@ -206,7 +208,7 @@ check "unknown manifest, profile, provenance, case, gate, binding, or result-con
     (keys == ["id","kind","last_valid_profile_revision","last_valid_target","reason"] or
      keys == ["id","kind","last_valid_profile_revision","last_valid_target","reason","replacement_id"])) and
   (.execution_policy | keys == ["diagnostic_gate_timeouts_ms","independent_driver_timeout_components_ms","intended_case_timeouts_ms","readiness_timeout_ms","rule","runner_whole_container_limit_ms"]) and
-  (.execution_policy.independent_driver_timeout_components_ms | keys == ["delivery_and_terminal_margin","rendezvous"]) and
+  (.execution_policy.independent_driver_timeout_components_ms | keys == ["client_readiness_ceiling","client_readiness_margin","delivery_and_terminal","peer_rendezvous"]) and
   all(.cases[]; keys == ["disposition","gate_ids","id","independence","ordinal","reason","request","source_name","source_section"]) and
   all(.gates[]; keys == ["bindings","evidence","gate_normative_references","id","moxygen_source_binding_id","required_assertion_ids","revision","semantic_contract"]) and
   all(.gates[].bindings; keys == ["independent_driver","moxygen_driver"]) and
@@ -388,17 +390,22 @@ check "per-case timeout policy is incomplete or exceeds the runner container lim
   all(.execution_policy.diagnostic_gate_timeouts_ms[];
     keys == ["independent_driver","moxygen_driver"] and
     .moxygen_driver == 10000 and
-    .independent_driver == 20000) and
+    .independent_driver == 22000) and
   .execution_policy.independent_driver_timeout_components_ms == {
-    "rendezvous":10000,
-    "delivery_and_terminal_margin":10000
+    "peer_rendezvous":10000,
+    "client_readiness_margin":2000,
+    "client_readiness_ceiling":12000,
+    "delivery_and_terminal":10000
   } and
-  (.execution_policy.independent_driver_timeout_components_ms.rendezvous +
-   .execution_policy.independent_driver_timeout_components_ms.delivery_and_terminal_margin) == 20000 and
+  (.execution_policy.independent_driver_timeout_components_ms.peer_rendezvous +
+   .execution_policy.independent_driver_timeout_components_ms.client_readiness_margin) ==
+    .execution_policy.independent_driver_timeout_components_ms.client_readiness_ceiling and
+  (.execution_policy.independent_driver_timeout_components_ms.client_readiness_ceiling +
+   .execution_policy.independent_driver_timeout_components_ms.delivery_and_terminal) == 22000 and
   all(.execution_policy.diagnostic_gate_timeouts_ms[];
     .independent_driver ==
-      ($profile.execution_policy.independent_driver_timeout_components_ms.rendezvous +
-       $profile.execution_policy.independent_driver_timeout_components_ms.delivery_and_terminal_margin)) and
+      ($profile.execution_policy.independent_driver_timeout_components_ms.client_readiness_ceiling +
+       $profile.execution_policy.independent_driver_timeout_components_ms.delivery_and_terminal)) and
   ([.execution_policy.diagnostic_gate_timeouts_ms[].moxygen_driver] | add) == 70000 and
   (.execution_policy.intended_case_timeouts_ms | keys | sort) == ([.cases[] | select(.disposition == "intended") | .id] | sort) and
   .execution_policy.intended_case_timeouts_ms["subscribe-low-frequency-updates"] >= 30000 and
@@ -407,6 +414,7 @@ check "per-case timeout policy is incomplete or exceeds the runner container lim
   all(.execution_policy.diagnostic_gate_timeouts_ms[];
     .moxygen_driver < 120000 and .independent_driver < 120000) and
   (.execution_policy.rule | contains("by gate ID and driver binding")) and
+  (.execution_policy.rule | contains("22000 ms")) and
   (.execution_policy.rule | contains("70000 ms")) and
   (.execution_policy.rule | contains("120000 ms"))'
 
@@ -682,7 +690,7 @@ check "unsupported capability boundaries are incomplete" '
   ] | sort)'
 
 check_digest "identifier, oracle, or result semantic policy drifted" \
-  "41f9ca9ea5f739240bf6ca3b72a33c12e2951bcdec0571a62dce417212e606ca" \
+  "00beff8ef56caac3821608d07292798270f7dbfa89504bc0c283a5a9c58839e6" \
   '{identifier_policy,identifier_history,implementation_bindings,support_verification,oracle,result_semantics,result_record_contract}'
 
 check_digest "full 58-case inventory drifted" \
@@ -706,7 +714,7 @@ check_digest "intended moxygen source-case timeouts drifted" \
   '.execution_policy.intended_case_timeouts_ms'
 
 check_digest "provenance, timeout, TLS, or driver-risk policy drifted" \
-  "f73f36e2cd62feadb705d4fb548c7a0a7aef06974561a459ebd357cac3beb814" \
+  "99c270c5469fd9f44e7c6692094fa027cff1511f1d2fab8f2ac40f42ccbe8ffc" \
   '{execution_policy,executable_requirements,known_driver_risks,provenance,implementation_bindings,binding_evidence_contracts,required_evidence}'
 
 base_target_validator="$ROOT_DIR/scripts/validate-target-draft.sh"

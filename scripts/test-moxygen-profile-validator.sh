@@ -208,7 +208,7 @@ jq -n '
       command: ["controlled-driver", "--test", "subscribe-one-subgroup-per-group"],
       environment: {TLS_DISABLE_VERIFY: "0"},
       relay_endpoint: "moqt://relay.example:443",
-      per_case_timeout_ms: 20000
+      per_case_timeout_ms: 22000
     },
     started_at_utc: "2026-08-31T12:00:00Z",
     duration_ms: 25000
@@ -286,7 +286,8 @@ expect_profile_failure "oracle-policy weakening" '.oracle.semantic_layer = "Any 
 expect_profile_failure "result-semantic-policy weakening" '.result_semantics[0].meaning = "The driver claimed success."'
 expect_profile_failure "result-identity-policy weakening" '.result_record_contract.identity_rule = "The gate ID alone defines historical meaning."'
 expect_profile_failure "swapped binding gate timeouts" '.execution_policy.diagnostic_gate_timeouts_ms[] |= {moxygen_driver:.independent_driver,independent_driver:.moxygen_driver}'
-expect_profile_failure "insufficient independent delivery margin" '.execution_policy.independent_driver_timeout_components_ms.delivery_and_terminal_margin = 9999 | .execution_policy.diagnostic_gate_timeouts_ms[].independent_driver = 19999'
+expect_profile_failure "zero client readiness margin" '.execution_policy.independent_driver_timeout_components_ms.client_readiness_margin = 0 | .execution_policy.independent_driver_timeout_components_ms.client_readiness_ceiling = 10000 | .execution_policy.diagnostic_gate_timeouts_ms[].independent_driver = 20000'
+expect_profile_failure "independent total mismatch" '.execution_policy.diagnostic_gate_timeouts_ms[].independent_driver = 21000'
 expect_profile_failure "version-specific source binding ID" '.cases[0].id = ("subscribe-" + "draft-" + "18-group-basic")'
 expect_profile_failure "version-specific gate ID" '.gates[0].id = ("subscribe-" + "d" + "18-group-basic")'
 expect_profile_failure "version-specific function name" '.gates[0].bindings.independent_driver.planned_function = ("test_" + "moqt" + "18_subscribe_group_basic")'
@@ -318,13 +319,15 @@ expect_schema_profile_failure "empty support invalidation conditions" '.support_
 expect_schema_profile_failure "stale identifier review target" '.identifier_history.reviewed_for_target = "draft-19"'
 expect_schema_profile_failure "semantic-policy weakening" '.identifier_policy.semantic_change = "Semantic changes may retain an ID."'
 expect_schema_profile_failure "swapped binding gate timeouts" '.execution_policy.diagnostic_gate_timeouts_ms[] |= {moxygen_driver:.independent_driver,independent_driver:.moxygen_driver}'
-expect_schema_profile_failure "insufficient independent delivery margin" '.execution_policy.independent_driver_timeout_components_ms.delivery_and_terminal_margin = 9999 | .execution_policy.diagnostic_gate_timeouts_ms[].independent_driver = 19999'
+expect_schema_profile_failure "zero client readiness margin" '.execution_policy.independent_driver_timeout_components_ms.client_readiness_margin = 0 | .execution_policy.independent_driver_timeout_components_ms.client_readiness_ceiling = 10000 | .execution_policy.diagnostic_gate_timeouts_ms[].independent_driver = 20000'
+expect_schema_profile_failure "independent total mismatch" '.execution_policy.diagnostic_gate_timeouts_ms[].independent_driver = 21000'
 expect_schema_profile_failure "version-specific source binding ID" '.cases[0].id = ("subscribe-" + "draft-" + "18-group-basic")'
 expect_schema_profile_failure "version-specific gate ID" '.gates[0].id = ("subscribe-" + "d" + "18-group-basic")'
 expect_schema_profile_failure "version-specific function name" '.gates[0].bindings.independent_driver.planned_function = ("test_" + "moqt" + "18_subscribe_group_basic")'
 expect_schema_profile_failure "controlled implementation identity drift" '.gates[0].bindings.independent_driver.implementation = "other-driver"'
 expect_schema_result_failure "swapped independent timeout" '.reproduction.per_case_timeout_ms = 10000'
-expect_schema_result_failure "independent readiness phase exceeds maximum" '.phase_timings_ms.readiness_ms = 10001'
+expect_schema_result_failure "old independent timeout" '.reproduction.per_case_timeout_ms = 20000'
+expect_schema_result_failure "independent readiness phase exceeds maximum" '.phase_timings_ms.readiness_ms = 12001'
 expect_schema_result_failure "independent delivery phase exceeds maximum" '.phase_timings_ms.delivery_terminal_ms = 10001'
 expect_schema_result_failure "single arbitrary assertion" '.assertions = [(.assertions[0] | .id = "arbitrary-assertion")]'
 expect_schema_result_failure "pass missing delivery phase" 'del(.phase_timings_ms.delivery_terminal_ms)'
@@ -368,7 +371,7 @@ expect_result_failure "unsupported with all-pass assertions" '.evaluator_verdict
 expect_result_failure "unsupported contradiction classification" '.evaluator_verdict = "unsupported" | .claimed_outcome = "unsupported" | .failure_classification = "protocol-contradiction" | .assertions = []'
 expect_result_failure "pass with submitted evidence integrity" '.evidence_integrity_verification = "submitted"'
 expect_result_failure "pass with submitted provenance" '.provenance_verification = "submitted"'
-expect_result_failure "independent readiness phase exceeds maximum" '.phase_timings_ms.readiness_ms = 10001'
+expect_result_failure "independent readiness phase exceeds maximum" '.phase_timings_ms.readiness_ms = 12001'
 expect_result_failure "independent delivery phase exceeds maximum" '.phase_timings_ms.delivery_terminal_ms = 10001'
 expect_result_failure "independent result uses moxygen case phase" '.phase_timings_ms.case_ms = 1'
 expect_result_failure "aggregate duration below sequential phases" '.duration_ms = 24999'
@@ -378,12 +381,13 @@ expect_result_failure "harness error contradiction classification" '.evaluator_v
 expect_result_failure "wrong deployment role" '.deployments.publisher.role = "subscriber"'
 expect_result_failure "opaque result without opaque deployment" '.reproducibility = "opaque" | .opaque_limitations = ["unknown image"]'
 expect_result_failure "swapped independent timeout" '.reproduction.per_case_timeout_ms = 10000'
+expect_result_failure "old independent timeout" '.reproduction.per_case_timeout_ms = 20000'
 expect_result_failure "wrong per-gate timeout" '.reproduction.per_case_timeout_ms = 30000'
 expect_result_failure "bad raw QUIC protocol tuple" '.protocol.transport_alpn = "h3"'
 expect_result_failure "bad WebTransport protocol tuple" '.protocol = {transport:"webtransport",negotiated_draft:"draft-18",transport_alpn:"moqt-18",webtransport_protocol:null}'
 expect_result_failure "fractional duration" '.duration_ms = 1.5'
 expect_result_failure "fractional evidence length" '.evidence[0].byte_length = 1.5'
-expect_result_failure "fractional timeout" '.reproduction.per_case_timeout_ms = 20000.5'
+expect_result_failure "fractional timeout" '.reproduction.per_case_timeout_ms = 22000.5'
 expect_result_failure "bad evidence kind" '.evidence[0].kind = "unknown"'
 expect_result_failure "empty evidence media type" '.evidence[0].media_type = ""'
 expect_result_failure "empty assertion description" '.assertions[0].description = ""'
