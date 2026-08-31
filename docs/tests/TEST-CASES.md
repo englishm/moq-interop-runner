@@ -212,6 +212,13 @@ Either outcome is valid; the test checks for graceful handling.
 
 These tests exercise the **PUBLISH flow**: a publisher sends a `PUBLISH` message directly naming a specific track, and the relay responds with `PUBLISH_OK`. This is distinct from the `PUBLISH_NAMESPACE` + `SUBSCRIBE` flow used in earlier tests, where a publisher announces an entire namespace and the relay routes incoming `SUBSCRIBE` requests back to that publisher. In the PUBLISH flow, the publisher establishes the track directly; the relay matches any arriving `SUBSCRIBE` for that track to the active publisher and routes data accordingly.
 
+Each run generates a fresh 128-bit Run ID encoded as 32 lowercase hexadecimal characters. The Full Track Name is unique to the run:
+
+- Track Namespace: `("moq-interop", <test-id>, <run-id>)`
+- Track Name: `test`
+
+Publisher and subscriber roles use the same Full Track Name and report the Run ID in diagnostics. A fixed track name must not be reused across runs because stale state or a concurrent run could satisfy the test.
+
 The two tests below are new runner-owned semantic specifications. Their presence does not claim that any implementation currently exposes or passes them.
 
 ### `publish-without-subscriber`
@@ -227,9 +234,7 @@ The two tests below are new runner-owned semantic specifications. Their presence
 5. Close the track with PUBLISH_DONE/TRACK_ENDED and an accurate Stream Count: 1 if a subgroup stream was opened, otherwise 0
 6. Finish the request stream after PUBLISH_DONE and wait for the PUBLISH sequence to complete
 
-**Test Namespace**: `moq-test/publish`
-
-**Test Track**: `published-track`
+**Test ID**: `publish-without-subscriber`
 
 **Success Criteria**:
 
@@ -279,9 +284,7 @@ The two tests below are new runner-owned semantic specifications. Their presence
 2. Verify the exact expected payload
 3. Require PUBLISH_DONE/TRACK_ENDED with Stream Count 1; it may arrive before the subgroup stream, but retain subscription state until the one counted stream closes
 
-**Test Namespace**: `moq-test/publish`
-
-**Test Track**: `published-track`
+**Test ID**: `publish-to-pending-subscription`
 
 **Success Criteria**:
 
