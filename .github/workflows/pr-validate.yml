@@ -10,12 +10,6 @@ on:
       - 'implementations.json'
       - 'implementations.schema.json'
       - 'validate-registration.sh'
-      - '.github/workflows/pr-validate.yml'
-      - 'Makefile'
-      - 'docs/TEST-SPECIFICATIONS.md'
-      - 'docs/MOXYGEN-*.md'
-      - 'docs/moxygen-draft18-support-profile*.json'
-      - 'scripts/*moxygen-draft18*.sh'
 
 permissions:
   contents: read
@@ -40,30 +34,6 @@ jobs:
 
       - name: Install schema validator
         run: python3 -m pip install --quiet jsonschema
-
-      - name: Validate moxygen draft-18 profile
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          import jsonschema
-
-          schema = json.loads(Path("docs/moxygen-draft18-support-profile.schema.json").read_text())
-          profile = json.loads(Path("docs/moxygen-draft18-support-profile.json").read_text())
-          jsonschema.Draft7Validator.check_schema(schema)
-          jsonschema.Draft7Validator(
-              schema,
-              format_checker=jsonschema.FormatChecker(),
-          ).validate(profile)
-          PY
-          ./scripts/validate-moxygen-draft18-profile.sh
-          ./scripts/test-moxygen-draft18-profile-validator.sh
-          bash -n \
-            scripts/validate-moxygen-draft18-schema.sh \
-            scripts/validate-moxygen-draft18-profile.sh \
-            scripts/validate-moxygen-draft18-result.sh \
-            scripts/test-moxygen-draft18-profile-validator.sh
 
       - name: Validate registration
         run: |

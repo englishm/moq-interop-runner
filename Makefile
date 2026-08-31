@@ -19,7 +19,7 @@ SHELL := /bin/bash
         relay-start relay-stop logs logs-relay logs-client \
         build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report help _ensure-certs \
         xquic-client-build xquic-client-test-draft18 xquic-relay-build \
-        validate-moxygen-draft18-profile test-moxygen-draft18-profile-validator
+        validate-moxygen-profile test-moxygen-profile-validator
 
 #############################################################################
 # Image Configuration
@@ -259,12 +259,12 @@ xquic-relay-build:
 # Specification profile validation
 #############################################################################
 
-validate-moxygen-draft18-profile:
-	@./scripts/validate-moxygen-draft18-schema.sh
-	@./scripts/validate-moxygen-draft18-profile.sh
+validate-moxygen-profile:
+	@./scripts/validate-moxygen-schema.sh
+	@./scripts/validate-moxygen-profile.sh
 
-test-moxygen-draft18-profile-validator:
-	@./scripts/test-moxygen-draft18-profile-validator.sh
+test-moxygen-profile-validator:
+	@./scripts/test-moxygen-profile-validator.sh
 
 #############################################################################
 # Report Generation
@@ -313,8 +313,8 @@ help:
 	@echo "  xquic-relay-build          Build draft-18 relay from XQUIC_SOURCE=/absolute/path/to/xquic"
 	@echo ""
 	@echo "Specification profiles:"
-	@echo "  validate-moxygen-draft18-profile  Validate schema and canonical moxygen draft-18 profile"
-	@echo "  test-moxygen-draft18-profile-validator  Run profile/result mutation checks"
+	@echo "  validate-moxygen-profile       Validate schema and canonical moxygen relay support profile"
+	@echo "  test-moxygen-profile-validator Run profile/result mutation checks"
 	@echo ""
 	@echo "  BUILD_ARGS examples:"
 	@echo "    --local ~/git/moq-rs    Use local checkout"

@@ -1,0 +1,3062 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/englishm/moq-interop-runner/blob/main/docs/moxygen-relay-support-profile.schema.json",
+  "title": "moxygen relay support profile and result record contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "profile",
+    "provenance",
+    "oracle",
+    "identifier_policy",
+    "identifier_history",
+    "support_verification",
+    "capability_boundaries",
+    "execution_policy",
+    "executable_requirements",
+    "known_driver_risks",
+    "disposition_reasons",
+    "implementation_independence_classes",
+    "result_semantics",
+    "required_evidence",
+    "binding_evidence_contracts",
+    "result_record_contract",
+    "cases",
+    "gates"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "revision",
+        "target_draft",
+        "declaration_count",
+        "intended_count",
+        "deferred_count",
+        "diagnostic_gate_count"
+      ],
+      "properties": {
+        "id": {
+          "const": "moxygen-relay-support-profile"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_draft": {
+          "const": "draft-18"
+        },
+        "declaration_count": {
+          "const": 58
+        },
+        "intended_count": {
+          "const": 27
+        },
+        "deferred_count": {
+          "const": 31
+        },
+        "diagnostic_gate_count": {
+          "const": 7
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_baselines",
+        "executable_landings"
+      ],
+      "properties": {
+        "reference_baselines": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "normative_draft",
+            "moxygen_declarations",
+            "moq_rs_review",
+            "runner_baseline"
+          ],
+          "properties": {
+            "normative_draft": {
+              "$ref": "#/definitions/pinned_source"
+            },
+            "moxygen_declarations": {
+              "$ref": "#/definitions/pinned_source"
+            },
+            "moq_rs_review": {
+              "$ref": "#/definitions/pinned_source"
+            },
+            "runner_baseline": {
+              "$ref": "#/definitions/pinned_source"
+            }
+          }
+        },
+        "executable_landings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "moxygen_conformance_driver",
+            "rust_diagnostic_gates"
+          ],
+          "properties": {
+            "moxygen_conformance_driver": {
+              "$ref": "#/definitions/unresolved_executable_with_image"
+            },
+            "rust_diagnostic_gates": {
+              "$ref": "#/definitions/unresolved_executable"
+            }
+          }
+        }
+      }
+    },
+    "oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "components",
+        "normative_authority",
+        "semantic_layer",
+        "binding_rule",
+        "binding_reference_rule",
+        "independence_rule"
+      ],
+      "properties": {
+        "classification": {
+          "const": "ecosystem-executable-specification"
+        },
+        "components": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "normative_authority": {
+          "const": "draft-ietf-moq-transport-18"
+        },
+        "semantic_layer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "binding_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "binding_reference_rule": {
+          "const": "gate_normative_references apply to the implementation-neutral semantic contract; binding-specific references and limitations are labeled by driver binding."
+        },
+        "independence_rule": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "identifier_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "gate_ids",
+        "source_binding_ids",
+        "unified_semantic_test_ids",
+        "source_ordinals_and_names",
+        "equivalent_migration",
+        "semantic_change",
+        "retired_id_reuse"
+      ],
+      "properties": {
+        "profile_id": {
+          "const": "The profile ID identifies enduring protocol semantics through RFC publication and never encodes a draft version or implementation revision."
+        },
+        "gate_ids": {
+          "const": "Gate IDs identify enduring protocol semantics through RFC publication and never encode a draft version, source ordinal, or implementation revision."
+        },
+        "source_binding_ids": {
+          "const": "The seven gate-mapped source bindings share enduring semantic test IDs with their gates. The other 51 IDs are semantic inventory handles for this profile revision, not canonical executable tests until they receive formal contracts."
+        },
+        "unified_semantic_test_ids": {
+          "const": "One semantic test ID can have multiple driver bindings; a gate and its moxygen source binding intentionally share that ID when they represent the same protocol behavior."
+        },
+        "source_ordinals_and_names": {
+          "const": "ordinal and source_name reproduce declarations in the pinned moxygen script as separate source provenance and do not define identifier semantics."
+        },
+        "equivalent_migration": {
+          "const": "An equivalent editorial or section-only migration that preserves semantics, pass criteria, and applicability retains the ID and updates every reference atomically."
+        },
+        "semantic_change": {
+          "const": "An incompatible change to semantics, pass criteria, or applicability permanently retires the old ID and introduces a new semantic ID."
+        },
+        "retired_id_reuse": {
+          "const": "The retired-ID history is append-only, and a retired ID is never reused."
+        }
+      }
+    },
+    "identifier_history": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewed_for_target",
+        "compatibility",
+        "retired_ids"
+      ],
+      "properties": {
+        "reviewed_for_target": {
+          "const": "draft-18"
+        },
+        "compatibility": {
+          "const": "The prior draft-specific profile commit was unpublished and produced no accepted ecosystem identifiers or results; therefore this semantic migration requires no aliases or retirement entries."
+        },
+        "retired_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/retired_identifier"
+          }
+        }
+      }
+    },
+    "support_verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "verified_at", "pinned_implementation_revision", "target_draft", "evidence_links", "invalidation_conditions"],
+      "properties": {
+        "state": {"enum": ["unverified", "verified", "invalidated"]},
+        "verified_at": {"oneOf": [{"type": "null"}, {"type": "string", "format": "date-time"}]},
+        "pinned_implementation_revision": {"oneOf": [{"const": "TBD"}, {"$ref": "#/definitions/verified_implementation_revision"}]},
+        "target_draft": {"const": "draft-18"},
+        "evidence_links": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/definitions/support_evidence_link"}},
+        "invalidation_conditions": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {"enum": ["target-draft-semantic-change", "profile-or-gate-criteria-revision", "implementation-revision-or-image-change", "evidence-loss-or-invalidation"]}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"state": {"const": "unverified"}}},
+          "then": {"properties": {"verified_at": {"type": "null"}, "pinned_implementation_revision": {"const": "TBD"}, "evidence_links": {"maxItems": 0}}}
+        },
+        {
+          "if": {"properties": {"state": {"enum": ["verified", "invalidated"]}}},
+          "then": {
+            "properties": {
+              "verified_at": {"type": "string", "format": "date-time"},
+              "pinned_implementation_revision": {"$ref": "#/definitions/verified_implementation_revision"},
+              "evidence_links": {
+                "minItems": 2,
+                "allOf": [
+                  {"contains": {"properties": {"kind": {"const": "result-record"}}, "required": ["kind"]}},
+                  {"contains": {"properties": {"kind": {"const": "evidence-artifact"}}, "required": ["kind"]}}
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "capability_boundaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "not_claimed"
+      ],
+      "properties": {
+        "not_claimed": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "execution_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "readiness_timeout_ms",
+        "runner_whole_container_limit_ms",
+        "diagnostic_gate_timeouts_ms",
+        "independent_moq_test_client_timeout_components_ms",
+        "intended_case_timeouts_ms",
+        "rule"
+      ],
+      "properties": {
+        "readiness_timeout_ms": {
+          "const": 10000
+        },
+        "runner_whole_container_limit_ms": {
+          "const": 120000
+        },
+        "diagnostic_gate_timeouts_ms": {
+          "type": "object",
+          "minProperties": 7,
+          "maxProperties": 7,
+          "additionalProperties": {
+            "$ref": "#/definitions/binding_gate_timeouts"
+          }
+        },
+        "independent_moq_test_client_timeout_components_ms": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rendezvous",
+            "delivery_and_terminal_margin"
+          ],
+          "properties": {
+            "rendezvous": {
+              "const": 10000
+            },
+            "delivery_and_terminal_margin": {
+              "const": 10000
+            }
+          }
+        },
+        "intended_case_timeouts_ms": {
+          "type": "object",
+          "minProperties": 27,
+          "maxProperties": 27,
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "executable_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tls_disable_verify",
+        "resolved_provenance"
+      ],
+      "properties": {
+        "tls_disable_verify": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resolved_provenance": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "known_driver_risks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "moxygen_global_cross_stream_ordering"
+      ],
+      "properties": {
+        "moxygen_global_cross_stream_ordering": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "description",
+            "result_rule",
+            "resolved_by_sha"
+          ],
+          "properties": {
+            "status": {
+              "const": "open-until-fixed-executable-sha"
+            },
+            "description": {
+              "type": "string"
+            },
+            "result_rule": {
+              "type": "string"
+            },
+            "resolved_by_sha": {
+              "const": "TBD"
+            }
+          }
+        }
+      }
+    },
+    "disposition_reasons": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profiled-subscribe-stream",
+        "delivery-timeout-parameter-only",
+        "fetch-unsupported",
+        "datagram-unsupported",
+        "object-status-unsupported",
+        "invalid-object-property-scope",
+        "subscribe-tracks-unsupported",
+        "subscribe-tracks-request-update-unsupported",
+        "publisher-delivery-timeout-unsupported"
+      ],
+      "properties": {
+        "profiled-subscribe-stream": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delivery-timeout-parameter-only": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fetch-unsupported": {
+          "type": "string",
+          "minLength": 1
+        },
+        "datagram-unsupported": {
+          "type": "string",
+          "minLength": 1
+        },
+        "object-status-unsupported": {
+          "type": "string",
+          "minLength": 1
+        },
+        "invalid-object-property-scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subscribe-tracks-unsupported": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subscribe-tracks-request-update-unsupported": {
+          "type": "string",
+          "minLength": 1
+        },
+        "publisher-delivery-timeout-unsupported": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "implementation_independence_classes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "planned-independent-gate",
+        "profile-inventory-only",
+        "deferred-unsupported"
+      ],
+      "properties": {
+        "planned-independent-gate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile-inventory-only": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deferred-unsupported": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "result_semantics": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "meaning"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "pass",
+              "fail",
+              "inconclusive",
+              "unsupported",
+              "not-run",
+              "harness-error"
+            ]
+          },
+          "meaning": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "required_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publisher-readiness",
+        "control-observations",
+        "object-observations",
+        "delivery-observations",
+        "tap14",
+        "process-logs",
+        "reproduction-metadata"
+      ],
+      "properties": {
+        "publisher-readiness": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control-observations": {
+          "type": "string",
+          "minLength": 1
+        },
+        "object-observations": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delivery-observations": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tap14": {
+          "type": "string",
+          "minLength": 1
+        },
+        "process-logs": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reproduction-metadata": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "binding_evidence_contracts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "moxygen_driver",
+        "independent_moq_test_client"
+      ],
+      "properties": {
+        "moxygen_driver": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "readiness",
+            "delivery",
+            "completion"
+          ],
+          "properties": {
+            "readiness": {
+              "type": "string",
+              "minLength": 1
+            },
+            "delivery": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            },
+            "completion": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "independent_moq_test_client": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "readiness",
+            "delivery",
+            "completion",
+            "not_directly_observed"
+          ],
+          "properties": {
+            "readiness": {
+              "type": "string",
+              "minLength": 1
+            },
+            "delivery": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            },
+            "completion": {
+              "type": "string",
+              "minLength": 1
+            },
+            "not_directly_observed": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "result_record_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "schema_ref",
+        "identity_rule",
+        "state_model",
+        "independence_classes",
+        "assertion_descriptor",
+        "evidence_descriptor",
+        "opaque_deployment_policy",
+        "phase_timing_rule",
+        "assertion_linkage_rule",
+        "driver_provenance_rule",
+        "verification_rule",
+        "executable_provenance_rule"
+      ],
+      "properties": {
+        "version": {
+          "const": "1.0.0"
+        },
+        "schema_ref": {
+          "const": "./moxygen-relay-support-profile.schema.json#/definitions/result_record"
+        },
+        "identity_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state_model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "disposition",
+            "execution",
+            "evaluator_verdict",
+            "claimed_outcome",
+            "failure_classification",
+            "rule"
+          ],
+          "properties": {
+            "disposition": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "intended",
+                  "deferred"
+                ]
+              },
+              "uniqueItems": true
+            },
+            "execution": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "not-run",
+                  "started",
+                  "completed",
+                  "aborted"
+                ]
+              },
+              "uniqueItems": true
+            },
+            "evaluator_verdict": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "pass",
+                  "fail",
+                  "inconclusive",
+                  "unsupported",
+                  "harness-error"
+                ]
+              },
+              "uniqueItems": true
+            },
+            "claimed_outcome": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "pass",
+                  "fail",
+                  "inconclusive",
+                  "unsupported",
+                  "not-run",
+                  "harness-error"
+                ]
+              },
+              "uniqueItems": true
+            },
+            "failure_classification": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "none",
+                  "profile-mismatch",
+                  "protocol-contradiction",
+                  "mixed",
+                  "driver-inconclusive"
+                ]
+              },
+              "uniqueItems": true
+            },
+            "rule": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "independence_classes": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "moxygen-driver-binding",
+              "independent-generator-and-oracle"
+            ]
+          }
+        },
+        "assertion_descriptor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required",
+            "unique_by"
+          ],
+          "properties": {
+            "required": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            },
+            "unique_by": {
+              "const": "id"
+            }
+          }
+        },
+        "evidence_descriptor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required",
+            "unique_by",
+            "digest"
+          ],
+          "properties": {
+            "required": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            },
+            "unique_by": {
+              "const": "id"
+            },
+            "digest": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "opaque_deployment_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rule",
+            "result_handling"
+          ],
+          "properties": {
+            "rule": {
+              "type": "string",
+              "minLength": 1
+            },
+            "result_handling": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "phase_timing_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assertion_linkage_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "driver_provenance_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verification_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executable_provenance_rule": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 58,
+      "maxItems": 58,
+      "items": {
+        "$ref": "#/definitions/case"
+      }
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "$ref": "#/definitions/gate"
+      }
+    }
+  },
+  "definitions": {
+    "semantic_id": {
+      "type": "string",
+      "pattern": "^[a-z]+(?:-[a-z]+)*$"
+    },
+    "verified_implementation_revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_sha", "image_digest"],
+      "properties": {
+        "source_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "image_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "support_evidence_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "locator", "sha256"],
+      "properties": {
+        "kind": {"enum": ["result-record", "evidence-artifact"]},
+        "locator": {"type": "string", "pattern": "^(https://|artifact:)[^\\s]+$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "binding_gate_timeouts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "moxygen_driver",
+        "independent_moq_test_client"
+      ],
+      "properties": {
+        "moxygen_driver": {
+          "const": 10000
+        },
+        "independent_moq_test_client": {
+          "const": 20000
+        }
+      }
+    },
+    "retired_identifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "last_valid_target",
+        "last_valid_profile_revision",
+        "reason"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "profile",
+            "semantic-test"
+          ]
+        },
+        "id": {
+          "$ref": "#/definitions/semantic_id"
+        },
+        "last_valid_target": {
+          "type": "string",
+          "pattern": "^(draft|rfc)-[0-9]+$"
+        },
+        "last_valid_profile_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "replacement_id": {
+          "$ref": "#/definitions/semantic_id"
+        }
+      }
+    },
+    "pinned_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "sha"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "format": "uri"
+        },
+        "sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 1
+        },
+        "declaration_file": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "unresolved_executable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "sha"
+      ],
+      "properties": {
+        "status": {
+          "const": "unresolved"
+        },
+        "sha": {
+          "const": "TBD"
+        }
+      }
+    },
+    "unresolved_executable_with_image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "sha",
+        "image_digest"
+      ],
+      "properties": {
+        "status": {
+          "const": "unresolved"
+        },
+        "sha": {
+          "const": "TBD"
+        },
+        "image_digest": {
+          "const": "TBD"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "ordinal",
+        "source_name",
+        "source_section",
+        "request",
+        "disposition",
+        "reason",
+        "independence",
+        "gate_ids"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "subscribe-one-subgroup-per-group",
+            "subscribe-one-subgroup-per-object",
+            "subscribe-two-subgroups-per-group",
+            "subscribe-datagram-small-objects",
+            "fetch-one-subgroup-per-group",
+            "fetch-one-subgroup-per-object",
+            "fetch-two-subgroups-per-group",
+            "fetch-datagram",
+            "subscribe-datagram-single-object-per-group",
+            "subscribe-many-objects-per-group",
+            "subscribe-single-group-many-objects",
+            "subscribe-nonzero-start-group",
+            "subscribe-nonzero-start-object",
+            "subscribe-partial-group",
+            "fetch-bounded-range",
+            "fetch-single-object",
+            "subscribe-tiny-objects",
+            "subscribe-large-first-object",
+            "subscribe-large-nonzero-objects",
+            "subscribe-all-large-objects",
+            "subscribe-mixed-sizes-two-subgroups",
+            "subscribe-single-byte-objects",
+            "fetch-large-objects",
+            "subscribe-varied-object-sizes",
+            "subscribe-sparse-group-ids-step-two",
+            "subscribe-sparse-group-ids-step-five",
+            "subscribe-sparse-object-ids-step-two",
+            "subscribe-sparse-object-ids-step-three",
+            "subscribe-sparse-group-object-ids",
+            "subscribe-large-group-object-id-gaps",
+            "subscribe-end-of-group-one-subgroup-per-group",
+            "subscribe-end-of-group-one-subgroup-per-object",
+            "subscribe-end-of-group-two-subgroups-per-group",
+            "fetch-end-of-group",
+            "subscribe-end-of-group-sparse-objects",
+            "subscribe-end-of-group-single-object",
+            "subscribe-integer-property-type-two",
+            "subscribe-bytes-property-type-three",
+            "subscribe-integer-and-bytes-properties",
+            "subscribe-object-properties",
+            "fetch-object-properties",
+            "subscribe-object-properties-end-of-group",
+            "subscribe-high-frequency-updates",
+            "subscribe-low-frequency-updates",
+            "subscribe-two-subgroups-sparse-ids-mixed-sizes-properties-end-of-group",
+            "subscribe-many-groups-and-objects",
+            "subscribe-sparse-groups-large-step",
+            "subscribe-delivery-timeout",
+            "subscribe-publisher-delivery-timeout",
+            "subscribe-datagram-rapid-delivery",
+            "publish-one-subgroup-per-group",
+            "publish-one-subgroup-per-object",
+            "publish-two-subgroups-per-group",
+            "publish-datagram",
+            "publish-end-of-group",
+            "publish-object-properties",
+            "publish-before-subscribe-tracks",
+            "publish-before-subscribe-tracks-datagram"
+          ]
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 58
+        },
+        "source_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_section": {
+          "type": "string",
+          "minLength": 1
+        },
+        "request": {
+          "enum": [
+            "subscribe",
+            "fetch",
+            "publish"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "intended",
+            "deferred"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independence": {
+          "enum": [
+            "planned-independent-gate",
+            "profile-inventory-only",
+            "deferred-unsupported"
+          ]
+        },
+        "gate_ids": {
+          "type": "array",
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "subscribe-one-subgroup-per-group",
+              "subscribe-one-subgroup-per-object",
+              "subscribe-two-subgroups-per-group",
+              "subscribe-nonzero-start-group",
+              "subscribe-nonzero-start-object",
+              "subscribe-sparse-group-object-ids",
+              "subscribe-object-properties"
+            ]
+          }
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "revision",
+        "moxygen_source_binding_id",
+        "required_assertion_ids",
+        "gate_normative_references",
+        "semantic_contract",
+        "bindings",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "subscribe-one-subgroup-per-group",
+            "subscribe-one-subgroup-per-object",
+            "subscribe-two-subgroups-per-group",
+            "subscribe-nonzero-start-group",
+            "subscribe-nonzero-start-object",
+            "subscribe-sparse-group-object-ids",
+            "subscribe-object-properties"
+          ]
+        },
+        "revision": {
+          "const": 1
+        },
+        "moxygen_source_binding_id": {
+          "enum": [
+            "subscribe-one-subgroup-per-group",
+            "subscribe-one-subgroup-per-object",
+            "subscribe-two-subgroups-per-group",
+            "subscribe-nonzero-start-group",
+            "subscribe-nonzero-start-object",
+            "subscribe-sparse-group-object-ids",
+            "subscribe-object-properties"
+          ]
+        },
+        "required_assertion_ids": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {"$ref": "#/definitions/assertion_id"}
+        },
+        "gate_normative_references": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "semantic_contract": {
+          "$ref": "#/definitions/semantic_contract"
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "moxygen_driver",
+            "independent_moq_test_client"
+          ],
+          "properties": {
+            "moxygen_driver": {
+              "$ref": "#/definitions/moxygen_binding"
+            },
+            "independent_moq_test_client": {
+              "$ref": "#/definitions/independent_binding"
+            }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "semantic_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topology_roles",
+        "scenario",
+        "success_criteria"
+      ],
+      "properties": {
+        "topology_roles": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "publisher",
+              "relay-under-test",
+              "subscriber"
+            ]
+          }
+        },
+        "scenario": {
+          "type": "string",
+          "minLength": 1
+        },
+        "success_criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "moxygen_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "source_ordinal",
+        "source_name",
+        "topology",
+        "readiness",
+        "vector"
+      ],
+      "properties": {
+        "classification": {
+          "const": "moxygen-driver-binding"
+        },
+        "source_ordinal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 58
+        },
+        "source_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "topology": {
+          "const": "moxygen moqtest_server -> relay-under-test -> moxygen moqtest_client"
+        },
+        "readiness": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vector": {
+          "$ref": "#/definitions/moxygen_vector"
+        }
+      }
+    },
+    "independent_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "planned_function",
+        "topology",
+        "derivation",
+        "vector"
+      ],
+      "properties": {
+        "classification": {
+          "const": "independent-generator-and-oracle"
+        },
+        "planned_function": {
+          "enum": [
+            "test_subscribe_one_subgroup_per_group",
+            "test_subscribe_one_subgroup_per_object",
+            "test_subscribe_two_subgroups_per_group",
+            "test_subscribe_nonzero_start_group",
+            "test_subscribe_nonzero_start_object",
+            "test_subscribe_sparse_group_object_ids",
+            "test_subscribe_object_properties"
+          ]
+        },
+        "topology": {
+          "const": "independent publisher role -> relay-under-test -> independent subscriber role"
+        },
+        "derivation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vector": {
+          "$ref": "#/definitions/independent_vector"
+        }
+      }
+    },
+    "moxygen_vector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "track_namespace",
+        "track_name",
+        "groups",
+        "object_ids",
+        "expected_object_count",
+        "expected_stream_count",
+        "payload",
+        "publisher_priority"
+      ],
+      "properties": {
+        "track_namespace": {
+          "type": "array",
+          "minItems": 16,
+          "maxItems": 16,
+          "items": {
+            "type": "string"
+          }
+        },
+        "track_name": {
+          "type": "string"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "object_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "subgroups": {
+          "type": "object"
+        },
+        "subgroup_rule": {
+          "type": "string"
+        },
+        "expected_object_count": {
+          "type": "integer"
+        },
+        "expected_stream_count": {
+          "type": "integer"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "publisher_priority": {
+          "type": "object"
+        },
+        "object_property_types": {
+          "type": "array"
+        },
+        "object_properties": {
+          "type": "array"
+        },
+        "property_order_asserted": {
+          "type": "boolean"
+        },
+        "gap_properties_present": {
+          "const": false
+        }
+      }
+    },
+    "independent_vector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace_prefix",
+        "namespace_rule",
+        "publisher_cid_component",
+        "track_name",
+        "groups",
+        "object_ids",
+        "subgroups",
+        "publisher_priority_by_subgroup",
+        "payloads"
+      ],
+      "properties": {
+        "namespace_prefix": {
+          "enum": [
+            "moq-test/interop/subscribe-one-subgroup-per-group",
+            "moq-test/interop/subscribe-one-subgroup-per-object",
+            "moq-test/interop/subscribe-two-subgroups-per-group",
+            "moq-test/interop/subscribe-nonzero-start-group",
+            "moq-test/interop/subscribe-nonzero-start-object",
+            "moq-test/interop/subscribe-sparse-group-object-ids",
+            "moq-test/interop/subscribe-object-properties"
+          ]
+        },
+        "namespace_rule": {
+          "enum": [
+            "moq-test/interop/subscribe-one-subgroup-per-group/{publisher_cid}",
+            "moq-test/interop/subscribe-one-subgroup-per-object/{publisher_cid}",
+            "moq-test/interop/subscribe-two-subgroups-per-group/{publisher_cid}",
+            "moq-test/interop/subscribe-nonzero-start-group/{publisher_cid}",
+            "moq-test/interop/subscribe-nonzero-start-object/{publisher_cid}",
+            "moq-test/interop/subscribe-sparse-group-object-ids/{publisher_cid}",
+            "moq-test/interop/subscribe-object-properties/{publisher_cid}"
+          ]
+        },
+        "publisher_cid_component": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "purpose"
+          ],
+          "properties": {
+            "source": {
+              "const": "publisher_connection_id"
+            },
+            "purpose": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "track_name": {
+          "enum": [
+            "one-subgroup-per-group",
+            "one-subgroup-per-object",
+            "two-subgroups-per-group",
+            "nonzero-start-group",
+            "nonzero-start-object",
+            "sparse-group-object-ids",
+            "object-properties"
+          ]
+        },
+        "groups": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "object_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "subgroups": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "publisher_priority_by_subgroup": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[0-9]+/[0-9]+$"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
+        },
+        "payloads": {
+          "$ref": "#/definitions/fixed_payload_contract"
+        },
+        "object_properties_by_object": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[0-9]+$"
+          },
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/definitions/independent_object_property"
+            }
+          }
+        },
+        "object_property_ranges": {
+          "type": "object"
+        },
+        "gap_properties_present": {
+          "const": false
+        }
+      }
+    },
+    "fixed_payload_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "unique_per_object",
+        "verification",
+        "items"
+      ],
+      "properties": {
+        "kind": {
+          "const": "fixed-source-constants"
+        },
+        "unique_per_object": {
+          "const": true
+        },
+        "verification": {
+          "const": "exact-byte-match"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/fixed_payload"
+          }
+        }
+      }
+    },
+    "fixed_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "group",
+        "subgroup",
+        "object",
+        "ascii",
+        "hex"
+      ],
+      "properties": {
+        "group": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "subgroup": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "object": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ascii": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hex": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2})+$"
+        }
+      }
+    },
+    "independent_object_property": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "type_hex",
+        "value_kind",
+        "value_hex"
+      ],
+      "properties": {
+        "type": {
+          "type": "integer",
+          "minimum": 0,
+          "not": {
+            "minimum": 16384,
+            "maximum": 32767
+          }
+        },
+        "type_hex": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]+$"
+        },
+        "value_kind": {
+          "enum": [
+            "integer",
+            "bytes"
+          ]
+        },
+        "value": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value_ascii": {
+          "type": "string"
+        },
+        "value_hex": {
+          "type": "string",
+          "pattern": "^(0x)?[0-9a-f]+$"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "value_kind": {
+              "const": "integer"
+            }
+          },
+          "required": [
+            "value"
+          ]
+        },
+        {
+          "properties": {
+            "value_kind": {
+              "const": "bytes"
+            }
+          },
+          "required": [
+            "value_ascii"
+          ]
+        }
+      ]
+    },
+    "result_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "disposition",
+        "execution",
+        "evaluator_verdict",
+        "claimed_outcome",
+        "failure_classification",
+        "independence_class",
+        "reproducibility",
+        "evidence_integrity_verification",
+        "provenance_verification",
+        "opaque_limitations",
+        "protocol",
+        "revisions",
+        "deployments",
+        "phase_timings_ms",
+        "assertions",
+        "evidence",
+        "reproduction",
+        "started_at_utc",
+        "duration_ms"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "#/definitions/result_identity"
+        },
+        "disposition": {
+          "enum": [
+            "intended",
+            "deferred"
+          ]
+        },
+        "execution": {
+          "enum": [
+            "not-run",
+            "started",
+            "completed",
+            "aborted"
+          ]
+        },
+        "evaluator_verdict": {
+          "oneOf": [
+            {
+              "enum": [
+                "pass",
+                "fail",
+                "inconclusive",
+                "unsupported",
+                "harness-error"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "claimed_outcome": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive",
+            "unsupported",
+            "not-run",
+            "harness-error"
+          ]
+        },
+        "failure_classification": {
+          "enum": [
+            "none",
+            "profile-mismatch",
+            "protocol-contradiction",
+            "mixed",
+            "driver-inconclusive"
+          ]
+        },
+        "independence_class": {
+          "enum": [
+            "moxygen-driver-binding",
+            "independent-generator-and-oracle"
+          ]
+        },
+        "reproducibility": {
+          "enum": [
+            "reproducible",
+            "opaque"
+          ]
+        },
+        "evidence_integrity_verification": {
+          "enum": [
+            "submitted",
+            "verified",
+            "failed"
+          ]
+        },
+        "provenance_verification": {
+          "enum": [
+            "submitted",
+            "verified",
+            "failed"
+          ]
+        },
+        "opaque_limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\S(?:.*\\S)?$"
+          }
+        },
+        "protocol": {
+          "$ref": "#/definitions/actual_protocol"
+        },
+        "revisions": {
+          "$ref": "#/definitions/exact_revisions"
+        },
+        "deployments": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "publisher",
+            "relay",
+            "subscriber"
+          ],
+          "properties": {
+            "publisher": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/deployment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "publisher"
+                    }
+                  }
+                }
+              ]
+            },
+            "relay": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/deployment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "relay"
+                    }
+                  }
+                }
+              ]
+            },
+            "subscriber": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/deployment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "subscriber"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "phase_timings_ms": {
+          "$ref": "#/definitions/phase_timings"
+        },
+        "assertions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/assertion"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/evidence"
+          },
+          "allOf": [
+            {
+              "contains": {
+                "properties": {
+                  "category": {
+                    "const": "publisher-readiness"
+                  }
+                },
+                "required": [
+                  "category"
+                ]
+              }
+            },
+            {
+              "contains": {
+                "properties": {
+                  "category": {
+                    "const": "control-observations"
+                  }
+                },
+                "required": [
+                  "category"
+                ]
+              }
+            },
+            {
+              "contains": {
+                "properties": {
+                  "category": {
+                    "const": "object-observations"
+                  }
+                },
+                "required": [
+                  "category"
+                ]
+              }
+            },
+            {
+              "contains": {
+                "properties": {
+                  "category": {
+                    "const": "delivery-observations"
+                  }
+                },
+                "required": [
+                  "category"
+                ]
+              }
+            },
+            {
+              "contains": {
+                "properties": {
+                  "category": {
+                    "const": "tap14"
+                  }
+                },
+                "required": [
+                  "category"
+                ]
+              }
+            },
+            {
+              "contains": {
+                "properties": {
+                  "category": {
+                    "const": "process-logs"
+                  }
+                },
+                "required": [
+                  "category"
+                ]
+              }
+            },
+            {
+              "contains": {
+                "properties": {
+                  "category": {
+                    "const": "reproduction-metadata"
+                  }
+                },
+                "required": [
+                  "category"
+                ]
+              }
+            }
+          ]
+        },
+        "reproduction": {
+          "$ref": "#/definitions/reproduction"
+        },
+        "started_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "execution": {
+              "const": "not-run"
+            },
+            "evaluator_verdict": {
+              "type": "null"
+            },
+            "claimed_outcome": {
+              "enum": [
+                "not-run",
+                "unsupported"
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "execution": {
+              "const": "started"
+            },
+            "evaluator_verdict": {
+              "type": "null"
+            },
+            "claimed_outcome": {
+              "const": "not-run"
+            }
+          }
+        },
+        {
+          "properties": {
+            "execution": {
+              "const": "aborted"
+            },
+            "evaluator_verdict": {
+              "enum": [
+                "inconclusive",
+                "harness-error"
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "execution": {
+              "const": "completed"
+            },
+            "evaluator_verdict": {
+              "enum": [
+                "pass",
+                "fail",
+                "inconclusive",
+                "unsupported",
+                "harness-error"
+              ]
+            },
+            "claimed_outcome": {
+              "enum": [
+                "pass",
+                "fail",
+                "inconclusive",
+                "unsupported",
+                "harness-error"
+              ]
+            }
+          }
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evaluator_verdict": {
+                "const": "pass"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "disposition": {
+                "const": "intended"
+              },
+              "execution": {
+                "const": "completed"
+              },
+              "failure_classification": {
+                "const": "none"
+              },
+              "evidence_integrity_verification": {
+                "const": "verified"
+              },
+              "provenance_verification": {
+                "const": "verified"
+              },
+              "assertions": {
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "allOf": [
+                    {
+                      "$ref": "#/definitions/assertion"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": "pass"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evaluator_verdict": {
+                "const": "fail"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "failure_classification": {
+                "enum": [
+                  "profile-mismatch",
+                  "protocol-contradiction",
+                  "mixed"
+                ]
+              },
+              "evidence_integrity_verification": {
+                "const": "verified"
+              },
+              "provenance_verification": {
+                "const": "verified"
+              },
+              "assertions": {
+                "minItems": 3,
+                "maxItems": 3,
+                "contains": {"properties": {"status": {"const": "fail"}}, "required": ["status"]}
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "failure_classification": {
+                "const": "driver-inconclusive"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evaluator_verdict": {
+                "const": "inconclusive"
+              },
+              "identity": {
+                "properties": {
+                  "driver_binding": {
+                    "const": "moxygen_driver"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "reproducibility": {
+                "const": "reproducible"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "opaque_limitations": {
+                "maxItems": 0
+              },
+              "deployments": {
+                "properties": {
+                  "publisher": {
+                    "properties": {
+                      "visibility": {
+                        "const": "reproducible"
+                      }
+                    }
+                  },
+                  "relay": {
+                    "properties": {
+                      "visibility": {
+                        "const": "reproducible"
+                      }
+                    }
+                  },
+                  "subscriber": {
+                    "properties": {
+                      "visibility": {
+                        "const": "reproducible"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "reproducibility": {
+                "const": "opaque"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "opaque_limitations": {
+                "minItems": 1
+              },
+              "deployments": {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "publisher": {
+                        "properties": {
+                          "visibility": {
+                            "const": "opaque"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "relay": {
+                        "properties": {
+                          "visibility": {
+                            "const": "opaque"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "subscriber": {
+                        "properties": {
+                          "visibility": {
+                            "const": "opaque"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "identity": {
+                "properties": {
+                  "driver_binding": {
+                    "const": "moxygen_driver"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identity": {
+                "properties": {
+                  "source_binding": {
+                    "$ref": "#/definitions/source_binding_identity"
+                  }
+                }
+              },
+              "independence_class": {
+                "const": "moxygen-driver-binding"
+              },
+              "reproduction": {
+                "properties": {
+                  "per_case_timeout_ms": {
+                    "const": 10000
+                  }
+                }
+              },
+              "phase_timings_ms": {
+                "required": ["publisher_readiness_ms", "case_ms"],
+                "not": {
+                  "anyOf": [
+                    {"required": ["setup_ms"]},
+                    {"required": ["readiness_ms"]},
+                    {"required": ["delivery_terminal_ms"]}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "identity": {
+                "properties": {
+                  "driver_binding": {
+                    "const": "independent_moq_test_client"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identity": {
+                "properties": {
+                  "source_binding": {
+                    "type": "null"
+                  }
+                }
+              },
+              "independence_class": {
+                "const": "independent-generator-and-oracle"
+              },
+              "reproduction": {
+                "properties": {
+                  "per_case_timeout_ms": {
+                    "const": 20000
+                  }
+                }
+              },
+              "phase_timings_ms": {
+                "required": ["readiness_ms", "delivery_terminal_ms"],
+                "not": {
+                  "anyOf": [
+                    {"required": ["publisher_readiness_ms"]},
+                    {"required": ["case_ms"]}
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evaluator_verdict": {"const": "inconclusive"}
+            }
+          },
+          "then": {
+            "properties": {"failure_classification": {"enum": ["none", "driver-inconclusive"]}},
+            "anyOf": [
+              {"properties": {"assertions": {"contains": {"properties": {"status": {"const": "not-observed"}}, "required": ["status"]}}}},
+              {"properties": {"evidence_integrity_verification": {"enum": ["submitted", "failed"]}}},
+              {"properties": {"provenance_verification": {"enum": ["submitted", "failed"]}}}
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evaluator_verdict": {"enum": ["unsupported", "harness-error"]}
+            }
+          },
+          "then": {"properties": {"failure_classification": {"const": "none"}}}
+        },
+        {
+          "if": {
+            "properties": {"evaluator_verdict": {"type": "null"}}
+          },
+          "then": {"properties": {"failure_classification": {"const": "none"}}}
+        },
+        {
+          "if": {"properties": {"identity": {"properties": {"gate_id": {"const": "subscribe-one-subgroup-per-group"}}}}},
+          "then": {"properties": {"assertions": {"items": {"properties": {"id": {"enum": ["subscribe-one-subgroup-per-group.subscription-accepted", "subscribe-one-subgroup-per-group.objects-preserved-exactly-once", "subscribe-one-subgroup-per-group.subgroups-framed-and-closed"]}}}}}}
+        },
+        {
+          "if": {"properties": {"identity": {"properties": {"gate_id": {"const": "subscribe-one-subgroup-per-object"}}}}},
+          "then": {"properties": {"assertions": {"items": {"properties": {"id": {"enum": ["subscribe-one-subgroup-per-object.subscription-accepted", "subscribe-one-subgroup-per-object.subgroup-identities-preserved", "subscribe-one-subgroup-per-object.objects-preserved-exactly-once"]}}}}}}
+        },
+        {
+          "if": {"properties": {"identity": {"properties": {"gate_id": {"const": "subscribe-two-subgroups-per-group"}}}}},
+          "then": {"properties": {"assertions": {"items": {"properties": {"id": {"enum": ["subscribe-two-subgroups-per-group.subscription-accepted", "subscribe-two-subgroups-per-group.subgroup-identities-and-membership-preserved", "subscribe-two-subgroups-per-group.subgroup-order-preserved"]}}}}}}
+        },
+        {
+          "if": {"properties": {"identity": {"properties": {"gate_id": {"const": "subscribe-nonzero-start-group"}}}}},
+          "then": {"properties": {"assertions": {"items": {"properties": {"id": {"enum": ["subscribe-nonzero-start-group.subscription-accepted", "subscribe-nonzero-start-group.nonzero-group-ids-preserved", "subscribe-nonzero-start-group.no-earlier-group-synthesized"]}}}}}}
+        },
+        {
+          "if": {"properties": {"identity": {"properties": {"gate_id": {"const": "subscribe-nonzero-start-object"}}}}},
+          "then": {"properties": {"assertions": {"items": {"properties": {"id": {"enum": ["subscribe-nonzero-start-object.subscription-accepted", "subscribe-nonzero-start-object.nonzero-object-ids-preserved", "subscribe-nonzero-start-object.no-lower-object-synthesized"]}}}}}}
+        },
+        {
+          "if": {"properties": {"identity": {"properties": {"gate_id": {"const": "subscribe-sparse-group-object-ids"}}}}},
+          "then": {"properties": {"assertions": {"items": {"properties": {"id": {"enum": ["subscribe-sparse-group-object-ids.subscription-accepted", "subscribe-sparse-group-object-ids.sparse-group-object-ids-preserved", "subscribe-sparse-group-object-ids.gap-properties-absent"]}}}}}}
+        },
+        {
+          "if": {"properties": {"identity": {"properties": {"gate_id": {"const": "subscribe-object-properties"}}}}},
+          "then": {"properties": {"assertions": {"items": {"properties": {"id": {"enum": ["subscribe-object-properties.subscription-accepted", "subscribe-object-properties.object-properties-preserved", "subscribe-object-properties.no-extra-or-duplicate-properties"]}}}}}}
+        }
+      ]
+    },
+    "result_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_id",
+        "run_id",
+        "profile_id",
+        "profile_version",
+        "profile_revision",
+        "target_draft",
+        "gate_id",
+        "gate_revision",
+        "driver_binding",
+        "source_binding"
+      ],
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_id": {
+          "const": "moxygen-relay-support-profile"
+        },
+        "profile_version": {
+          "const": "1.0.0"
+        },
+        "profile_revision": {
+          "const": 1
+        },
+        "target_draft": {
+          "const": "draft-18"
+        },
+        "gate_id": {
+          "enum": [
+            "subscribe-one-subgroup-per-group",
+            "subscribe-one-subgroup-per-object",
+            "subscribe-two-subgroups-per-group",
+            "subscribe-nonzero-start-group",
+            "subscribe-nonzero-start-object",
+            "subscribe-sparse-group-object-ids",
+            "subscribe-object-properties"
+          ]
+        },
+        "gate_revision": {
+          "const": 1
+        },
+        "driver_binding": {
+          "enum": [
+            "moxygen_driver",
+            "independent_moq_test_client"
+          ]
+        },
+        "source_binding": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/source_binding_identity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "source_binding_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "ordinal",
+        "source_name"
+      ],
+      "properties": {
+        "case_id": {
+          "enum": [
+            "subscribe-one-subgroup-per-group",
+            "subscribe-one-subgroup-per-object",
+            "subscribe-two-subgroups-per-group",
+            "subscribe-nonzero-start-group",
+            "subscribe-nonzero-start-object",
+            "subscribe-sparse-group-object-ids",
+            "subscribe-object-properties"
+          ]
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 58
+        },
+        "source_name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "actual_protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transport",
+        "negotiated_draft",
+        "transport_alpn",
+        "webtransport_protocol"
+      ],
+      "properties": {
+        "transport": {
+          "enum": [
+            "raw-quic",
+            "webtransport"
+          ]
+        },
+        "negotiated_draft": {
+          "const": "draft-18"
+        },
+        "transport_alpn": {
+          "type": "string",
+          "minLength": 1
+        },
+        "webtransport_protocol": {
+          "oneOf": [
+            {
+              "const": "moqt-18"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "transport": {
+              "const": "raw-quic"
+            },
+            "transport_alpn": {
+              "const": "moqt-18"
+            },
+            "webtransport_protocol": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "properties": {
+            "transport": {
+              "const": "webtransport"
+            },
+            "transport_alpn": {
+              "type": "string",
+              "pattern": "^h3(-[0-9]+)?$"
+            },
+            "webtransport_protocol": {
+              "const": "moqt-18"
+            }
+          }
+        }
+      ]
+    },
+    "exact_revisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "profile_version",
+        "profile_revision",
+        "target_draft",
+        "gate_revision",
+        "normative_draft_sha",
+        "moxygen_declaration_baseline_sha",
+        "moq_rs_review_baseline_sha",
+        "runner_sha",
+        "driver_landing_sha"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0.0"
+        },
+        "profile_version": {
+          "const": "1.0.0"
+        },
+        "profile_revision": {
+          "const": 1
+        },
+        "target_draft": {
+          "const": "draft-18"
+        },
+        "gate_revision": {
+          "const": 1
+        },
+        "normative_draft_sha": {
+          "const": "cb2e772fd8ca8cbe7550b1765c269be89fb1c886"
+        },
+        "moxygen_declaration_baseline_sha": {
+          "const": "0d886e3e907e2236a6d927afefd09bb0c3dc8211"
+        },
+        "moq_rs_review_baseline_sha": {
+          "const": "b01d3f6707e3a74f69905722b451a08cbb3364f3"
+        },
+        "runner_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "driver_landing_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "not": {
+            "const": "TBD"
+          }
+        }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "role",
+        "visibility",
+        "version",
+        "source_sha",
+        "image_digest",
+        "opaque"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "role": {
+          "enum": [
+            "publisher",
+            "relay",
+            "subscriber"
+          ]
+        },
+        "visibility": {
+          "enum": [
+            "reproducible",
+            "opaque"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "source_sha": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "image_digest": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "opaque": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/opaque_deployment"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "visibility": {
+                "const": "reproducible"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "image_digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "opaque": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "visibility": {
+                "const": "opaque"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "image_digest": {
+                "type": "null"
+              },
+              "opaque": {
+                "$ref": "#/definitions/opaque_deployment"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "opaque_deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "locator",
+        "observed_version",
+        "limitations"
+      ],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "locator": {
+          "type": "string",
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "observed_version": {
+          "type": "string",
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^\\S(?:.*\\S)?$"
+          }
+        }
+      }
+    },
+    "assertion_id": {
+      "enum": [
+        "subscribe-one-subgroup-per-group.subscription-accepted",
+        "subscribe-one-subgroup-per-group.objects-preserved-exactly-once",
+        "subscribe-one-subgroup-per-group.subgroups-framed-and-closed",
+        "subscribe-one-subgroup-per-object.subscription-accepted",
+        "subscribe-one-subgroup-per-object.subgroup-identities-preserved",
+        "subscribe-one-subgroup-per-object.objects-preserved-exactly-once",
+        "subscribe-two-subgroups-per-group.subscription-accepted",
+        "subscribe-two-subgroups-per-group.subgroup-identities-and-membership-preserved",
+        "subscribe-two-subgroups-per-group.subgroup-order-preserved",
+        "subscribe-nonzero-start-group.subscription-accepted",
+        "subscribe-nonzero-start-group.nonzero-group-ids-preserved",
+        "subscribe-nonzero-start-group.no-earlier-group-synthesized",
+        "subscribe-nonzero-start-object.subscription-accepted",
+        "subscribe-nonzero-start-object.nonzero-object-ids-preserved",
+        "subscribe-nonzero-start-object.no-lower-object-synthesized",
+        "subscribe-sparse-group-object-ids.subscription-accepted",
+        "subscribe-sparse-group-object-ids.sparse-group-object-ids-preserved",
+        "subscribe-sparse-group-object-ids.gap-properties-absent",
+        "subscribe-object-properties.subscription-accepted",
+        "subscribe-object-properties.object-properties-preserved",
+        "subscribe-object-properties.no-extra-or-duplicate-properties"
+      ]
+    },
+    "phase_timings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "setup_ms": {"type": "integer", "minimum": 0},
+        "readiness_ms": {"type": "integer", "minimum": 0, "maximum": 10000},
+        "publisher_readiness_ms": {"type": "integer", "minimum": 0, "maximum": 10000},
+        "delivery_terminal_ms": {"type": "integer", "minimum": 0, "maximum": 10000},
+        "case_ms": {"type": "integer", "minimum": 0, "maximum": 10000}
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "basis",
+        "status",
+        "expected",
+        "observed",
+        "evidence_ids"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/assertion_id"
+        },
+        "description": {
+          "type": "string",
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "basis": {
+          "enum": [
+            "profile-fixture-requirement",
+            "draft-protocol-requirement"
+          ]
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "not-observed"
+          ]
+        },
+        "expected": {
+          "type": "object"
+        },
+        "observed": {
+          "type": "object"
+        },
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "kind",
+        "sha256",
+        "media_type",
+        "byte_length",
+        "producer",
+        "captured_at_utc",
+        "locator"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "category": {
+          "enum": [
+            "publisher-readiness",
+            "control-observations",
+            "object-observations",
+            "delivery-observations",
+            "tap14",
+            "process-logs",
+            "reproduction-metadata"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "tap14",
+            "control-trace",
+            "object-trace",
+            "stream-trace",
+            "serve-model",
+            "stdout",
+            "stderr",
+            "process-log",
+            "metadata"
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "media_type": {
+          "type": "string",
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "producer": {
+          "enum": [
+            "publisher",
+            "relay",
+            "subscriber",
+            "runner",
+            "driver"
+          ]
+        },
+        "captured_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "locator": {
+          "type": "string",
+          "pattern": "^(file://|https://|artifact:)[^\\s]+$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "publisher-readiness"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "control-trace",
+                  "serve-model"
+                ]
+              },
+              "producer": {
+                "enum": [
+                  "publisher",
+                  "relay",
+                  "subscriber",
+                  "driver"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "control-observations"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "kind": {
+                "const": "control-trace"
+              },
+              "producer": {
+                "enum": [
+                  "publisher",
+                  "relay",
+                  "subscriber",
+                  "driver"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "object-observations"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "object-trace",
+                  "serve-model"
+                ]
+              },
+              "producer": {
+                "enum": [
+                  "publisher",
+                  "relay",
+                  "subscriber",
+                  "driver"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "delivery-observations"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "stream-trace",
+                  "serve-model"
+                ]
+              },
+              "producer": {
+                "enum": [
+                  "publisher",
+                  "relay",
+                  "subscriber",
+                  "driver"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "tap14"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "kind": {
+                "const": "tap14"
+              },
+              "producer": {
+                "const": "driver"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "process-logs"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "stdout",
+                  "stderr",
+                  "process-log"
+                ]
+              },
+              "producer": {
+                "enum": [
+                  "publisher",
+                  "relay",
+                  "subscriber",
+                  "runner",
+                  "driver"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
+                "const": "reproduction-metadata"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "kind": {
+                "const": "metadata"
+              },
+              "producer": {
+                "enum": [
+                  "runner",
+                  "driver"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "reproduction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "environment",
+        "relay_endpoint",
+        "per_case_timeout_ms"
+      ],
+      "properties": {
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^\\S(?:.*\\S)?$"
+          }
+        },
+        "environment": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "relay_endpoint": {
+          "type": "string",
+          "pattern": "^(moqt|https)://[^\\s/:]+(:[0-9]+)?(/[^\\s]*)?$"
+        },
+        "per_case_timeout_ms": {
+          "enum": [
+            10000,
+            20000
+          ]
+        }
+      }
+    }
+  }
+}

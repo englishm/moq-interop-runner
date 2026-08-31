@@ -1,22 +1,22 @@
 # moxygen Conformance Client Registration Contract
 
-This document defines the minimum contract for a future moxygen draft-18 conformance-client image. It does not register an image. `implementations.json` must not change until a real `linux/amd64` image is published and its manifest digest is verified.
+This document defines the minimum contract for a future moxygen conformance-client image targeting the profile's current `draft-18`. It does not register an image. `implementations.json` must not change until a real `linux/amd64` image is published and its manifest digest is verified.
 
-Registration is then a one-file PR changing only `implementations.json`, but that change provides TAP-compatible scheduling only. Full ingestion and evaluation of the profile's assertion, evidence, provenance, and opaque-deployment records requires a later runner result/evidence PR. The registration PR does not make the current runner profile-evidence-aware.
+Registration is then a one-file PR changing only `implementations.json`, but that change provides TAP-compatible scheduling only. Full ingestion and evaluation of the profile's assertion, evidence, provenance, and opaque-deployment records requires a later runner result/evidence PR. Neither this registration contract nor an `implementations.json` entry changes `support_verification.state`; verified support additionally requires a timestamp, pinned source revision and image digest, evidence links, and conforming result records. The registration PR does not make the current runner profile-evidence-aware.
 
 ## Container Interface
 
 The image entrypoint must conform to the existing test-client interface:
 
 - `RELAY_URL` is required and identifies the relay under test.
-- `TESTCASE` is optional. When present in a manual run, it is one profile-local `MOXYGEN-D18-CASE-NNN` source-binding handle.
+- `TESTCASE` is optional. When present in a manual run, it is one stable semantic source-binding ID from the profile.
 - `TLS_DISABLE_VERIFY=1` disables peer certificate verification. Other values must not silently disable verification. The future wrapper must actively plumb this setting to both relevant moxygen connections; the reviewed baseline's unconditional insecure verifier is not acceptable executable behavior.
 - `--list` prints exactly one supported source-binding handle per line and exits 0. The initial scheduled set is the seven source bindings mapped to diagnostic gates. Deferred bindings are unsupported.
 - Standard output is valid TAP version 14. Diagnostic logs go to standard error or valid indented TAP diagnostics, never unframed standard output.
 - Exit 0 means every requested case passed. Exit 1 means at least one requested case failed or the harness/readiness/evidence path failed. Exit 127 means the selected `TESTCASE` is unknown, deferred, or otherwise unsupported.
-- Each moxygen case has an enforced timeout selected from the manifest after publisher readiness. Diagnostic gates and ordinary intended cases use 10 seconds; intended slow cases 044 and 046 use at least 30 seconds. Every wrapper timeout remains below the runner's 120-second whole-container limit. Server attachment has its own bounded readiness timeout.
+- Each moxygen case has an enforced timeout selected from the manifest after publisher readiness. The seven moxygen diagnostic-gate bindings and ordinary intended source cases use 10 seconds; `subscribe-low-frequency-updates` and `subscribe-many-groups-and-objects` use at least 30 seconds. The independent client has separate 20-second gate budgets and is not this registration's schedule. Every wrapper timeout remains below the runner's 120-second whole-container limit. Server attachment has its own bounded readiness timeout.
 
-The current runner invokes a client image once, without `TESTCASE`, under one 120-second whole-container timeout. Therefore the initial registered entrypoint must default to the seven diagnostic gates only and complete all seven within that limit. The other 22 intended declarations remain manual/full-profile cases until a later per-case scheduling PR; they must not run in the initial scheduled default.
+The current runner invokes a client image once, without `TESTCASE`, under one 120-second whole-container timeout. Therefore the initial registered entrypoint must default to the seven diagnostic gates only and complete all seven within that limit. Their moxygen case windows total 70 seconds, leaving 50 seconds for bounded startup, readiness, transitions, TAP emission, and shutdown. The other 20 intended declarations remain manual/full-profile inventory until they receive formal contracts and a later per-case scheduling PR; they must not run in the initial scheduled default.
 
 The wrapper must invoke each moxygen declaration separately and map its exact source ordinal and name to the profile-local binding handle. It must reject ambiguous moxygen output strictly:
 
@@ -64,7 +64,7 @@ After the image exists, its fixed ordering behavior and executable SHA are pinne
 
 ```json
 "moxygen-conformance": {
-  "name": "moxygen conformance client (draft-18)",
+  "name": "moxygen conformance client",
   "organization": "Meta",
   "repository": "https://github.com/facebookexperimental/moxygen",
   "draft_versions": [

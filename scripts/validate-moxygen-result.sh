@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 RESULT=${1:-}
-PROFILE=${2:-"$ROOT_DIR/docs/moxygen-draft18-support-profile.json"}
+PROFILE=${2:-"$ROOT_DIR/docs/moxygen-relay-support-profile.json"}
 
 if [[ -z "$RESULT" ]]; then
   echo "Usage: $0 RESULT.json [PROFILE.json]" >&2
@@ -73,12 +73,15 @@ if ! jq -e --slurpfile profile "$PROFILE" '
 
   $profile[0] as $p |
   . as $r |
+  ($p.gates[] | select(.id == $r.identity.gate_id)) as $gate |
+  (.phase_timings_ms | keys) as $phase_keys |
   (tostring | contains("TBD") | not) and
-  (keys == ["assertions","claimed_outcome","deployments","disposition","duration_ms","evaluator_verdict","evidence","evidence_integrity_verification","execution","failure_classification","identity","independence_class","opaque_limitations","protocol","provenance_verification","reproducibility","reproduction","revisions","started_at_utc"]) and
-  (.identity | keys == ["driver_binding","gate_id","gate_revision","profile_id","profile_revision","profile_version","record_id","run_id","source_binding"]) and
+  (keys == ["assertions","claimed_outcome","deployments","disposition","duration_ms","evaluator_verdict","evidence","evidence_integrity_verification","execution","failure_classification","identity","independence_class","opaque_limitations","phase_timings_ms","protocol","provenance_verification","reproducibility","reproduction","revisions","started_at_utc"]) and
+  (.identity | keys == ["driver_binding","gate_id","gate_revision","profile_id","profile_revision","profile_version","record_id","run_id","source_binding","target_draft"]) and
   .identity.profile_id == $p.profile.id and
   .identity.profile_version == $p.profile.version and
   .identity.profile_revision == $p.profile.revision and
+  .identity.target_draft == $p.profile.target_draft and
   .identity.gate_revision == 1 and
   ([ $p.gates[].id ] | index($r.identity.gate_id)) != null and
   (.identity.record_id | identifier) and (.identity.run_id | identifier) and
@@ -105,24 +108,35 @@ if ! jq -e --slurpfile profile "$PROFILE" '
   (if .evaluator_verdict == "pass" then
      .execution == "completed" and .failure_classification == "none" and
      .evidence_integrity_verification == "verified" and .provenance_verification == "verified" and
-     (.assertions | length > 0) and all(.assertions[]; .status == "pass") and
-     .protocol.negotiated_draft == "draft-18"
-   elif .evaluator_verdict == "fail" then
-     (.failure_classification == "profile-mismatch" or .failure_classification == "protocol-contradiction" or .failure_classification == "mixed")
-   elif .failure_classification == "driver-inconclusive" then
-     .identity.driver_binding == "moxygen_driver" and .evaluator_verdict == "inconclusive"
-   else true end) and
+     ([.assertions[].id] | sort) == ($gate.required_assertion_ids | sort) and
+     all(.assertions[]; .status == "pass") and
+     .protocol.negotiated_draft == .identity.target_draft
+    elif .evaluator_verdict == "fail" then
+      (.failure_classification == "profile-mismatch" or .failure_classification == "protocol-contradiction" or .failure_classification == "mixed") and
+      .evidence_integrity_verification == "verified" and .provenance_verification == "verified" and
+      ([.assertions[].id] | sort) == ($gate.required_assertion_ids | sort) and
+      any(.assertions[]; .status == "fail")
+    elif .evaluator_verdict == "inconclusive" then
+      (.failure_classification == "none" or
+       (.failure_classification == "driver-inconclusive" and .identity.driver_binding == "moxygen_driver")) and
+      (any(.assertions[]; .status == "not-observed") or
+       .evidence_integrity_verification != "verified" or
+       .provenance_verification != "verified")
+    elif .evaluator_verdict == "unsupported" or .evaluator_verdict == "harness-error" or .evaluator_verdict == null then
+      .failure_classification == "none"
+    else false end) and
   (.protocol | keys == ["negotiated_draft","transport","transport_alpn","webtransport_protocol"]) and
-  .protocol.negotiated_draft == "draft-18" and
+  .protocol.negotiated_draft == .identity.target_draft and
   (if .protocol.transport == "raw-quic" then
      .protocol.transport_alpn == "moqt-18" and .protocol.webtransport_protocol == null
    elif .protocol.transport == "webtransport" then
      (.protocol.transport_alpn | test("^h3(-[0-9]+)?$")) and .protocol.webtransport_protocol == "moqt-18"
    else false end) and
-  (.revisions | keys == ["driver_landing_sha","gate_revision","moq_rs_review_baseline_sha","moxygen_declaration_baseline_sha","normative_draft_sha","profile_revision","profile_version","runner_sha","schema_version"]) and
+  (.revisions | keys == ["driver_landing_sha","gate_revision","moq_rs_review_baseline_sha","moxygen_declaration_baseline_sha","normative_draft_sha","profile_revision","profile_version","runner_sha","schema_version","target_draft"]) and
   .revisions.schema_version == $p.schema_version and
   .revisions.profile_version == $p.profile.version and
   .revisions.profile_revision == $p.profile.revision and .revisions.gate_revision == 1 and
+  .revisions.target_draft == $p.profile.target_draft and
   .revisions.normative_draft_sha == $p.provenance.reference_baselines.normative_draft.sha and
   .revisions.moxygen_declaration_baseline_sha == $p.provenance.reference_baselines.moxygen_declarations.sha and
   .revisions.moq_rs_review_baseline_sha == $p.provenance.reference_baselines.moq_rs_review.sha and
@@ -131,6 +145,8 @@ if ! jq -e --slurpfile profile "$PROFILE" '
   (.deployments.publisher | valid_deployment("publisher")) and
   (.deployments.relay | valid_deployment("relay")) and
   (.deployments.subscriber | valid_deployment("subscriber")) and
+  .deployments.publisher.source_sha == .revisions.driver_landing_sha and
+  .deployments.subscriber.source_sha == .revisions.driver_landing_sha and
   (.opaque_limitations | type == "array") and all(.opaque_limitations[]; trimmed_nonempty) and
   (if .reproducibility == "reproducible" then
      (.opaque_limitations | length == 0) and all(.deployments[]; .visibility == "reproducible")
@@ -139,6 +155,7 @@ if ! jq -e --slurpfile profile "$PROFILE" '
    else false end) and
   (.assertions | type == "array") and
   ([.assertions[].id] | length) == ([.assertions[].id] | unique | length) and
+  all(.assertions[].id; . as $id | $gate.required_assertion_ids | index($id) != null) and
   all(.assertions[];
     (keys == ["basis","description","evidence_ids","expected","id","observed","status"]) and
     (.id | identifier) and (.description | trimmed_nonempty) and
@@ -160,18 +177,30 @@ if ! jq -e --slurpfile profile "$PROFILE" '
     (.byte_length | integer and . > 0) and
     (.captured_at_utc | utc_timestamp)) and
   ([.evidence[].id] as $evidence_ids | all(.assertions[].evidence_ids[]; . as $id | $evidence_ids | index($id) != null)) and
+  (.phase_timings_ms | type == "object") and
+  (if .identity.driver_binding == "moxygen_driver" then
+     $phase_keys == ["case_ms","publisher_readiness_ms"] and
+     (.phase_timings_ms.publisher_readiness_ms | integer and . >= 0 and . <= 10000) and
+     (.phase_timings_ms.case_ms | integer and . >= 0 and . <= $r.reproduction.per_case_timeout_ms) and
+     .duration_ms >= (.phase_timings_ms.publisher_readiness_ms + .phase_timings_ms.case_ms)
+   else
+     ($phase_keys == ["delivery_terminal_ms","readiness_ms"] or $phase_keys == ["delivery_terminal_ms","readiness_ms","setup_ms"]) and
+     (.phase_timings_ms.readiness_ms | integer and . >= 0 and . <= $p.execution_policy.independent_moq_test_client_timeout_components_ms.rendezvous) and
+     (.phase_timings_ms.delivery_terminal_ms | integer and . >= 0 and . <= $p.execution_policy.independent_moq_test_client_timeout_components_ms.delivery_and_terminal_margin) and
+     ((.phase_timings_ms | has("setup_ms") | not) or (.phase_timings_ms.setup_ms | integer and . >= 0)) and
+     .duration_ms >= ((.phase_timings_ms.setup_ms // 0) + .phase_timings_ms.readiness_ms + .phase_timings_ms.delivery_terminal_ms)
+   end) and
   (.reproduction | keys == ["command","environment","per_case_timeout_ms","relay_endpoint"]) and
   (.reproduction.command | type == "array" and length > 0) and all(.reproduction.command[]; trimmed_nonempty) and
   (.reproduction.environment | type == "object") and all(.reproduction.environment | to_entries[]; (.key | test("^[A-Za-z_][A-Za-z0-9_]*$")) and (.value | type == "string")) and
   (.reproduction.relay_endpoint | test("^(moqt|https)://[^\\s/:]+(:[0-9]+)?(/[^\\s]*)?$")) and
   (.reproduction.per_case_timeout_ms | integer and . > 0) and
-  .reproduction.per_case_timeout_ms == 10000 and
-  .reproduction.per_case_timeout_ms == $p.execution_policy.diagnostic_gate_timeouts_ms[$r.identity.gate_id] and
+  .reproduction.per_case_timeout_ms == $p.execution_policy.diagnostic_gate_timeouts_ms[$r.identity.gate_id][$r.identity.driver_binding] and
   (.started_at_utc | utc_timestamp) and
   (.duration_ms | integer and . >= 0)
 ' "$RESULT" >/dev/null; then
-  echo "ERROR: invalid moxygen draft-18 result record: $RESULT" >&2
+  echo "ERROR: invalid moxygen relay support result record: $RESULT" >&2
   exit 1
 fi
 
-echo "Validated moxygen draft-18 result record: $RESULT"
+echo "Validated moxygen relay support result record: $RESULT"
