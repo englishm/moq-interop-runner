@@ -4,6 +4,9 @@
 
 This document defines interoperability test cases for Media over QUIC Transport (MoQT). These specifications are designed to be implementation-neutral and precise enough that any MoQT implementation can build a compatible test client.
 
+**Target Draft**: `draft-18`
+**Identifier Semantics Reviewed For**: `draft-18`
+
 **Protocol Reference**: [draft-ietf-moq-transport-18](https://www.ietf.org/archive/id/draft-ietf-moq-transport-18.html)
 
 > **Note**: Section references (e.g., "MoQT-18 §10.3") refer to the draft version above. Message names use the current draft-18 terminology. Where the draft defines request-specific aliases such as `PUBLISH_NAMESPACE_OK`, those aliases refer to a `REQUEST_OK` response.
@@ -209,7 +212,7 @@ Either outcome is valid; the test checks for graceful handling.
 
 These tests exercise the **PUBLISH flow**: a publisher sends a `PUBLISH` message directly naming a specific track, and the relay responds with `PUBLISH_OK`. This is distinct from the `PUBLISH_NAMESPACE` + `SUBSCRIBE` flow used in earlier tests, where a publisher announces an entire namespace and the relay routes incoming `SUBSCRIBE` requests back to that publisher. In the PUBLISH flow, the publisher establishes the track directly; the relay matches any arriving `SUBSCRIBE` for that track to the active publisher and routes data accordingly.
 
-### `publish-track-only`
+### `publish-without-subscriber`
 
 **Protocol References**: MoQT-18 §5.1 (Subscriptions), §9.5 (Publisher Interactions), §10.2.12 (FORWARD), §10.5 (REQUEST_OK / `PUBLISH_OK` alias), §10.10 (PUBLISH), §10.11 (PUBLISH_DONE), §11.4 (Streams)
 
@@ -218,7 +221,7 @@ These tests exercise the **PUBLISH flow**: a publisher sends a `PUBLISH` message
 1. Connect to relay and complete SETUP exchange
 2. Send PUBLISH naming the test track (no subscriber is present)
 3. Wait for REQUEST_OK (`PUBLISH_OK`) and record its effective Forward State; an omitted FORWARD parameter means 1
-4. If Forward State is 1, write Group 0, Subgroup 0, Object 0 with payload `moqt18-publish-track-only`, then close the subgroup stream with FIN; if it is 0, send no track data
+4. If Forward State is 1, write Group 0, Subgroup 0, Object 0 with payload `publish-without-subscriber`, then close the subgroup stream with FIN; if it is 0, send no track data
 5. Close the track with PUBLISH_DONE/TRACK_ENDED and an accurate Stream Count: 1 if a subgroup stream was opened, otherwise 0
 6. Finish the request stream after PUBLISH_DONE and wait for the PUBLISH sequence to complete
 
@@ -246,7 +249,7 @@ These tests exercise the **PUBLISH flow**: a publisher sends a `PUBLISH` message
 
 ---
 
-### `publish-track-subscribe`
+### `publish-to-pending-subscription`
 
 **Protocol References**: MoQT-18 §5.1 (Subscriptions), §9.5 (Publisher Interactions), §10.2.6 (RENDEZVOUS_TIMEOUT), §10.2.12 (FORWARD), §10.5 (REQUEST_OK / `PUBLISH_OK` alias), §10.7 (SUBSCRIBE), §10.8 (SUBSCRIBE_OK), §10.10 (PUBLISH), §10.11 (PUBLISH_DONE), §11.4 (Streams)
 
@@ -264,7 +267,7 @@ These tests exercise the **PUBLISH flow**: a publisher sends a `PUBLISH` message
 2. Send PUBLISH naming the same test track
 3. Wait for REQUEST_OK (`PUBLISH_OK`) with effective Forward State 1; an omitted FORWARD parameter means 1
 4. Require the subscriber to receive SUBSCRIBE_OK
-5. Write Group 0, Subgroup 0, Object 0 with payload `moqt18-publish-track-subscribe`
+5. Write Group 0, Subgroup 0, Object 0 with payload `publish-to-pending-subscription`
 6. Close the subgroup stream with FIN
 7. Send PUBLISH_DONE/TRACK_ENDED with Stream Count 1, then finish the request stream
 
@@ -321,19 +324,11 @@ This section outlines potential future test cases. The actual test definitions w
 MoQT supports two primary publisher-subscriber rendezvous patterns, each exercised by separate test categories in this suite:
 
 - **PUBLISH_NAMESPACE + SUBSCRIBE flow** (Category: Subscriptions): Publisher announces namespace availability via `PUBLISH_NAMESPACE`; relay routes incoming `SUBSCRIBE` requests to the publisher. Tests: `announce-only`, `publish-namespace-done`, `announce-subscribe`, `subscribe-before-announce`.
-- **PUBLISH + SUBSCRIBE flow** (Category: Track Publishing): Publisher directly publishes a specific track via `PUBLISH`; the relay matches any incoming `SUBSCRIBE` for that track to the active publisher. Tests: `publish-track-only`, `publish-track-subscribe`.
+- **PUBLISH + SUBSCRIBE flow** (Category: Track Publishing): Publisher directly publishes a specific track via `PUBLISH`; the relay matches any incoming `SUBSCRIBE` for that track to the active publisher. Tests: `publish-without-subscriber`, `publish-to-pending-subscription`.
 
-### Test Client Capability Matrix
+### Test Client Support
 
-As the test suite grows, different test clients may support different subsets of tests. A capability matrix could help:
-
-| Test Client | `setup-only` | `announce-only` | `publish-namespace-done` | `subscribe-error` | `announce-subscribe` | `subscribe-before-announce` | `publish-track-only` | `publish-track-subscribe` |
-|-------------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| moq-test-client (moq-rs) | Yes | Name mismatch | Yes | Yes | Name mismatch | Name mismatch | Needs alignment | Needs alignment |
-
-`moq-test-client` currently lists `publish-namespace-only`, `publish-namespace-subscribe`, and `subscribe-before-publish-namespace` for the three cells marked Name mismatch; the runner does not translate those identifiers. Its two direct-PUBLISH scenarios also require alignment with the procedures above. A listed implementation is a capability claim, not an interoperability result.
-
-Test clients declare available tests via the `--list` command (one identifier per line). The `TESTCASE` environment variable selects a single test; exit code `127` signals an unsupported test.
+This specification does not maintain a prose capability matrix. Evolving support claims belong in machine-readable conformance profiles with pinned implementation provenance and evidence. Run-specific observations belong in result artifacts. Test clients still declare available tests through `--list`; `TESTCASE` selects one test and exit code `127` signals an unsupported test.
 
 ---
 

@@ -10,6 +10,8 @@ This document has been reorganized into separate, focused documents:
 | **[MOXYGEN-RELAY-SUPPORT-PROFILE.md](./MOXYGEN-RELAY-SUPPORT-PROFILE.md)** | Canonical 58-case moxygen relay support inventory for the current target |
 | **[MOXYGEN-DIAGNOSTIC-GATES.md](./MOXYGEN-DIAGNOSTIC-GATES.md)** | Seven canonical independent diagnostic-gate specifications |
 | **[MOXYGEN-CONFORMANCE-CLIENT-REGISTRATION.md](./MOXYGEN-CONFORMANCE-CLIENT-REGISTRATION.md)** | Future digest-pinned moxygen conformance-client registration contract |
+| **[TARGET-DRAFT-POLICY.md](./TARGET-DRAFT-POLICY.md)** | Identifier lifecycle and target-draft review checklist |
+| **[tests/retired-test-identifiers.json](./tests/retired-test-identifiers.json)** | Retired identifier tombstones and replacements |
 
 The moxygen profile's machine-readable manifest and schema are
 [`moxygen-relay-support-profile.json`](./moxygen-relay-support-profile.json)
@@ -28,8 +30,8 @@ and
 | `subscribe-error` | Subscription | Error for non-existent track |
 | `announce-subscribe` | Subscription | Relay routes subscription to publisher |
 | `subscribe-before-announce` | Subscription | Out-of-order subscribe/announce |
-| `publish-track-only` | Track Publishing | Direct PUBLISH without a subscriber |
-| `publish-track-subscribe` | Track Publishing | Direct PUBLISH matched to a subscriber |
+| `publish-without-subscriber` | Track publishing | Exercise the Forward-State-aware lifecycle without a subscriber |
+| `publish-to-pending-subscription` | Track publishing | Rendezvous a subscriber-first request with PUBLISH delivery |
 
 ### Interface Summary
 
