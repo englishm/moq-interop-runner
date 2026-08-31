@@ -63,7 +63,7 @@ TAP hits all the goals well:
 
 - **YAML diagnostics.** TAP14 supports optional YAML blocks after any test point. This is how we get extensible metadata (connection IDs, mlog paths, latency, expected/received values) without complicating the base format. Basic parsers that don't understand YAML still work fine.
 
-- **SKIP and TODO directives.** `SKIP` maps directly to "this test client doesn't implement this test case." `TODO` could represent known issues. The harness can distinguish "not implemented" from "failed" without inventing custom conventions.
+- **SKIP and TODO directives.** For an explicitly selected known test, `SKIP` maps directly to "this test client doesn't implement this test case." `TODO` could represent known issues. The harness can distinguish "not implemented" from "failed" without inventing custom conventions.
 
 - **Ecosystem.** TAP parsers exist in Rust, Go, C, Python, JavaScript, and many other languages. Test client authors can often use an existing library. CI systems like GitHub Actions and Jenkins have TAP support.
 
@@ -75,10 +75,10 @@ TAP hits all the goals well:
 
 - Output valid TAP version 14 to stdout
 - Each test case = one test point (`ok N - test-name` or `not ok N - test-name`)
-- Use `# SKIP reason` for unimplemented tests
+- Use `# SKIP reason` when an explicitly selected runner-defined test is not implemented; omitted selection runs only supported tests
 - YAML diagnostics are optional but encouraged for failure context
 - Subtests are optional; useful for multi-step tests where intermediate visibility helps
-- Exit 0 if all tests pass, non-zero otherwise
+- Exit 0 if all executed tests pass or are skipped, 1 if any executed test fails, and 127 if an explicitly selected ID is unknown
 
 ### For the test harness
 
@@ -147,10 +147,8 @@ Skipped tests:
 
 ```tap
 TAP version 14
-1..3
-ok 1 - setup-only
-ok 2 - announce-only
-ok 3 - publish-namespace-done # SKIP not implemented
+1..1
+ok 1 - publish-namespace-done # SKIP not implemented
 ```
 
 ## Future Directions

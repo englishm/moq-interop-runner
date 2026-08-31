@@ -170,13 +170,13 @@ Adding a test client for your implementation expands the interop matrix from "do
 The process:
 
 1. **Implement the interface** — [TEST-CLIENT-INTERFACE.md](./TEST-CLIENT-INTERFACE.md) defines the contract (env vars, TAP output, exit codes)
-2. **Follow the guide** — [IMPLEMENTING-A-TEST-CLIENT.md](./IMPLEMENTING-A-TEST-CLIENT.md) walks through building a test client with pseudocode examples
+2. **Follow the guide** — [IMPLEMENTING-A-TEST-CLIENT.md](./IMPLEMENTING-A-TEST-CLIENT.md) covers invocation, identifiers, multi-role coordination, validation, and diagnostics
 3. **Package as Docker** — the runner executes clients as containers
 4. **Register** — add a `client` role to your `implementations.json` entry
 
 [Issue #13](https://github.com/englishm/moq-interop-runner/issues/13) has a detailed walkthrough of the full process including Docker image options (pre-built registry image, adapter, or source build).
 
-You don't need to implement every test case to start — even just `setup-only` is valuable. Use the TAP `SKIP` directive for tests you haven't implemented yet.
+You don't need to implement every test case to start — even just `setup-only` is valuable. With no `TESTCASE`, run only supported tests. If a runner-defined but unsupported test is selected explicitly, report it with the TAP `SKIP` directive; reserve exit `127` for unknown IDs.
 
 ## Further Reading
 

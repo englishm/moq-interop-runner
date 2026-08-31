@@ -1,0 +1,207 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://moq.dev/schemas/data-plane.schema.json",
+  "title": "MoQT data-plane test vectors",
+  "type": "object",
+  "required": ["$schema", "suite", "suite_revision", "schema_digest", "target_draft", "normative_source", "common", "tests"],
+  "properties": {
+    "$schema": {"const": "./data-plane.schema.json"},
+    "suite": {"const": "moqt-data-plane-vectors"},
+    "suite_revision": {"type": "integer", "minimum": 1},
+    "schema_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "target_draft": {"const": "draft-18"},
+    "normative_source": {"$ref": "#/definitions/normative_source"},
+    "common": {"$ref": "#/definitions/common"},
+    "tests": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {"$ref": "#/definitions/test"}
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "normative_source": {
+      "type": "object",
+      "required": ["document", "sha", "url"],
+      "properties": {
+        "document": {"const": "draft-ietf-moq-transport-18"},
+        "sha": {"const": "cb2e772fd8ca8cbe7550b1765c269be89fb1c886"},
+        "url": {"const": "https://github.com/moq-wg/moq-transport/blob/cb2e772fd8ca8cbe7550b1765c269be89fb1c886/draft-ietf-moq-transport.md"}
+      },
+      "additionalProperties": false
+    },
+    "common": {
+      "type": "object",
+      "required": ["namespace_fields", "track_name", "run_id_pattern", "run_id_generation", "object_rules"],
+      "properties": {
+        "namespace_fields": {
+          "type": "array",
+          "items": [
+            {"const": "moq-interop"},
+            {"const": "{test_id}"}
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "track_name": {"const": "{run_id}"},
+        "run_id_pattern": {"const": "^[0-9a-f]{32}$"},
+        "run_id_generation": {"const": "cryptographically-secure-random-128-bit"},
+        "object_rules": {"$ref": "#/definitions/object_rules"}
+      },
+      "additionalProperties": false
+    },
+    "object_rules": {
+      "type": "object",
+      "required": [
+        "status",
+        "forwarding_preference",
+        "end_of_group_markers",
+        "datagrams",
+        "fetch",
+        "payload_byte_ascii",
+        "first_emitted_in_group_length",
+        "other_object_length",
+        "even_group_publisher_priority",
+        "odd_group_publisher_priority",
+        "fixture_cadence_ms",
+        "arrival_timing_assertion"
+      ],
+      "properties": {
+        "status": {"const": "normal"},
+        "forwarding_preference": {"const": "subgroup"},
+        "end_of_group_markers": {"const": false},
+        "datagrams": {"const": false},
+        "fetch": {"const": false},
+        "payload_byte_ascii": {"const": "t"},
+        "first_emitted_in_group_length": {"const": 16},
+        "other_object_length": {"const": 8},
+        "even_group_publisher_priority": {"const": 200},
+        "odd_group_publisher_priority": {"const": 201},
+        "fixture_cadence_ms": {"const": 10},
+        "arrival_timing_assertion": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "test": {
+      "type": "object",
+      "required": ["id", "revision", "vector_digest", "objects", "termination"],
+      "properties": {
+        "id": {
+          "enum": [
+            "subscribe-one-subgroup-per-group",
+            "subscribe-one-subgroup-per-object",
+            "subscribe-two-subgroups-per-group",
+            "subscribe-nonzero-start-group",
+            "subscribe-nonzero-start-object",
+            "subscribe-sparse-group-object-ids",
+            "subscribe-object-properties"
+          ]
+        },
+        "revision": {"type": "integer", "minimum": 1},
+        "vector_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "objects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/definitions/object"}
+        },
+        "termination": {"$ref": "#/definitions/termination"}
+      },
+      "additionalProperties": false
+    },
+    "object": {
+      "type": "object",
+      "required": [
+        "fixture_emit_at_ms",
+        "group_id",
+        "subgroup_id",
+        "object_id",
+        "publisher_priority",
+        "status",
+        "forwarding_preference",
+        "payload_length",
+        "payload_ascii",
+        "properties"
+      ],
+      "properties": {
+        "fixture_emit_at_ms": {"type": "integer", "minimum": 0, "multipleOf": 10},
+        "group_id": {"type": "integer", "minimum": 0},
+        "subgroup_id": {"type": "integer", "minimum": 0},
+        "object_id": {"type": "integer", "minimum": 0},
+        "publisher_priority": {"type": "integer", "minimum": 0, "maximum": 255},
+        "status": {"const": "normal"},
+        "forwarding_preference": {"const": "subgroup"},
+        "payload_length": {"enum": [8, 16]},
+        "payload_ascii": {"type": "string", "pattern": "^t+$"},
+        "properties": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/property"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "property": {
+      "oneOf": [
+        {"$ref": "#/definitions/integer_property"},
+        {"$ref": "#/definitions/bytes_property"}
+      ]
+    },
+    "integer_property": {
+      "type": "object",
+      "required": ["type", "value_kind", "integer_value"],
+      "properties": {
+        "type": {"type": "integer", "minimum": 0},
+        "value_kind": {"const": "integer"},
+        "integer_value": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "bytes_property": {
+      "type": "object",
+      "required": ["type", "value_kind", "bytes_ascii"],
+      "properties": {
+        "type": {"type": "integer", "minimum": 0},
+        "value_kind": {"const": "bytes"},
+        "bytes_ascii": {"type": "string", "minLength": 1, "pattern": "^[ -~]+$"}
+      },
+      "additionalProperties": false
+    },
+    "termination": {
+      "type": "object",
+      "required": ["subgroup_streams", "publish_done", "request_stream_terminal"],
+      "properties": {
+        "subgroup_streams": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/definitions/subgroup_stream"}
+        },
+        "publish_done": {"$ref": "#/definitions/publish_done"},
+        "request_stream_terminal": {"const": "FIN"}
+      },
+      "additionalProperties": false
+    },
+    "subgroup_stream": {
+      "type": "object",
+      "required": ["group_id", "subgroup_id", "first_object", "end_of_group", "final_object_id", "terminal"],
+      "properties": {
+        "group_id": {"type": "integer", "minimum": 0},
+        "subgroup_id": {"type": "integer", "minimum": 0},
+        "first_object": {"const": true},
+        "end_of_group": {"const": false},
+        "final_object_id": {"type": "integer", "minimum": 0},
+        "terminal": {"const": "FIN"}
+      },
+      "additionalProperties": false
+    },
+    "publish_done": {
+      "type": "object",
+      "required": ["status", "stream_count", "publisher_reason"],
+      "properties": {
+        "status": {"const": "TRACK_ENDED"},
+        "stream_count": {"type": "integer", "minimum": 1},
+        "publisher_reason": {"const": ""}
+      },
+      "additionalProperties": false
+    }
+  }
+}

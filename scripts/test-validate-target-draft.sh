@@ -77,7 +77,7 @@ append_retirement() {
         '.retired_identifiers += [{
             id: $id,
             last_known_target: "draft-18",
-            last_known_profile_revision: "synthetic-profile-v1",
+            last_known_spec_revision: "synthetic-spec-v1",
             reason: "Synthetic canonical behavior changed.",
             replacement: (if $replacement == "__NULL__" then null else $replacement end)
         }]' \
@@ -168,6 +168,52 @@ expect_pass "fenced declarations and IDs are ignored" run_validator
 
 reset_fixtures
 printf '%s\n' \
+    '````markdown' \
+    '### case-d17-hidden-in-four-backticks' \
+    '```' \
+    '### case-d17-still-hidden' \
+    '````' >> "$PRIMARY_SPEC"
+expect_pass "shorter fence cannot close a longer fence" run_validator
+
+reset_fixtures
+printf '%s\n' \
+    '`<!--`' \
+    '### case-d17-visible-between-inline-code' \
+    '`-->`' >> "$PRIMARY_SPEC"
+expect_fail "inline code comment markers cannot hide visible IDs" "version-specific public heading ID" run_validator
+
+reset_fixtures
+printf '%s\n' \
+    '\<!--' \
+    '### case-d17-visible-after-escaped-opener' \
+    '-->' >> "$PRIMARY_SPEC"
+expect_fail "escaped comment opener cannot hide visible IDs" "version-specific public heading ID" run_validator
+
+reset_fixtures
+printf '%s\n' \
+    '<span title="<!--">visible</span>' \
+    '### case-d17-visible-after-html-attribute' \
+    '-->' >> "$PRIMARY_SPEC"
+expect_fail "HTML attribute text cannot open a comment" "version-specific public heading ID" run_validator
+
+reset_fixtures
+printf '%s\n' \
+    '[visible](https://example.test "<!--")' \
+    '### case-d17-visible-after-link-title' \
+    '-->' >> "$PRIMARY_SPEC"
+expect_fail "link title text cannot open a block comment" "version-specific public heading ID" run_validator
+
+reset_fixtures
+printf '%s\n' \
+    'before `multiline code' \
+    'contains <!-- without opening a comment' \
+    'and closes here`' \
+    '### case-d17-visible-after-multiline-code' \
+    '-->' >> "$PRIMARY_SPEC"
+expect_fail "multiline code comment marker cannot hide visible IDs" "version-specific public heading ID" run_validator
+
+reset_fixtures
+printf '%s\n' \
     '```text' \
     '<!-- literal unclosed comment inside example' \
     '```' \
@@ -228,6 +274,10 @@ expect_fail "dNN token anywhere" "version-specific public heading ID" run_valida
 reset_fixtures
 printf '%s\n' '### case-draft-18-middle' >> "$PRIMARY_SPEC"
 expect_fail "draft-NN token anywhere" "version-specific public heading ID" run_validator
+
+reset_fixtures
+printf '%s\n' '### case-draft18-middle' >> "$PRIMARY_SPEC"
+expect_fail "unseparated draftNN token anywhere" "version-specific public heading ID" run_validator
 
 reset_fixtures
 append_identifier_table_row 'case-DRAFT_18-middle'
@@ -310,17 +360,27 @@ append_identifier_table_row 'table-only-replacement'
 expect_fail "table proposal cannot satisfy retirement replacement" "does not terminate at an active canonical ID" run_validator
 
 reset_fixtures
-append_retirement "$RETIRED_FILE" "retired-profile-id" "profile-only-replacement"
+append_retirement "$RETIRED_FILE" "retired-additional-id" "additional-only-replacement"
 printf '%s\n' \
     '# Optional Profile' \
     '**Target Draft**: `draft-18`' \
     '**Identifier Semantics Reviewed For**: `draft-18`' \
-    '### profile-only-replacement' > "$OPTIONAL_SPEC"
-expect_fail "additional profile cannot satisfy primary retirement" "does not terminate at an active canonical ID" run_validator "$OPTIONAL_SPEC"
+    '### additional-only-replacement' > "$OPTIONAL_SPEC"
+expect_fail "additional spec cannot satisfy primary retirement" "does not terminate at an active canonical ID" run_validator "$OPTIONAL_SPEC"
 
 reset_fixtures
 rewrite_registry '.unexpected = true'
 expect_fail "registry rejects extra top-level keys" "invalid registry format or retirement record" run_validator
+
+reset_fixtures
+printf '%s\n' \
+    '{' \
+    '  "format": "wrong",' \
+    '  "format": "moqt-retired-test-identifiers",' \
+    '  "format_version": 1,' \
+    '  "retired_identifiers": []' \
+    '}' > "$RETIRED_FILE"
+expect_fail "registry rejects duplicate keys" "duplicate object key" run_validator
 
 reset_fixtures
 append_retirement "$RETIRED_FILE" "retired-extra-field" "publish-without-subscriber"

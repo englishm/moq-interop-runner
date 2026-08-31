@@ -154,13 +154,14 @@ healthcheck:
 image: impl-name-test-client:latest
 environment:
   - RELAY_URL=https://relay:4443
-  - TESTCASE=setup-only  # or omit for all tests
+  - TESTCASE=setup-only  # or omit to run all tests supported by the client
   - TLS_DISABLE_VERIFY=1  # for self-signed certs
 exit_code:
-  # 0 = all tests passed
+  # 0 = all executed tests passed or were skipped
   # 1 = one or more tests failed
+  # 127 = selected semantic test ID is unknown
 stdout:
-  # Must include: MOQT_TEST_RESULT: SUCCESS or FAILURE
+  # Must be valid TAP version 14
 ```
 
 ## Test Matrix
@@ -185,17 +186,17 @@ Each cell in this matrix represents a test: can this client successfully communi
 Test results are collected in multiple formats:
 
 ### Exit Code
-- `0` = all tests passed
+- `0` = all executed tests passed or were skipped
 - `1` = one or more tests failed
+- `127` = selected semantic test ID is unknown
 
 ### stdout
-Human-readable results plus machine-parseable summary:
-```
-✓ setup-only (24 ms) [CID: abc123]
-✓ announce-only (2011 ms) [CID: def456]
-...
-Results: 5 passed, 0 failed
-MOQT_TEST_RESULT: SUCCESS
+TAP version 14, with optional comments and YAML diagnostics:
+```tap
+TAP version 14
+1..2
+ok 1 - setup-only
+ok 2 - announce-only
 ```
 
 ### mlog Files

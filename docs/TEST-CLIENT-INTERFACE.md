@@ -1,256 +1,175 @@
 # MoQT Test Client Interface Specification
 
-> **This is reference material.** It defines the exact contract test clients must follow. For a guided walkthrough of building a test client, see [IMPLEMENTING-A-TEST-CLIENT.md](./IMPLEMENTING-A-TEST-CLIENT.md).
+> **This is reference material.** It defines the test-client contract. For implementation guidance, see [IMPLEMENTING-A-TEST-CLIENT.md](./IMPLEMENTING-A-TEST-CLIENT.md).
 
-This document defines the interface that MoQT test clients MUST implement to be compatible with the moq-interop-runner framework.
+## Command-Line Interface
 
-## Command Line Interface
+Test clients SHOULD provide the following equivalent command-line interface:
 
-Test clients SHOULD support the following command-line interface:
-
-```bash
-moq-test-client [OPTIONS]
+```text
+test-client [OPTIONS]
 
 Options:
-  -r, --relay <URL>           Relay URL (default: https://localhost:4443)
-  -t, --test <NAME>           Run specific test (omit to run all)
-  -l, --list                  List available tests
-  -v, --verbose               Verbose output
+  -r, --relay <URL>           Relay URL
+  -t, --test <ID>             Select one semantic test ID
+  -l, --list                  List supported semantic test IDs
+  -v, --verbose               Emit verbose diagnostics
       --tls-disable-verify    Disable TLS certificate verification
 ```
 
-### URL Schemes
+`moqt://` selects native QUIC. `https://` selects WebTransport over HTTP/3. Draft and protocol negotiation still follow the selected test and registered endpoint; clients MUST NOT infer a fixed ALPN from the URL scheme alone.
 
-- `https://` - WebTransport over HTTP/3
-- `moqt://` - Raw QUIC with ALPN `moq-00`
+Explicit command-line arguments take precedence over environment variables. The client MUST use the relay URL exactly as supplied except for parsing required to establish the indicated transport.
 
-## Environment Variable Interface
+## Environment Variables
 
-For containerized testing, the following environment variables are supported:
+Containerized clients use this interface:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `RELAY_URL` | Yes | Relay URL (`https://` for WebTransport, `moqt://` for raw QUIC) |
-| `TESTCASE` | No | Specific test to run (runs all if not set) |
-| `TLS_DISABLE_VERIFY` | No | Set to `1` to skip certificate verification |
-| `VERBOSE` | No | Set to `1` for verbose output |
+| `RELAY_URL` | Yes | Relay URL used by every logical session in the invocation |
+| `TESTCASE` | No | Exact semantic test ID; when omitted, run all tests supported by the client |
+| `TLS_DISABLE_VERIFY` | No | Set to `1` to disable certificate verification |
+| `VERBOSE` | No | Set to `1` for verbose diagnostics |
 
-Environment variables take precedence over command-line defaults but not over explicit command-line arguments.
+## Invocation and Image Model
+
+The runner registers and invokes one client image. No separate publisher image or publisher registry role is required.
+
+One client invocation owns and coordinates all logical roles needed by its selected tests. For a publisher/subscriber data-plane test, that invocation MUST establish both logical MoQT sessions against the same `RELAY_URL`. The roles MAY run in one process or in coordinated subprocesses within the same image.
+
+The current runner starts the client image once for each client/relay endpoint run without setting `TESTCASE` or calling `--list`, so the client runs all tests it supports. The `--list` and `TESTCASE` interfaces also support direct and per-case invocation.
+
+## Semantic Test IDs
+
+Test IDs are defined by the test specifications. Their spelling MUST be identical across `--list`, `TESTCASE`, and the corresponding TAP test-point name. Clients MUST use them directly.
+
+`--list` outputs one supported semantic test ID per line, without TAP framing. A selected known test that the client does not support MUST produce a TAP `SKIP` point under that exact ID. An ID absent from the test specifications is unknown and MUST exit `127`.
+
+When `TESTCASE` is omitted, the invocation runs all semantic tests supported by the client.
+
+## Data-Plane Test Contract
+
+This section applies to the seven tests defined in [tests/DATA-PLANE.md](./tests/DATA-PLANE.md).
+
+### Run-Scoped Track
+
+Each test run MUST create a fresh 128-bit Run ID with a cryptographically secure random generator and represent it as exactly 32 lowercase hexadecimal characters. Generation failure MUST fail the test; clients MUST NOT fall back to a timestamp, counter, process ID, or fixed value. Both roles MUST use this Full Track Name:
+
+- Track Namespace tuple: `("moq-interop", <semantic-test-id>)`
+- Track Name: `<run-id>`
+
+The tuple components are MoQT namespace fields, not a path string. The random Track Name isolates concurrent runs and stale relay state within the test's namespace.
+
+### Rendezvous
+
+The client MUST coordinate the roles in this order:
+
+1. Establish the subscriber session and send an exact-track `SUBSCRIBE` for the run-scoped Full Track Name with a bounded rendezvous timeout.
+2. Confirm that the complete `SUBSCRIBE` request has been flushed to the transport before allowing publication to begin. Waiting only for local request construction is insufficient.
+3. Establish the publisher session and send direct `PUBLISH` for the same Full Track Name.
+4. Require a successful PUBLISH response and record its effective Forward State. An omitted `FORWARD` parameter has effective value `1`.
+5. If the PUBLISH response had Forward State `0`, continue processing the PUBLISH request stream concurrently with the subscriber wait, require `REQUEST_UPDATE` to set Forward State `1`, and respond successfully to that update. Do not wait for `SUBSCRIBE_OK` before acknowledging the update.
+6. Independently require `SUBSCRIBE_OK`.
+7. Do not publish Objects until the publisher's effective Forward State is `1` and the subscriber has received `SUBSCRIBE_OK`.
+
+A rejection, a non-success PUBLISH response, failure to reach effective Forward State `1`, failure to receive `SUBSCRIBE_OK`, an Object sent while Forward State is `0`, or expiry of a bounded wait fails the test.
+
+### Fixtures and Verification
+
+The selected fixture vector supplies the expected data. It identifies its revision and algorithm-qualified digest and describes subgroup streams, Object coordinates, per-subgroup Object order, payload bytes, and terminal state. The digest covers `target_draft`, `normative_source`, `schema_digest`, common vector rules, and the selected test after omitting its `vector_digest` member, serialized as compact UTF-8 JSON with object keys recursively sorted in lexical order and no trailing line terminator.
+
+The publisher fixture MUST consume the explicit vector selected for the run. The verifier MUST independently compare subscriber-side decoded observations directly with that same vector. It MUST NOT obtain expected values from publisher output, publisher logs, a publisher generator, or a generator/lattice traversal shared with the publisher.
+
+Objects are ordered within a subgroup stream. There is no required global order between different subgroup streams; a verifier MUST accept any cross-stream interleaving that preserves each subgroup's order and matches the vector.
+
+### Completion
+
+The publisher MUST:
+
+1. Close every opened subgroup stream with FIN after writing its vector objects.
+2. Send `PUBLISH_DONE`/`TRACK_ENDED` with Stream Count equal to the exact number of subgroup streams opened for that publication.
+3. Finish the PUBLISH request stream after `PUBLISH_DONE`/`TRACK_ENDED`.
+
+The subscriber MUST use Stream Count to retain completion state until every counted subgroup stream has closed and has been verified. `PUBLISH_DONE`/`TRACK_ENDED` can be observed before one or more counted subgroup streams because control and data streams are independently delivered; this ordering is not a failure. It MUST also require FIN after PUBLISH_DONE on the SUBSCRIBE request stream's response direction.
 
 ## Exit Codes
 
 | Code | Meaning |
 |------|---------|
-| 0 | All requested tests passed |
-| 1 | One or more tests failed |
-| 127 | Test or role not supported by this client |
+| `0` | Every executed test passed or was skipped |
+| `1` | One or more executed tests failed |
+| `127` | The selected semantic test ID is unknown |
 
-## Output Format
+## TAP Output
 
-Test clients MUST output valid [TAP version 14](https://testanything.org/tap-version-14-specification.html) to stdout. See [Decision 001](./decisions/001-tap-output-format.md) for rationale.
+Test clients MUST write valid [TAP version 14](https://testanything.org/tap-version-14-specification.html) to stdout. TAP is the machine-readable and human-readable result format.
 
-TAP is both human-readable and machine-parseable, so there is no separate "machine-parseable" output mode. The harness parses TAP directly.
+Every run MUST include:
 
-### Required Elements
+1. `TAP version 14`
+2. A plan, `1..N`
+3. One `ok N - <semantic-test-id>` or `not ok N - <semantic-test-id>` point per reported test
 
-Every test run MUST include:
-
-1. **Version line**: `TAP version 14`
-2. **Plan**: `1..N` where N is the number of test points
-3. **Test points**: One per test case, `ok N - name` or `not ok N - name`
-
-### Run-Level Comments
-
-TAP comment lines (starting with `#`) can appear anywhere in the output and are ignored by harnesses but visible to humans reading the output directly. Test clients SHOULD include identifying information about the test run as comments between the version line and the plan:
+Known unsupported tests use TAP `SKIP`:
 
 ```tap
 TAP version 14
-# moq-test-client v0.1.0
-# Relay: https://relay.example.com:4443
-# Draft: draft-14
-1..3
-ok 1 - setup-only
-...
+1..1
+ok 1 - publish-to-pending-subscription # SKIP not supported
 ```
 
-This preserves the human-readable "header" without affecting test counts or harness behavior.
-
-### Minimal Example
+Run-level comments MAY identify the invocation:
 
 ```tap
 TAP version 14
-# moq-test-client v0.1.0
-# Relay: https://relay.example.com:4443
-1..3
+# Relay: https://relay.example.test:4443
+# Target draft: draft-18
+1..1
 ok 1 - setup-only
-ok 2 - announce-only
-not ok 3 - subscribe-error
 ```
-
-### Skipped Tests
-
-Use the `SKIP` directive for tests the client does not implement:
-
-```tap
-TAP version 14
-1..3
-ok 1 - setup-only
-ok 2 - announce-only
-ok 3 - publish-namespace-done # SKIP not implemented
-```
-
-The harness counts skipped tests separately from passes and failures.
 
 ### YAML Diagnostics
 
-YAML diagnostic blocks after test points are OPTIONAL but encouraged, especially for failures. They provide structured metadata the harness can use for richer reporting.
-
-```tap
-TAP version 14
-1..4
-ok 1 - setup-only
-  ---
-  duration_ms: 24
-  connection_id: 84ee7793841adcadd926a1baf1c677cc
-  ...
-ok 2 - announce-only
-  ---
-  duration_ms: 31
-  connection_id: a1b2c3d4e5f6789
-  ...
-not ok 3 - subscribe-error
-  ---
-  duration_ms: 2001
-  expected: SUBSCRIBE_ERROR
-  received: timeout
-  connection_id: def789
-  ...
-ok 4 - announce-subscribe
-  ---
-  duration_ms: 145
-  publisher_connection_id: abc12345
-  subscriber_connection_id: def67890
-  ...
-```
-
-YAML blocks MUST be indented 2 spaces relative to the test point they follow. Common fields:
-
-| Field | Description |
-|-------|-------------|
-| `duration_ms` | Test duration in milliseconds |
-| `connection_id` | QUIC connection ID for mlog correlation (single-connection tests) |
-| `expected` | What the test expected |
-| `received` | What actually happened |
+YAML diagnostic blocks are OPTIONAL generally. Successful executed tests defined in [tests/DATA-PLANE.md](./tests/DATA-PLANE.md) MUST include a diagnostic block. Failed data-plane tests include every field captured before failure; skipped tests do not require diagnostics. Blocks MUST be indented two spaces relative to the test point.
 
 #### Connection ID Conventions
 
-Connection IDs in YAML diagnostics enable correlation with relay-side mlog/qlog traces. The naming convention depends on the test topology:
+Single-session tests use `connection_id`. Tests with multiple logical sessions use `<role>_connection_id`, such as `publisher_connection_id` and `subscriber_connection_id`, regardless of connection order. A failure reports every connection ID captured before it occurred.
 
-- **Single-connection tests** use `connection_id`:
-  ```yaml
-  connection_id: 84ee7793841adcadd926a1baf1c677cc
-  ```
+Data-plane diagnostics MUST include:
 
-- **Multi-connection tests** use `<role>_connection_id`, where `<role>` is the logical role defined by the test case (e.g., `publisher`, `subscriber`):
-  ```yaml
+| Field | Meaning |
+|-------|---------|
+| `publisher_connection_id` | Publisher-role QUIC connection ID |
+| `subscriber_connection_id` | Subscriber-role QUIC connection ID |
+| `run_id` | Fresh 128-bit Run ID as 32 lowercase hexadecimal characters |
+| `target_draft` | Draft targeted by the test invocation |
+| `publisher_negotiated_draft` | Draft negotiated by the publisher session |
+| `subscriber_negotiated_draft` | Draft negotiated by the subscriber session |
+| `vector_revision` | Selected vector revision, copied verbatim |
+| `vector_digest` | Selected algorithm-qualified vector digest, copied verbatim |
+
+Failures SHOULD also report `duration_ms`, `expected`, `received`, and a concise `message`. On partial failure, include every diagnostic value captured before the failure.
+
+```tap
+TAP version 14
+1..1
+ok 1 - subscribe-one-subgroup-per-group
+  ---
   publisher_connection_id: abc12345
   subscriber_connection_id: def67890
-  ```
-
-The expected roles for each test case are documented in [TEST-CASES.md](./tests/TEST-CASES.md). Implementations SHOULD name connections by role rather than by connection order to avoid fragile positional coupling — the output code should not need to know which role connects first.
-
-Future tests with multiple connections in the same role (e.g., two subscribers) SHOULD use numbered suffixes: `subscriber_1_connection_id`, `subscriber_2_connection_id`.
-
-**Partial failure**: Connection IDs are best-effort. If a test fails partway through, include whatever connection IDs were successfully captured before the failure. For example, if the publisher connects but the subscriber fails:
-
-```tap
-not ok 5 - announce-subscribe
-  ---
-  duration_ms: 3001
-  publisher_connection_id: abc12345
-  message: "subscriber connection failed"
+  run_id: 0123456789abcdef0123456789abcdef
+  target_draft: draft-18
+  publisher_negotiated_draft: draft-18
+  subscriber_negotiated_draft: draft-18
+  vector_revision: 1
+  vector_digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
   ...
 ```
 
-### Subtests
+## Timeouts and Fatal Errors
 
-Subtests are OPTIONAL. They are useful for multi-step tests where intermediate visibility helps debugging:
+Every connection, protocol wait, role rendezvous, and complete test MUST have a finite timeout. Use the timeout specified by the semantic test; where none is specified, use five seconds. A timeout is a failed TAP point with diagnostic context.
 
-```tap
-TAP version 14
-1..2
-ok 1 - setup-only
-# Subtest: announce-subscribe
-    1..4
-    ok 1 - publisher connected
-    ok 2 - publisher announced namespace
-    ok 3 - subscriber connected
-    ok 4 - subscriber received object
-ok 2 - announce-subscribe
-```
-
-The harness determines pass/fail from the correlated test point at the parent level. Subtests are indented 4 spaces.
-
-### Bail Out
-
-If a fatal error makes further testing pointless (e.g., relay is unreachable), use `Bail out!`:
-
-```tap
-TAP version 14
-1..5
-ok 1 - setup-only
-Bail out! Relay connection refused
-```
-
-The harness MUST treat a bail out as a failed test run.
-
-### List Output
-
-When `--list` is specified, output one test identifier per line (not TAP format):
-
-```
-setup-only
-announce-only
-publish-namespace-done
-subscribe-error
-announce-subscribe
-subscribe-before-announce
-```
-
-This enables the runner to discover which tests a client supports.
-
-## Timeout Handling
-
-Test clients MUST implement timeouts to prevent hanging:
-
-- Individual tests SHOULD timeout after their specified duration (see test case specs)
-- If no timeout is specified, default to 5 seconds
-- On timeout, report the test as failed with a clear message in the YAML diagnostics
-
-## Error Reporting
-
-When tests fail, include diagnostic context via YAML blocks:
-
-```tap
-not ok 2 - announce-only
-  ---
-  duration_ms: 2001
-  expected: PUBLISH_NAMESPACE_OK
-  received: timeout
-  message: "no response after 2000 ms"
-  connection_id: 84ee7793841adcadd926a1baf1c677cc
-  ...
-```
-
-For protocol errors:
-
-```tap
-not ok 3 - subscribe-error
-  ---
-  duration_ms: 45
-  expected: SUBSCRIBE_ERROR
-  received: SUBSCRIBE_OK
-  message: "unexpected success"
-  connection_id: 84ee7793841adcadd926a1baf1c677cc
-  ...
-```
+If a run-level failure makes further testing impossible, the client MAY emit `Bail out!` and MUST exit with code `1`.

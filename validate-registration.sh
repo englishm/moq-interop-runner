@@ -2,20 +2,21 @@
 # validate-registration.sh - Validate implementations.json registration changes.
 #
 # Runs the default checks for a PR that adds/removes/edits a client or relay
-# registration. Usable locally and in CI. Four checks:
+# registration. Usable locally and in CI. Five checks:
 #
 #   1. Schema     - implementations.json validates against implementations.schema.json
 #   2. Test specs - canonical specs match implementations.json.current_target,
 #                   removed IDs are retired, and retirement history is append-only
-#   3. Test plan  - for each changed implementation, show the pairs + negotiated
+#   3. Data plane - canonical IDs, vectors, schema, and digest invariants agree
+#   4. Test plan  - for each changed implementation, show the pairs + negotiated
 #                   draft versions that WOULD be tested (run-interop-tests.sh --dry-run)
-#   4. Image      - the Docker image(s) the changed impl registers actually exist
+#   5. Image      - the Docker image(s) the changed impl registers actually exist
 #                   (soft warning: a private/unpullable image cannot be checked on
 #                   a fork PR, so it must not hard-fail the gate)
 #
-# The schema and test-spec checks are hard gates. The plan is informational;
-# image problems are warnings. Interop pass/fail is NOT evaluated here — that is
-# the maintainer-gated live run.
+# The schema, test-spec, and data-plane checks are hard gates. The test plan is
+# informational, image problems are warnings, and this command does not run the
+# interoperability suite.
 #
 # Usage:
 #   ./validate-registration.sh [--base <ref>] [--impl <name>] [--summary <file>]
@@ -25,7 +26,7 @@
 #   --summary <file> Append the markdown report here (default: $GITHUB_STEP_SUMMARY, else stdout)
 #
 # Exit codes:
-#   0 - Schema and test-spec policy valid (warnings may be present)
+#   0 - All hard-gate policies valid (warnings may be present)
 #   1 - A hard gate failed, or a usage/environment error
 
 set -euo pipefail
@@ -34,6 +35,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/implementations.json"
 SCHEMA_FILE="$SCRIPT_DIR/implementations.schema.json"
 TARGET_DRAFT_VALIDATOR="$SCRIPT_DIR/scripts/validate-target-draft.sh"
+DATA_PLANE_VALIDATOR="$SCRIPT_DIR/scripts/validate-data-plane-vectors.sh"
+DATA_PLANE_SPEC="$SCRIPT_DIR/docs/tests/DATA-PLANE.md"
+DATA_PLANE_VECTORS="$SCRIPT_DIR/docs/tests/vectors/data-plane.json"
+DATA_PLANE_SCHEMA="$SCRIPT_DIR/docs/tests/vectors/data-plane.schema.json"
 
 BASE_REF="origin/main"
 EXPLICIT_IMPL=""
@@ -55,10 +60,12 @@ done
 REPORT="$(mktemp "${TMPDIR:-/tmp}/validate-registration.XXXXXX")"
 PREVIOUS_RETIRED_FILE=""
 PREVIOUS_SPEC_FILE=""
+PREVIOUS_DATA_PLANE_VECTOR=""
 cleanup() {
     rm -f "$REPORT"
     [ -z "$PREVIOUS_RETIRED_FILE" ] || rm -f "$PREVIOUS_RETIRED_FILE"
     [ -z "$PREVIOUS_SPEC_FILE" ] || rm -f "$PREVIOUS_SPEC_FILE"
+    [ -z "$PREVIOUS_DATA_PLANE_VECTOR" ] || rm -f "$PREVIOUS_DATA_PLANE_VECTOR"
 }
 trap cleanup EXIT
 md() { printf '%s\n' "$1" >> "$REPORT"; }
@@ -66,6 +73,7 @@ md() { printf '%s\n' "$1" >> "$REPORT"; }
 # Track the worst outcome for the final exit code and headline.
 SCHEMA_OK=true
 TARGET_DRAFT_OK=true
+DATA_PLANE_OK=true
 WARNINGS=0
 
 #############################################################################
@@ -75,6 +83,18 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required" >&2; exit 1; }
 [ -f "$CONFIG_FILE" ] || { echo "ERROR: $CONFIG_FILE not found" >&2; exit 1; }
 [ -f "$SCHEMA_FILE" ] || { echo "ERROR: $SCHEMA_FILE not found" >&2; exit 1; }
 [ -x "$TARGET_DRAFT_VALIDATOR" ] || { echo "ERROR: $TARGET_DRAFT_VALIDATOR not found or not executable" >&2; exit 1; }
+[ -f "$DATA_PLANE_SPEC" ] || { echo "ERROR: $DATA_PLANE_SPEC not found" >&2; exit 1; }
+[ -f "$DATA_PLANE_VECTORS" ] || { echo "ERROR: $DATA_PLANE_VECTORS not found" >&2; exit 1; }
+[ -f "$DATA_PLANE_SCHEMA" ] || { echo "ERROR: $DATA_PLANE_SCHEMA not found" >&2; exit 1; }
+[ -x "$DATA_PLANE_VALIDATOR" ] || { echo "ERROR: $DATA_PLANE_VALIDATOR not found or not executable" >&2; exit 1; }
+git rev-parse --verify --quiet "$BASE_REF^{commit}" >/dev/null || {
+    echo "ERROR: base ref does not resolve to a commit: $BASE_REF" >&2
+    exit 1
+}
+if [ -n "$EXPLICIT_IMPL" ] && ! jq -e --arg key "$EXPLICIT_IMPL" '.implementations | has($key)' "$CONFIG_FILE" >/dev/null; then
+    echo "ERROR: unknown implementation: $EXPLICIT_IMPL" >&2
+    exit 1
+fi
 
 if ! jq empty "$CONFIG_FILE" 2>/dev/null; then
     md "## Registration validation"
@@ -106,8 +126,20 @@ except jsonschema.ValidationError as e:
     sys.exit(1)
 PY
 )" || SCHEMA_OK=false
+elif command -v bun >/dev/null 2>&1 && bun -e 'require.resolve("ajv")' >/dev/null 2>&1; then
+    schema_error="$(SCHEMA_PATH="$SCHEMA_FILE" CONFIG_PATH="$CONFIG_FILE" bun -e '
+const fs = require("fs");
+const Ajv = require("ajv");
+const schema = JSON.parse(fs.readFileSync(process.env.SCHEMA_PATH, "utf8"));
+const config = JSON.parse(fs.readFileSync(process.env.CONFIG_PATH, "utf8"));
+const ajv = new Ajv({allErrors: true, strict: false});
+if (!ajv.validate(schema, config)) {
+  console.error(ajv.errorsText(ajv.errors, {separator: "\n"}));
+  process.exit(1);
+}
+' 2>&1)" || SCHEMA_OK=false
 else
-    echo "ERROR: need 'check-jsonschema' or python 'jsonschema' to validate schema" >&2
+    echo "ERROR: need check-jsonschema, Python jsonschema, or Bun with Ajv to validate schema" >&2
     exit 1
 fi
 
@@ -129,7 +161,16 @@ fi
 target_draft_error="$("$TARGET_DRAFT_VALIDATOR" "${target_draft_args[@]}" 2>&1)" || TARGET_DRAFT_OK=false
 
 #############################################################################
-# 3. Determine changed implementations
+# 3. Data-plane specification and vector validation (hard gate, when present)
+#############################################################################
+if git cat-file -e "$BASE_REF:docs/tests/vectors/data-plane.json" 2>/dev/null; then
+    PREVIOUS_DATA_PLANE_VECTOR="$(mktemp "${TMPDIR:-/tmp}/previous-data-plane-vector.XXXXXX")"
+    git show "$BASE_REF:docs/tests/vectors/data-plane.json" > "$PREVIOUS_DATA_PLANE_VECTOR"
+fi
+data_plane_error="$(DATA_PLANE_PREVIOUS_VECTOR_FILE="$PREVIOUS_DATA_PLANE_VECTOR" "$DATA_PLANE_VALIDATOR" 2>&1)" || DATA_PLANE_OK=false
+
+#############################################################################
+# 4. Determine changed implementations
 #############################################################################
 CHANGED=()
 REMOVED=()
@@ -175,6 +216,18 @@ image_available() {
 # Build the markdown report
 #############################################################################
 md "## Registration validation"
+md ""
+
+# --- Data-plane vectors ---
+if [ "$DATA_PLANE_OK" = true ]; then
+    md "**Data-plane vectors:** ✅ $data_plane_error"
+else
+    md "**Data-plane vectors:** ❌ specification/vector integrity invalid"
+    md ""
+    md '```'
+    md "${data_plane_error:-validation failed}"
+    md '```'
+fi
 md ""
 
 # --- Schema ---
@@ -261,7 +314,7 @@ fi
 
 # --- Footer / headline ---
 md "---"
-if [ "$SCHEMA_OK" = true ] && [ "$TARGET_DRAFT_OK" = true ]; then
+if [ "$SCHEMA_OK" = true ] && [ "$TARGET_DRAFT_OK" = true ] && [ "$DATA_PLANE_OK" = true ]; then
     if [ "$WARNINGS" -gt 0 ]; then
         md "✅ Schema valid · ⚠️ $WARNINGS image warning(s) (non-blocking)"
     else
@@ -279,4 +332,4 @@ if [ -n "$SUMMARY_OUT" ] && [ "$SUMMARY_OUT" != "/dev/stdout" ]; then
     cat "$REPORT" >> "$SUMMARY_OUT"
 fi
 
-[ "$SCHEMA_OK" = true ] && [ "$TARGET_DRAFT_OK" = true ]
+[ "$SCHEMA_OK" = true ] && [ "$TARGET_DRAFT_OK" = true ] && [ "$DATA_PLANE_OK" = true ]

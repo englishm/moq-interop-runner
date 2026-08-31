@@ -8,6 +8,8 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONFIG_FILE="${TARGET_DRAFT_CONFIG_FILE:-$ROOT_DIR/implementations.json}"
 PRIMARY_SPEC="${TARGET_DRAFT_PRIMARY_SPEC:-$ROOT_DIR/docs/tests/TEST-CASES.md}"
 RETIRED_FILE="${TARGET_DRAFT_RETIRED_FILE:-$ROOT_DIR/docs/tests/retired-test-identifiers.json}"
+MARKDOWN_SANITIZER="${TARGET_DRAFT_MARKDOWN_SANITIZER:-$SCRIPT_DIR/sanitize-markdown.sh}"
+DUPLICATE_CHECKER="${TARGET_DRAFT_DUPLICATE_CHECKER:-$SCRIPT_DIR/check-json-duplicates.sh}"
 REGISTRY_FORMAT="moqt-retired-test-identifiers"
 REGISTRY_VERSION=1
 PREVIOUS_RETIRED_FILE=""
@@ -54,6 +56,8 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required" >&2; exit 1; }
 command -v grep >/dev/null 2>&1 || { echo "ERROR: grep is required" >&2; exit 1; }
+[ -x "$MARKDOWN_SANITIZER" ] || { echo "ERROR: Markdown sanitizer not executable: $MARKDOWN_SANITIZER" >&2; exit 1; }
+[ -x "$DUPLICATE_CHECKER" ] || { echo "ERROR: duplicate-key checker not executable: $DUPLICATE_CHECKER" >&2; exit 1; }
 [ -f "$CONFIG_FILE" ] || { echo "ERROR: $CONFIG_FILE not found" >&2; exit 1; }
 [ -f "$PRIMARY_SPEC" ] || { echo "ERROR: $PRIMARY_SPEC not found" >&2; exit 1; }
 [ -f "$RETIRED_FILE" ] || { echo "ERROR: $RETIRED_FILE not found" >&2; exit 1; }
@@ -66,6 +70,13 @@ if [ -n "$PREVIOUS_SPEC_FILE" ] && [ ! -f "$PREVIOUS_SPEC_FILE" ]; then
     exit 1
 fi
 
+json_inputs=("$CONFIG_FILE" "$RETIRED_FILE")
+[ -z "$PREVIOUS_RETIRED_FILE" ] || json_inputs+=("$PREVIOUS_RETIRED_FILE")
+"$DUPLICATE_CHECKER" "${json_inputs[@]}" || {
+    echo "ERROR: target-draft JSON inputs must not contain duplicate object keys" >&2
+    exit 1
+}
+
 target="$(jq -er '.current_target | select(type == "string" and test("^draft-[0-9]+$"))' "$CONFIG_FILE" 2>/dev/null)" || {
     echo "ERROR: implementations.json.current_target must match draft-NN" >&2
     exit 1
@@ -75,55 +86,6 @@ status=0
 ACTIVE_IDS_FILE="$(mktemp "${TMPDIR:-/tmp}/active-test-identifiers.XXXXXX")"
 PREVIOUS_ACTIVE_IDS_FILE="$(mktemp "${TMPDIR:-/tmp}/previous-active-test-identifiers.XXXXXX")"
 trap 'rm -f "$ACTIVE_IDS_FILE" "$PREVIOUS_ACTIVE_IDS_FILE"' EXIT
-
-sanitize_markdown() {
-    local source="$1"
-    local line remaining output before
-    local in_comment=false
-    local fence=""
-
-    while IFS= read -r line || [ -n "$line" ]; do
-        if [ -n "$fence" ]; then
-            if { [ "$fence" = "backtick" ] && printf '%s\n' "$line" | grep -Eq '^[[:space:]]*`{3,}[[:space:]]*$'; } ||
-               { [ "$fence" = "tilde" ] && printf '%s\n' "$line" | grep -Eq '^[[:space:]]*~{3,}[[:space:]]*$'; }; then
-                fence=""
-            fi
-            printf '\n'
-            continue
-        fi
-
-        remaining="$line"
-        output=""
-        while [ -n "$remaining" ]; do
-            if [ "$in_comment" = true ]; then
-                if [[ "$remaining" == *"-->"* ]]; then
-                    remaining="${remaining#*-->}"
-                    in_comment=false
-                else
-                    remaining=""
-                fi
-            elif [[ "$remaining" == *"<!--"* ]]; then
-                before="${remaining%%<!--*}"
-                output="$output$before"
-                remaining="${remaining#*<!--}"
-                in_comment=true
-            else
-                output="$output$remaining"
-                remaining=""
-            fi
-        done
-
-        if printf '%s\n' "$output" | grep -Eq '^[[:space:]]*`{3,}'; then
-            fence="backtick"
-            printf '\n'
-        elif printf '%s\n' "$output" | grep -Eq '^[[:space:]]*~{3,}'; then
-            fence="tilde"
-            printf '\n'
-        else
-            printf '%s\n' "$output"
-        fi
-    done < "$source"
-}
 
 check_declaration() {
     local display_spec="$1"
@@ -155,7 +117,7 @@ check_public_name() {
     local kind="$3"
     local public_name="$4"
 
-    if printf '%s\n' "$public_name" | grep -Eqi 'd[0-9]+|draft[-_][0-9]+|moqt[-_]?[0-9]+'; then
+    if printf '%s\n' "$public_name" | grep -Eqi 'd[0-9]+|draft[-_]?[0-9]+|moqt[-_]?[0-9]+'; then
         echo "ERROR: $spec:$line_number has version-specific public $kind '$public_name'" >&2
         status=1
     fi
@@ -233,7 +195,7 @@ check_spec() {
     local clean_spec line_number line token
 
     clean_spec="$(mktemp "${TMPDIR:-/tmp}/canonical-test-spec.XXXXXX")"
-    sanitize_markdown "$spec" > "$clean_spec"
+    "$MARKDOWN_SANITIZER" "$spec" > "$clean_spec"
 
     check_declaration "$spec" "$clean_spec" "Target Draft"
     check_declaration "$spec" "$clean_spec" "Identifier Semantics Reviewed For"
@@ -277,10 +239,10 @@ registry_has_valid_shape() {
         .format_version == $version and
         (.retired_identifiers | type) == "array" and
         all(.retired_identifiers[];
-            (keys | sort) == ["id", "last_known_profile_revision", "last_known_target", "reason", "replacement"] and
+            (keys | sort) == ["id", "last_known_spec_revision", "last_known_target", "reason", "replacement"] and
             ((.id | type) == "string" and (.id | test("^[a-z][a-z0-9-]*$"))) and
             ((.last_known_target | type) == "string" and (.last_known_target | test("^draft-[0-9]+$"))) and
-            ((.last_known_profile_revision | type) == "string" and (.last_known_profile_revision | length) > 0) and
+            ((.last_known_spec_revision | type) == "string" and (.last_known_spec_revision | length) > 0) and
             ((.reason | type) == "string" and (.reason | length) > 0) and
             ((.replacement == null) or
              ((.replacement | type) == "string" and (.replacement | test("^[a-z][a-z0-9-]*$"))))
@@ -381,7 +343,7 @@ check_previous_spec() {
     fi
 
     clean_spec="$(mktemp "${TMPDIR:-/tmp}/previous-canonical-test-spec.XXXXXX")"
-    sanitize_markdown "$PREVIOUS_SPEC_FILE" > "$clean_spec"
+    "$MARKDOWN_SANITIZER" "$PREVIOUS_SPEC_FILE" > "$clean_spec"
     scan_active_ids "$PREVIOUS_SPEC_FILE" "$clean_spec" "$PREVIOUS_ACTIVE_IDS_FILE" false
     rm -f "$clean_spec"
 
