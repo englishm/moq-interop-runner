@@ -7,6 +7,14 @@ This document has been reorganized into separate, focused documents:
 | **[tests/TEST-CASES.md](./tests/TEST-CASES.md)** | Test case definitions with protocol references |
 | **[TEST-CLIENT-INTERFACE.md](./TEST-CLIENT-INTERFACE.md)** | CLI, environment variables, exit codes, output format |
 | **[IMPLEMENTING-A-TEST-CLIENT.md](./IMPLEMENTING-A-TEST-CLIENT.md)** | Guide for implementing a compatible test client |
+| **[MOXYGEN-DRAFT18-SUPPORT-PROFILE.md](./MOXYGEN-DRAFT18-SUPPORT-PROFILE.md)** | Canonical 58-case moxygen draft-18 intended/deferred inventory |
+| **[MOXYGEN-DRAFT18-DIAGNOSTIC-GATES.md](./MOXYGEN-DRAFT18-DIAGNOSTIC-GATES.md)** | Seven canonical independent diagnostic-gate specifications |
+| **[MOXYGEN-CONFORMANCE-CLIENT-REGISTRATION.md](./MOXYGEN-CONFORMANCE-CLIENT-REGISTRATION.md)** | Future digest-pinned moxygen conformance-client registration contract |
+
+The moxygen profile's machine-readable manifest and schema are
+[`moxygen-draft18-support-profile.json`](./moxygen-draft18-support-profile.json)
+and
+[`moxygen-draft18-support-profile.schema.json`](./moxygen-draft18-support-profile.schema.json).
 
 ## Quick Reference
 
@@ -20,6 +28,8 @@ This document has been reorganized into separate, focused documents:
 | `subscribe-error` | Subscription | Error for non-existent track |
 | `announce-subscribe` | Subscription | Relay routes subscription to publisher |
 | `subscribe-before-announce` | Subscription | Out-of-order subscribe/announce |
+| `publish-track-only` | Track Publishing | Direct PUBLISH without a subscriber |
+| `publish-track-subscribe` | Track Publishing | Direct PUBLISH matched to a subscriber |
 
 ### Interface Summary
 

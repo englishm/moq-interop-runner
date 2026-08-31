@@ -18,7 +18,8 @@ SHELL := /bin/bash
         interop-all interop-docker interop-remote interop-relay interop-client interop-list \
         relay-start relay-stop logs logs-relay logs-client \
         build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report help _ensure-certs \
-        xquic-client-build xquic-client-test-draft18 xquic-relay-build
+        xquic-client-build xquic-client-test-draft18 xquic-relay-build \
+        validate-moxygen-draft18-profile test-moxygen-draft18-profile-validator
 
 #############################################################################
 # Image Configuration
@@ -255,6 +256,17 @@ xquic-relay-build:
 	@./builds/xquic/build.sh --local "$(XQUIC_SOURCE)" --target relay-draft-18
 
 #############################################################################
+# Specification profile validation
+#############################################################################
+
+validate-moxygen-draft18-profile:
+	@./scripts/validate-moxygen-draft18-schema.sh
+	@./scripts/validate-moxygen-draft18-profile.sh
+
+test-moxygen-draft18-profile-validator:
+	@./scripts/test-moxygen-draft18-profile-validator.sh
+
+#############################################################################
 # Report Generation
 #############################################################################
 
@@ -299,6 +311,10 @@ help:
 	@echo "  xquic-client-build         Build from XQUIC_SOURCE=/absolute/path/to/xquic"
 	@echo "  xquic-client-test-draft18  Run all supported tests against draft-18 raw-QUIC relays"
 	@echo "  xquic-relay-build          Build draft-18 relay from XQUIC_SOURCE=/absolute/path/to/xquic"
+	@echo ""
+	@echo "Specification profiles:"
+	@echo "  validate-moxygen-draft18-profile  Validate schema and canonical moxygen draft-18 profile"
+	@echo "  test-moxygen-draft18-profile-validator  Run profile/result mutation checks"
 	@echo ""
 	@echo "  BUILD_ARGS examples:"
 	@echo "    --local ~/git/moq-rs    Use local checkout"
