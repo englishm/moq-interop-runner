@@ -11,6 +11,7 @@ PRIMARY_SPEC="$FIXTURE_DIR/TEST-CASES.md"
 OPTIONAL_SPEC="$FIXTURE_DIR/PROFILE-TESTS.md"
 RETIRED_FILE="$FIXTURE_DIR/retired-test-identifiers.json"
 PREVIOUS_RETIRED_FILE="$FIXTURE_DIR/previous-retired-test-identifiers.json"
+PREVIOUS_SPEC_FILE="$FIXTURE_DIR/previous-test-cases.md"
 TESTS=0
 
 trap 'rm -rf "$FIXTURE_DIR"' EXIT
@@ -42,12 +43,8 @@ write_valid_spec() {
         '| stable-table-test | Active test |' \
         '| `backticked-table-test` | Active test |' \
         '' \
-        'The driver exposes `test_semantic_api ()`.' \
-        'fn test_semantic_rust_api   () {}' \
-        '' \
-        '```rust' \
-        '#[test]' \
-        'fn test_DRAFT_99_ignored () {}' \
+        '```markdown' \
+        '### fenced-DRAFT_99-ignored' \
         '```' > "$PRIMARY_SPEC"
 }
 
@@ -59,7 +56,7 @@ reset_fixtures() {
     write_config
     write_valid_spec
     write_valid_registry
-    rm -f "$OPTIONAL_SPEC" "$PREVIOUS_RETIRED_FILE"
+    rm -f "$OPTIONAL_SPEC" "$PREVIOUS_RETIRED_FILE" "$PREVIOUS_SPEC_FILE"
 }
 
 rewrite_registry() {
@@ -80,14 +77,9 @@ append_retirement() {
         '.retired_identifiers += [{
             id: $id,
             last_known_target: "draft-18",
-            last_known_profile_revision: "legacy-unversioned",
-            last_known_implementation: {
-                repository: "https://github.com/cloudflare/moq-rs",
-                commit: "b01d3f6707e3a74f69905722b451a08cbb3364f3",
-                image_digest: "unknown"
-            },
-            reason: "Legacy behavior differs.",
-            replacement: $replacement
+            last_known_profile_revision: "synthetic-profile-v1",
+            reason: "Synthetic canonical behavior changed.",
+            replacement: (if $replacement == "__NULL__" then null else $replacement end)
         }]' \
         "$registry" > "$FIXTURE_DIR/appended-registry.json"
     mv "$FIXTURE_DIR/appended-registry.json" "$registry"
@@ -95,12 +87,13 @@ append_retirement() {
 
 append_identifier_table_row() {
     local first_cell="$1"
+    local destination="${2:-$PRIMARY_SPEC}"
 
     printf '%s\n' \
         '' \
         '| Identifier | Description |' \
         '|------------|-------------|' \
-        "| $first_cell | Active test |" >> "$PRIMARY_SPEC"
+        "| $first_cell | Active test |" >> "$destination"
 }
 
 run_validator() {
@@ -140,7 +133,7 @@ expect_fail() {
 }
 
 reset_fixtures
-expect_pass "valid exact declarations, plain/backticked IDs, and external test functions" run_validator
+expect_pass "valid exact declarations and plain/backticked heading IDs" run_validator
 
 reset_fixtures
 printf '%s\n' 'Ordinary prose about the Target Draft does not declare it again.' >> "$PRIMARY_SPEC"
@@ -170,9 +163,8 @@ printf '%s\n' \
     '**Target Draft**: `draft-17`' \
     '**Identifier Semantics Reviewed For**: `draft-17`' \
     '### publish-without-subscriber' \
-    'fn test_moqt_17_ignored () {}' \
     '```' >> "$PRIMARY_SPEC"
-expect_pass "fenced declarations, IDs, and functions are ignored" run_validator
+expect_pass "fenced declarations and IDs are ignored" run_validator
 
 reset_fixtures
 printf '%s\n' \
@@ -217,8 +209,17 @@ printf '%s\n' '### decorated-test (extra)' >> "$PRIMARY_SPEC"
 expect_fail "decorated plain heading attempt" "malformed canonical test heading" run_validator
 
 reset_fixtures
+printf '%s\n' ' ### indent-one' '  ### indent-two' '   ### indent-three' >> "$PRIMARY_SPEC"
+expect_pass "Markdown headings accept one to three leading spaces" run_validator
+
+reset_fixtures
+append_retirement "$RETIRED_FILE" "retired-indented-id" "four-space-heading"
+printf '%s\n' '    ### four-space-heading' >> "$PRIMARY_SPEC"
+expect_fail "four-space heading is not an active definition" "does not terminate at an active canonical ID" run_validator
+
+reset_fixtures
 append_identifier_table_row '`decorated-table-test` extra'
-expect_fail "decorated first-column table attempt" "malformed canonical first-column table ID" run_validator
+expect_pass "decorated table proposal is not an active definition" run_validator
 
 reset_fixtures
 printf '%s\n' '### `case-d18-middle`' >> "$PRIMARY_SPEC"
@@ -230,19 +231,19 @@ expect_fail "draft-NN token anywhere" "version-specific public heading ID" run_v
 
 reset_fixtures
 append_identifier_table_row 'case-DRAFT_18-middle'
-expect_fail "case-insensitive draft_NN token anywhere" "version-specific public first-column table ID" run_validator
+expect_fail "case-insensitive draft_NN table hygiene" "version-specific public test-ID table entry" run_validator
 
 reset_fixtures
 append_identifier_table_row '`case-moqt18-middle`'
-expect_fail "moqtNN token anywhere" "version-specific public first-column table ID" run_validator
+expect_fail "moqtNN table hygiene" "version-specific public test-ID table entry" run_validator
 
 reset_fixtures
-printf '%s\n' 'The API is `test_case_MoQt-18_middle (`.' >> "$PRIMARY_SPEC"
-expect_fail "case-insensitive moqt-NN function token" "version-specific public function 'test_case_MoQt-18_middle'" run_validator
+append_identifier_table_row 'case-MOQT-18-middle'
+expect_fail "case-insensitive moqt-NN table hygiene" "version-specific public test-ID table entry" run_validator
 
 reset_fixtures
-printf '%s\n' 'fn test_case_moqt_18_middle   () {}' >> "$PRIMARY_SPEC"
-expect_fail "moqt_NN Rust function with whitespace" "version-specific public function 'test_case_moqt_18_middle'" run_validator
+append_identifier_table_row 'case-moqt_18-middle'
+expect_fail "moqt_NN table hygiene" "version-specific public test-ID table entry" run_validator
 
 reset_fixtures
 printf '%s\n' 'Protocol References: MoQT-17 and draft-ietf-moq-transport-17' >> "$PRIMARY_SPEC"
@@ -255,47 +256,119 @@ expect_fail "duplicate active heading ID" "duplicate active canonical ID 'duplic
 reset_fixtures
 printf '%s\n' '### duplicate-cross-surface' >> "$PRIMARY_SPEC"
 append_identifier_table_row 'duplicate-cross-surface'
-expect_fail "duplicate active ID across heading and table" "duplicate active canonical ID 'duplicate-cross-surface'" run_validator
+expect_pass "table proposal does not duplicate active heading" run_validator
 
 reset_fixtures
-printf '%s\n' '### publish-track-only' >> "$PRIMARY_SPEC"
-expect_fail "retired ID reused as active" "retired ID 'publish-track-only' is reused as an active canonical ID" run_validator
+append_retirement "$RETIRED_FILE" "retired-synthetic-id" "publish-without-subscriber"
+printf '%s\n' '### retired-synthetic-id' >> "$PRIMARY_SPEC"
+expect_fail "retired ID reused as active" "retired ID 'retired-synthetic-id' is reused as an active canonical ID" run_validator
 
 reset_fixtures
+append_retirement "$RETIRED_FILE" "retired-synthetic-id" "fenced-replacement-id"
 printf '%s\n' \
     '# Canonical Tests' \
     '**Target Draft**: `draft-18`' \
     '**Identifier Semantics Reviewed For**: `draft-18`' \
+    '### publish-without-subscriber' \
     '### publish-to-pending-subscription' \
     '```markdown' \
-    '### publish-without-subscriber' \
+    '### fenced-replacement-id' \
     '```' > "$PRIMARY_SPEC"
-expect_fail "fenced replacement heading is not active" "replacement 'publish-without-subscriber'" run_validator
+expect_fail "fenced replacement heading is not active" "does not terminate at an active canonical ID" run_validator
 
 reset_fixtures
-rewrite_registry '(.retired_identifiers[] | select(.id == "publish-track-only")).replacement = "publish-track-only"'
-expect_fail "replacement differs from retired ID" "retired ID 'publish-track-only' must have a different replacement" run_validator
+append_retirement "$RETIRED_FILE" "retired-synthetic-id" "retired-synthetic-id"
+expect_fail "self replacement is a cycle" "contains a cycle at 'retired-synthetic-id'" run_validator
 
 reset_fixtures
-rewrite_registry '(.retired_identifiers[] | select(.id == "publish-track-only")).replacement = "missing-replacement"'
-expect_fail "replacement exists as active heading" "replacement 'missing-replacement' for retired ID 'publish-track-only' is not an active canonical heading ID" run_validator
+append_retirement "$RETIRED_FILE" "retired-synthetic-id" "missing-replacement"
+expect_fail "replacement chain must reach active heading" "does not terminate at an active canonical ID" run_validator
 
 reset_fixtures
-rewrite_registry '.retired_identifiers += [.retired_identifiers[0]]'
-expect_fail "retired IDs are unique" "contains duplicate retired ID 'publish-track-only'" run_validator
+append_retirement "$RETIRED_FILE" "retired-null-id" "__NULL__"
+expect_pass "explicit null replacement is allowed" run_validator
 
 reset_fixtures
-rewrite_registry '.retired_identifiers |= map(select(.id != "publish-track-only"))'
-printf '%s\n' '### publish-track-only' >> "$PRIMARY_SPEC"
-expect_fail "deleted pinned tombstone cannot enable ID reuse" "pinned retired ID 'publish-track-only' is reused as an active canonical ID" run_validator
+append_retirement "$RETIRED_FILE" "retired-chain-a" "retired-chain-b"
+append_retirement "$RETIRED_FILE" "retired-chain-b" "chain-active-id"
+printf '%s\n' '### chain-active-id' >> "$PRIMARY_SPEC"
+expect_pass "retirement chain terminates at active heading" run_validator
 
 reset_fixtures
-rewrite_registry '(.retired_identifiers[0].reason) = "Changed reason"'
-expect_fail "initial tombstone reason is pinned" "does not match the pinned initial tombstones" run_validator
+append_retirement "$RETIRED_FILE" "retired-cycle-a" "retired-cycle-b"
+append_retirement "$RETIRED_FILE" "retired-cycle-b" "retired-cycle-a"
+expect_fail "retirement chain cycle is rejected" "contains a cycle" run_validator
 
 reset_fixtures
-rewrite_registry '(.retired_identifiers[0].last_known_implementation.commit) = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"'
-expect_fail "initial tombstone provenance is pinned" "does not match the pinned initial tombstones" run_validator
+append_retirement "$RETIRED_FILE" "retired-chain-a" "retired-chain-b"
+append_retirement "$RETIRED_FILE" "retired-chain-b" "__NULL__"
+expect_fail "non-null chain cannot terminate at null retirement" "terminates at retired ID 'retired-chain-b' with no replacement" run_validator
+
+reset_fixtures
+append_retirement "$RETIRED_FILE" "retired-table-id" "table-only-replacement"
+append_identifier_table_row 'table-only-replacement'
+expect_fail "table proposal cannot satisfy retirement replacement" "does not terminate at an active canonical ID" run_validator
+
+reset_fixtures
+append_retirement "$RETIRED_FILE" "retired-profile-id" "profile-only-replacement"
+printf '%s\n' \
+    '# Optional Profile' \
+    '**Target Draft**: `draft-18`' \
+    '**Identifier Semantics Reviewed For**: `draft-18`' \
+    '### profile-only-replacement' > "$OPTIONAL_SPEC"
+expect_fail "additional profile cannot satisfy primary retirement" "does not terminate at an active canonical ID" run_validator "$OPTIONAL_SPEC"
+
+reset_fixtures
+rewrite_registry '.unexpected = true'
+expect_fail "registry rejects extra top-level keys" "invalid registry format or retirement record" run_validator
+
+reset_fixtures
+append_retirement "$RETIRED_FILE" "retired-extra-field" "publish-without-subscriber"
+rewrite_registry '.retired_identifiers[0].unexpected = true'
+expect_fail "registry rejects extra retirement keys" "invalid registry format or retirement record" run_validator
+
+reset_fixtures
+append_retirement "$RETIRED_FILE" "retired-synthetic-id" "publish-without-subscriber"
+append_retirement "$RETIRED_FILE" "retired-synthetic-id" "publish-without-subscriber"
+expect_fail "retired IDs are unique" "contains duplicate retired ID 'retired-synthetic-id'" run_validator
+
+reset_fixtures
+cp "$RETIRED_FILE" "$PREVIOUS_RETIRED_FILE"
+append_retirement "$PREVIOUS_RETIRED_FILE" "retired-synthetic-id" "publish-without-subscriber"
+printf '%s\n' '### retired-synthetic-id' >> "$PRIMARY_SPEC"
+expect_fail "deleted tombstone cannot enable ID reuse" "previous tombstone array is not an exact prefix" run_validator --previous-retired "$PREVIOUS_RETIRED_FILE"
+
+reset_fixtures
+cp "$PRIMARY_SPEC" "$PREVIOUS_SPEC_FILE"
+expect_pass "unchanged previous canonical IDs remain active" run_validator --previous-spec "$PREVIOUS_SPEC_FILE"
+
+reset_fixtures
+cp "$PRIMARY_SPEC" "$PREVIOUS_SPEC_FILE"
+printf '%s\n' '### deleted-without-tombstone' >> "$PREVIOUS_SPEC_FILE"
+expect_fail "deleted active ID requires tombstone" "previous canonical ID 'deleted-without-tombstone' is missing without a retirement tombstone" run_validator --previous-spec "$PREVIOUS_SPEC_FILE"
+
+reset_fixtures
+cp "$PRIMARY_SPEC" "$PREVIOUS_SPEC_FILE"
+append_identifier_table_row 'deleted-table-id' "$PREVIOUS_SPEC_FILE"
+expect_pass "previous table proposal is not an active ID" run_validator --previous-spec "$PREVIOUS_SPEC_FILE"
+
+reset_fixtures
+cp "$PRIMARY_SPEC" "$PREVIOUS_SPEC_FILE"
+printf '%s\n' '### renamed-old-id' >> "$PREVIOUS_SPEC_FILE"
+printf '%s\n' '### renamed-new-id' >> "$PRIMARY_SPEC"
+expect_fail "renamed active ID requires tombstone" "previous canonical ID 'renamed-old-id' is missing without a retirement tombstone" run_validator --previous-spec "$PREVIOUS_SPEC_FILE"
+
+reset_fixtures
+cp "$PRIMARY_SPEC" "$PREVIOUS_SPEC_FILE"
+printf '%s\n' '### retired-old-id' >> "$PREVIOUS_SPEC_FILE"
+printf '%s\n' '### retired-new-id' >> "$PRIMARY_SPEC"
+append_retirement "$RETIRED_FILE" "retired-old-id" "retired-new-id"
+expect_pass "valid active ID retirement and replacement" run_validator --previous-spec "$PREVIOUS_SPEC_FILE"
+
+reset_fixtures
+cp "$PRIMARY_SPEC" "$PREVIOUS_SPEC_FILE"
+printf '%s\n' '<!-- ### hidden-previous-id -->' '```markdown' '### fenced-previous-id' '```' >> "$PREVIOUS_SPEC_FILE"
+expect_pass "hidden previous IDs do not require tombstones" run_validator --previous-spec "$PREVIOUS_SPEC_FILE"
 
 reset_fixtures
 cp "$RETIRED_FILE" "$PREVIOUS_RETIRED_FILE"
@@ -316,9 +389,5 @@ cp "$RETIRED_FILE" "$PREVIOUS_RETIRED_FILE"
 append_retirement "$RETIRED_FILE" "legacy-extra" "replacement-extra"
 printf '%s\n' '### replacement-extra' >> "$PRIMARY_SPEC"
 expect_pass "append-only retirement addition" run_validator --previous-retired "$PREVIOUS_RETIRED_FILE"
-
-reset_fixtures
-rewrite_registry '.initial_tombstone_pin = "changed"'
-expect_fail "initial tombstone pin is stable" "does not match the pinned initial tombstones" run_validator
 
 echo "1..$TESTS"
