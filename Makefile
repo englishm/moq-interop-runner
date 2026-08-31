@@ -275,7 +275,7 @@ report:
 
 # Validate canonical test specs against implementations.json.current_target.
 validate-target-draft:
-	@./scripts/validate-target-draft.sh $(if $(PREVIOUS_RETIRED),--previous-retired $(PREVIOUS_RETIRED)) $(SPEC_FILES)
+	@./scripts/validate-target-draft.sh $(if $(PREVIOUS_RETIRED),--previous-retired $(PREVIOUS_RETIRED)) $(if $(PREVIOUS_SPEC),--previous-spec $(PREVIOUS_SPEC)) $(SPEC_FILES)
 
 test-target-draft-validator:
 	@./scripts/test-validate-target-draft.sh

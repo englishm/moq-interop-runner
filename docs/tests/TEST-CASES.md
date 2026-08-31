@@ -212,6 +212,8 @@ Either outcome is valid; the test checks for graceful handling.
 
 These tests exercise the **PUBLISH flow**: a publisher sends a `PUBLISH` message directly naming a specific track, and the relay responds with `PUBLISH_OK`. This is distinct from the `PUBLISH_NAMESPACE` + `SUBSCRIBE` flow used in earlier tests, where a publisher announces an entire namespace and the relay routes incoming `SUBSCRIBE` requests back to that publisher. In the PUBLISH flow, the publisher establishes the track directly; the relay matches any arriving `SUBSCRIBE` for that track to the active publisher and routes data accordingly.
 
+The two tests below are new runner-owned semantic specifications. Their presence does not claim that any implementation currently exposes or passes them.
+
 ### `publish-without-subscriber`
 
 **Protocol References**: MoQT-18 §5.1 (Subscriptions), §9.5 (Publisher Interactions), §10.2.12 (FORWARD), §10.5 (REQUEST_OK / `PUBLISH_OK` alias), §10.10 (PUBLISH), §10.11 (PUBLISH_DONE), §11.4 (Streams)

@@ -5,8 +5,8 @@
 # registration. Usable locally and in CI. Four checks:
 #
 #   1. Schema     - implementations.json validates against implementations.schema.json
-#   2. Test specs - canonical specs match implementations.json.current_target and
-#                   retirement history remains append-only when present in --base
+#   2. Test specs - canonical specs match implementations.json.current_target,
+#                   removed IDs are retired, and retirement history is append-only
 #   3. Test plan  - for each changed implementation, show the pairs + negotiated
 #                   draft versions that WOULD be tested (run-interop-tests.sh --dry-run)
 #   4. Image      - the Docker image(s) the changed impl registers actually exist
@@ -55,9 +55,11 @@ done
 # Markdown report accumulates in a temp file, then is appended to the target.
 REPORT="$(mktemp "${TMPDIR:-/tmp}/validate-registration.XXXXXX")"
 PREVIOUS_RETIRED_FILE=""
+PREVIOUS_SPEC_FILE=""
 cleanup() {
     rm -f "$REPORT"
     [ -z "$PREVIOUS_RETIRED_FILE" ] || rm -f "$PREVIOUS_RETIRED_FILE"
+    [ -z "$PREVIOUS_SPEC_FILE" ] || rm -f "$PREVIOUS_SPEC_FILE"
 }
 trap cleanup EXIT
 md() { printf '%s\n' "$1" >> "$REPORT"; }
@@ -119,7 +121,12 @@ target_draft_args=()
 if git cat-file -e "$BASE_REF:docs/tests/retired-test-identifiers.json" 2>/dev/null; then
     PREVIOUS_RETIRED_FILE="$(mktemp "${TMPDIR:-/tmp}/previous-retired-test-identifiers.XXXXXX")"
     git show "$BASE_REF:docs/tests/retired-test-identifiers.json" > "$PREVIOUS_RETIRED_FILE"
-    target_draft_args=(--previous-retired "$PREVIOUS_RETIRED_FILE")
+    target_draft_args+=(--previous-retired "$PREVIOUS_RETIRED_FILE")
+fi
+if git cat-file -e "$BASE_REF:docs/tests/TEST-CASES.md" 2>/dev/null; then
+    PREVIOUS_SPEC_FILE="$(mktemp "${TMPDIR:-/tmp}/previous-test-cases.XXXXXX")"
+    git show "$BASE_REF:docs/tests/TEST-CASES.md" > "$PREVIOUS_SPEC_FILE"
+    target_draft_args+=(--previous-spec "$PREVIOUS_SPEC_FILE")
 fi
 target_draft_error="$("$TARGET_DRAFT_VALIDATOR" "${target_draft_args[@]}" 2>&1)" || TARGET_DRAFT_OK=false
 

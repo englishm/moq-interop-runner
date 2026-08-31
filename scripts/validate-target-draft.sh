@@ -10,16 +10,12 @@ PRIMARY_SPEC="${TARGET_DRAFT_PRIMARY_SPEC:-$ROOT_DIR/docs/tests/TEST-CASES.md}"
 RETIRED_FILE="${TARGET_DRAFT_RETIRED_FILE:-$ROOT_DIR/docs/tests/retired-test-identifiers.json}"
 REGISTRY_FORMAT="moqt-retired-test-identifiers"
 REGISTRY_VERSION=1
-INITIAL_TOMBSTONE_PIN="v1:publish-track-only>publish-without-subscriber;publish-track-subscribe>publish-to-pending-subscription"
-INITIAL_SOURCE_REPOSITORY="https://github.com/cloudflare/moq-rs"
-INITIAL_SOURCE_COMMIT="b01d3f6707e3a74f69905722b451a08cbb3364f3"
-INITIAL_REASON_WITHOUT_SUBSCRIBER="The legacy client/result scenario does not enforce the canonical Forward-State-aware object and PUBLISH_DONE lifecycle, including exact Stream Count and request-stream completion."
-INITIAL_REASON_PENDING_SUBSCRIPTION="The legacy client/result scenario does not enforce subscriber-first rendezvous, Forward State 1, exact object delivery, and counted-stream completion required by the canonical test."
 PREVIOUS_RETIRED_FILE=""
+PREVIOUS_SPEC_FILE=""
 SPEC_FILES=()
 
 usage() {
-    printf 'Usage: %s [--previous-retired <file>] [additional-spec-file ...]\n' "${0##*/}"
+    printf 'Usage: %s [--previous-retired <file>] [--previous-spec <file>] [additional-spec-file ...]\n' "${0##*/}"
 }
 
 while [ $# -gt 0 ]; do
@@ -27,6 +23,11 @@ while [ $# -gt 0 ]; do
         --previous-retired)
             [ $# -ge 2 ] || { echo "ERROR: --previous-retired requires a file" >&2; exit 1; }
             PREVIOUS_RETIRED_FILE="$2"
+            shift 2
+            ;;
+        --previous-spec)
+            [ $# -ge 2 ] || { echo "ERROR: --previous-spec requires a file" >&2; exit 1; }
+            PREVIOUS_SPEC_FILE="$2"
             shift 2
             ;;
         -h|--help)
@@ -60,6 +61,10 @@ if [ -n "$PREVIOUS_RETIRED_FILE" ] && [ ! -f "$PREVIOUS_RETIRED_FILE" ]; then
     echo "ERROR: previous retirement registry not found: $PREVIOUS_RETIRED_FILE" >&2
     exit 1
 fi
+if [ -n "$PREVIOUS_SPEC_FILE" ] && [ ! -f "$PREVIOUS_SPEC_FILE" ]; then
+    echo "ERROR: previous canonical specification not found: $PREVIOUS_SPEC_FILE" >&2
+    exit 1
+fi
 
 target="$(jq -er '.current_target | select(type == "string" and test("^draft-[0-9]+$"))' "$CONFIG_FILE" 2>/dev/null)" || {
     echo "ERROR: implementations.json.current_target must match draft-NN" >&2
@@ -68,8 +73,8 @@ target="$(jq -er '.current_target | select(type == "string" and test("^draft-[0-
 target_number="${target#draft-}"
 status=0
 ACTIVE_IDS_FILE="$(mktemp "${TMPDIR:-/tmp}/active-test-identifiers.XXXXXX")"
-ACTIVE_HEADING_IDS_FILE="$(mktemp "${TMPDIR:-/tmp}/active-heading-identifiers.XXXXXX")"
-trap 'rm -f "$ACTIVE_IDS_FILE" "$ACTIVE_HEADING_IDS_FILE"' EXIT
+PREVIOUS_ACTIVE_IDS_FILE="$(mktemp "${TMPDIR:-/tmp}/previous-active-test-identifiers.XXXXXX")"
+trap 'rm -f "$ACTIVE_IDS_FILE" "$PREVIOUS_ACTIVE_IDS_FILE"' EXIT
 
 sanitize_markdown() {
     local source="$1"
@@ -159,20 +164,73 @@ check_public_name() {
 record_active_id() {
     local spec="$1"
     local line_number="$2"
-    local kind="$3"
-    local public_name="$4"
+    local public_name="$3"
+    local active_ids_file="$4"
+    local enforce_policy="$5"
 
-    check_public_name "$spec" "$line_number" "$kind" "$public_name"
-    printf '%s\n' "$public_name" >> "$ACTIVE_IDS_FILE"
-    if [ "$kind" = "heading ID" ]; then
-        printf '%s\n' "$public_name" >> "$ACTIVE_HEADING_IDS_FILE"
+    if [ "$enforce_policy" = true ]; then
+        check_public_name "$spec" "$line_number" "heading ID" "$public_name"
     fi
+    printf '%s\n' "$public_name" >> "$active_ids_file"
+}
+
+scan_active_ids() {
+    local spec="$1"
+    local clean_spec="$2"
+    local active_ids_file="$3"
+    local enforce_policy="$4"
+    local line_number line public_name first_cell heading_content
+    local in_identifier_table=false
+
+    line_number=0
+    while IFS= read -r line || [ -n "$line" ]; do
+        line_number=$((line_number + 1))
+
+        if printf '%s\n' "$line" | grep -Eq '^ {0,3}###'; then
+            if printf '%s\n' "$line" | grep -Eq '^ {0,3}###[[:space:]]+(`([a-z][a-z0-9-]*)`|[a-z][a-z0-9-]*)[[:space:]]*$'; then
+                public_name="$(printf '%s\n' "$line" | grep -Eo '[a-z][a-z0-9-]*')"
+                record_active_id "$spec" "$line_number" "$public_name" "$active_ids_file" "$enforce_policy"
+            else
+                heading_content="${line#*###}"
+                heading_content="${heading_content#"${heading_content%%[![:space:]]*}"}"
+                if [ "$enforce_policy" = true ] &&
+                   { [[ "$heading_content" == *"\`"* ]] ||
+                     [[ "$heading_content" != *" "* ]] ||
+                     printf '%s\n' "$heading_content" | grep -Eq '^[a-z]|^[A-Za-z0-9_]*[-_][A-Za-z0-9_-]*'; }; then
+                    check_public_name "$spec" "$line_number" "heading ID" "$heading_content"
+                    echo "ERROR: $spec:$line_number has malformed canonical test heading '$heading_content'" >&2
+                    status=1
+                fi
+            fi
+        fi
+
+        if [[ "$line" == *"|"* ]] && printf '%s\n' "$line" | grep -Eq '^[[:space:]]*\|'; then
+            first_cell="${line#*|}"
+            first_cell="${first_cell%%|*}"
+            if printf '%s\n' "$first_cell" | grep -Eqi '^[[:space:]]*(identifier|test|test[[:space:]_-]+id)[[:space:]]*$'; then
+                in_identifier_table=true
+                continue
+            fi
+            if [ "$in_identifier_table" = true ]; then
+                if printf '%s\n' "$first_cell" | grep -Eq '^[[:space:]]*:?-+:?[[:space:]]*$'; then
+                    continue
+                fi
+                if [ "$enforce_policy" = true ]; then
+                    check_public_name "$spec" "$line_number" "test-ID table entry" "$first_cell"
+                fi
+                continue
+            fi
+        else
+            in_identifier_table=false
+        fi
+
+    done < "$clean_spec"
 }
 
 check_spec() {
     local spec="$1"
-    local clean_spec line_number line token public_name function_token first_cell heading_content
-    local in_identifier_table=false
+    local active_ids_file="$2"
+    local clean_spec line_number line token
 
     clean_spec="$(mktemp "${TMPDIR:-/tmp}/canonical-test-spec.XXXXXX")"
     sanitize_markdown "$spec" > "$clean_spec"
@@ -194,64 +252,7 @@ check_spec() {
         done < <(printf '%s\n' "$line" | grep -Eo 'MoQT-[0-9]+|draft-ietf-moq-transport-[0-9]+' || true)
     done < <(grep -En 'MoQT-[0-9]+|draft-ietf-moq-transport-[0-9]+' "$clean_spec" || true)
 
-    line_number=0
-    while IFS= read -r line || [ -n "$line" ]; do
-        line_number=$((line_number + 1))
-
-        if [[ "$line" == "###"* ]]; then
-            if printf '%s\n' "$line" | grep -Eq '^###[[:space:]]+(`([a-z][a-z0-9-]*)`|[a-z][a-z0-9-]*)[[:space:]]*$'; then
-                public_name="$(printf '%s\n' "$line" | grep -Eo '[a-z][a-z0-9-]*')"
-                record_active_id "$spec" "$line_number" "heading ID" "$public_name"
-            else
-                heading_content="${line#\#\#\#}"
-                heading_content="${heading_content#"${heading_content%%[![:space:]]*}"}"
-                if [[ "$heading_content" == *"\`"* ]] ||
-                   [[ "$heading_content" != *" "* ]] ||
-                   printf '%s\n' "$heading_content" | grep -Eq '^[a-z]|^[A-Za-z0-9_]*[-_][A-Za-z0-9_-]*'; then
-                    check_public_name "$spec" "$line_number" "heading ID" "$heading_content"
-                    echo "ERROR: $spec:$line_number has malformed canonical test heading '$heading_content'" >&2
-                    status=1
-                fi
-            fi
-        fi
-
-        if [[ "$line" == *"|"* ]] && printf '%s\n' "$line" | grep -Eq '^[[:space:]]*\|'; then
-            first_cell="${line#*|}"
-            first_cell="${first_cell%%|*}"
-            if printf '%s\n' "$first_cell" | grep -Eqi '^[[:space:]]*(identifier|test|test[[:space:]_-]+id)[[:space:]]*$'; then
-                in_identifier_table=true
-                continue
-            fi
-            if [ "$in_identifier_table" = true ]; then
-                if printf '%s\n' "$first_cell" | grep -Eq '^[[:space:]]*:?-+:?[[:space:]]*$'; then
-                    continue
-                fi
-                if printf '%s\n' "$first_cell" | grep -Eq '^[[:space:]]*(`[a-z][a-z0-9-]*`|[a-z][a-z0-9-]*)[[:space:]]*$'; then
-                    public_name="$(printf '%s\n' "$first_cell" | grep -Eo '[a-z][a-z0-9-]*')"
-                    record_active_id "$spec" "$line_number" "first-column table ID" "$public_name"
-                else
-                    check_public_name "$spec" "$line_number" "first-column table ID" "$first_cell"
-                    echo "ERROR: $spec:$line_number has malformed canonical first-column table ID '$first_cell'" >&2
-                    status=1
-                fi
-                continue
-            fi
-        else
-            in_identifier_table=false
-        fi
-
-        while IFS= read -r function_token; do
-            [ -n "$function_token" ] || continue
-            public_name="$(printf '%s\n' "$function_token" | grep -Eo 'test_[A-Za-z0-9_-]+')"
-            check_public_name "$spec" "$line_number" "function" "$public_name"
-        done < <(printf '%s\n' "$line" | grep -Eo '`test_[A-Za-z0-9_-]+[[:space:]]*\(' || true)
-
-        while IFS= read -r function_token; do
-            [ -n "$function_token" ] || continue
-            public_name="$(printf '%s\n' "$function_token" | grep -Eo 'test_[A-Za-z0-9_-]+')"
-            check_public_name "$spec" "$line_number" "function" "$public_name"
-        done < <(printf '%s\n' "$line" | grep -Eo 'fn[[:space:]]+test_[A-Za-z0-9_-]+[[:space:]]*\(' || true)
-    done < "$clean_spec"
+    scan_active_ids "$spec" "$clean_spec" "$active_ids_file" true
 
     rm -f "$clean_spec"
 }
@@ -271,66 +272,64 @@ registry_has_valid_shape() {
 
     jq -e --arg format "$REGISTRY_FORMAT" --argjson version "$REGISTRY_VERSION" '
         type == "object" and
+        (keys | sort) == ["format", "format_version", "retired_identifiers"] and
         .format == $format and
         .format_version == $version and
-        (.initial_tombstone_pin | type) == "string" and
         (.retired_identifiers | type) == "array" and
         all(.retired_identifiers[];
+            (keys | sort) == ["id", "last_known_profile_revision", "last_known_target", "reason", "replacement"] and
             ((.id | type) == "string" and (.id | test("^[a-z][a-z0-9-]*$"))) and
             ((.last_known_target | type) == "string" and (.last_known_target | test("^draft-[0-9]+$"))) and
             ((.last_known_profile_revision | type) == "string" and (.last_known_profile_revision | length) > 0) and
-            ((.last_known_implementation | type) == "object") and
-            ((.last_known_implementation.repository | type) == "string" and (.last_known_implementation.repository | length) > 0) and
-            ((.last_known_implementation.commit | type) == "string" and (.last_known_implementation.commit | test("^[0-9a-f]{40}$"))) and
-            ((.last_known_implementation.image_digest | type) == "string" and
-                ((.last_known_implementation.image_digest == "unknown") or
-                 (.last_known_implementation.image_digest | test("^sha256:[0-9a-f]{64}$")))) and
             ((.reason | type) == "string" and (.reason | length) > 0) and
-            ((.replacement | type) == "string" and (.replacement | test("^[a-z][a-z0-9-]*$")))
+            ((.replacement == null) or
+             ((.replacement | type) == "string" and (.replacement | test("^[a-z][a-z0-9-]*$"))))
         )
     ' "$registry" >/dev/null 2>&1
 }
 
-check_initial_tombstones() {
-    if ! jq -e \
-        --arg pin "$INITIAL_TOMBSTONE_PIN" \
-        --arg repository "$INITIAL_SOURCE_REPOSITORY" \
-        --arg commit "$INITIAL_SOURCE_COMMIT" \
-        --arg reason_without_subscriber "$INITIAL_REASON_WITHOUT_SUBSCRIBER" \
-        --arg reason_pending_subscription "$INITIAL_REASON_PENDING_SUBSCRIPTION" '
-        .initial_tombstone_pin == $pin and
-        .retired_identifiers[0] == {
-            id: "publish-track-only",
-            last_known_target: "draft-18",
-            last_known_profile_revision: "legacy-unversioned",
-            last_known_implementation: {
-                repository: $repository,
-                commit: $commit,
-                image_digest: "unknown"
-            },
-            reason: $reason_without_subscriber,
-            replacement: "publish-without-subscriber"
-        } and
-        .retired_identifiers[1] == {
-            id: "publish-track-subscribe",
-            last_known_target: "draft-18",
-            last_known_profile_revision: "legacy-unversioned",
-            last_known_implementation: {
-                repository: $repository,
-                commit: $commit,
-                image_digest: "unknown"
-            },
-            reason: $reason_pending_subscription,
-            replacement: "publish-to-pending-subscription"
-        }
-    ' "$RETIRED_FILE" >/dev/null 2>&1; then
-        echo "ERROR: $RETIRED_FILE does not match the pinned initial tombstones" >&2
-        status=1
-    fi
+check_retirement_chains() {
+    local retired_id current replacement path
+
+    while IFS= read -r retired_id; do
+        [ -n "$retired_id" ] || continue
+        if grep -Fqx "$retired_id" "$ACTIVE_IDS_FILE"; then
+            echo "ERROR: retired ID '$retired_id' is reused as an active canonical ID" >&2
+            status=1
+        fi
+
+        current="$retired_id"
+        path="|$retired_id|"
+        while true; do
+            replacement="$(jq -r --arg id "$current" '.retired_identifiers[] | select(.id == $id) | if .replacement == null then "__NO_REPLACEMENT__" else .replacement end' "$RETIRED_FILE")"
+            if [ "$replacement" = "__NO_REPLACEMENT__" ]; then
+                if [ "$current" != "$retired_id" ]; then
+                    echo "ERROR: retirement chain from '$retired_id' terminates at retired ID '$current' with no replacement" >&2
+                    status=1
+                fi
+                break
+            fi
+            if grep -Fqx "$replacement" "$ACTIVE_IDS_FILE"; then
+                break
+            fi
+            if ! jq -e --arg id "$replacement" 'any(.retired_identifiers[]; .id == $id)' "$RETIRED_FILE" >/dev/null; then
+                echo "ERROR: retirement chain from '$retired_id' does not terminate at an active canonical ID" >&2
+                status=1
+                break
+            fi
+            if [[ "$path" == *"|$replacement|"* ]]; then
+                echo "ERROR: retirement chain from '$retired_id' contains a cycle at '$replacement'" >&2
+                status=1
+                break
+            fi
+            path="$path$replacement|"
+            current="$replacement"
+        done
+    done < <(jq -r '.retired_identifiers[].id' "$RETIRED_FILE")
 }
 
 check_retired_registry() {
-    local duplicate retired_id replacement pinned_id
+    local duplicate
 
     if ! jq empty "$RETIRED_FILE" 2>/dev/null; then
         echo "ERROR: $RETIRED_FILE is not valid JSON" >&2
@@ -343,36 +342,13 @@ check_retired_registry() {
         return
     fi
 
-    check_initial_tombstones
-
     while IFS= read -r duplicate; do
         [ -n "$duplicate" ] || continue
         echo "ERROR: $RETIRED_FILE contains duplicate retired ID '$duplicate'" >&2
         status=1
     done < <(jq -r '.retired_identifiers | group_by(.id)[] | select(length > 1) | .[0].id' "$RETIRED_FILE")
 
-    while IFS=$'\t' read -r retired_id replacement; do
-        [ -n "$retired_id" ] || continue
-        if [ "$retired_id" = "$replacement" ]; then
-            echo "ERROR: retired ID '$retired_id' must have a different replacement" >&2
-            status=1
-        fi
-        if grep -Fqx "$retired_id" "$ACTIVE_IDS_FILE"; then
-            echo "ERROR: retired ID '$retired_id' is reused as an active canonical ID" >&2
-            status=1
-        fi
-        if ! grep -Fqx "$replacement" "$ACTIVE_HEADING_IDS_FILE"; then
-            echo "ERROR: replacement '$replacement' for retired ID '$retired_id' is not an active canonical heading ID" >&2
-            status=1
-        fi
-    done < <(jq -r '.retired_identifiers[] | [.id, .replacement] | @tsv' "$RETIRED_FILE")
-
-    for pinned_id in publish-track-only publish-track-subscribe; do
-        if grep -Fqx "$pinned_id" "$ACTIVE_IDS_FILE"; then
-            echo "ERROR: pinned retired ID '$pinned_id' is reused as an active canonical ID" >&2
-            status=1
-        fi
-    done
+    check_retirement_chains
 }
 
 check_previous_registry() {
@@ -397,19 +373,44 @@ check_previous_registry() {
     fi
 }
 
-check_spec "$PRIMARY_SPEC"
+check_previous_spec() {
+    local clean_spec previous_id
+
+    if [ -z "$PREVIOUS_SPEC_FILE" ]; then
+        return 0
+    fi
+
+    clean_spec="$(mktemp "${TMPDIR:-/tmp}/previous-canonical-test-spec.XXXXXX")"
+    sanitize_markdown "$PREVIOUS_SPEC_FILE" > "$clean_spec"
+    scan_active_ids "$PREVIOUS_SPEC_FILE" "$clean_spec" "$PREVIOUS_ACTIVE_IDS_FILE" false
+    rm -f "$clean_spec"
+
+    while IFS= read -r previous_id; do
+        [ -n "$previous_id" ] || continue
+        if grep -Fqx "$previous_id" "$ACTIVE_IDS_FILE"; then
+            continue
+        fi
+        if ! jq -e --arg id "$previous_id" 'any(.retired_identifiers[]; .id == $id)' "$RETIRED_FILE" >/dev/null; then
+            echo "ERROR: previous canonical ID '$previous_id' is missing without a retirement tombstone" >&2
+            status=1
+        fi
+    done < <(jq -Rrs 'split("\n") | map(select(length > 0)) | unique[]' "$PREVIOUS_ACTIVE_IDS_FILE")
+}
+
+check_spec "$PRIMARY_SPEC" "$ACTIVE_IDS_FILE"
 for spec in "${SPEC_FILES[@]}"; do
     if [ ! -f "$spec" ]; then
         echo "ERROR: additional spec file not found: $spec" >&2
         status=1
         continue
     fi
-    check_spec "$spec"
+    check_spec "$spec" /dev/null
 done
 
 check_duplicate_active_ids
 check_retired_registry
 check_previous_registry
+check_previous_spec
 
 if [ "$status" -eq 0 ]; then
     echo "Target-draft policy valid: $target"
