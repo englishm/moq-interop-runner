@@ -24,7 +24,7 @@ The profile ID and seven formal gate IDs identify enduring protocol semantics th
 
 An incompatible change to protocol semantics, pass criteria, or applicability is not an editorial migration. It permanently retires the old ID, records its kind, `last_valid_target` (draft or RFC), last-valid profile revision, reason, and optional replacement in `identifier_history.retired_ids`, and introduces a new semantic ID. The retired-ID history is append-only, and retired IDs are never reused. The history is empty because the prior draft-specific profile commit was unpublished and produced no accepted ecosystem identifiers or results; this semantic migration therefore needs neither aliases nor retirement entries.
 
-`identifier_history.reviewed_for_target` and both canonical reviewed-for declarations must equal `profile.target_draft`. The local target-reference hook enforces the same value against the runner registry, and the profile validator passes both canonical documents together to the generic base target-draft contract so cross-document active-ID collisions are evaluated in one run.
+`identifier_history.reviewed_for_target` and both canonical reviewed-for declarations must equal `profile.target_draft`. The local target-reference hook enforces the same value against the runner registry, and the profile validator passes both canonical documents together to the generic base target-draft contract for shared target and normative-reference review. The profile's own schema and validator govern its gate-ID lifecycle; additional profile documents are not added to the primary runner specification's active-ID set.
 
 ## Support Verification
 
