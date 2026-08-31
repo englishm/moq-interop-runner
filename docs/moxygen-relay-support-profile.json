@@ -23,10 +23,6 @@
         "sha": "0d886e3e907e2236a6d927afefd09bb0c3dc8211",
         "declaration_file": "moxygen/moqtest/conformance_test.sh"
       },
-      "moq_rs_review": {
-        "repository": "https://github.com/cloudflare/moq-rs",
-        "sha": "b01d3f6707e3a74f69905722b451a08cbb3364f3"
-      },
       "runner_baseline": {
         "repository": "https://github.com/englishm/moq-interop-runner",
         "sha": "e63ee5aa0b22b16cbd86d022840a7e74fd806602"
@@ -38,10 +34,19 @@
         "sha": "TBD",
         "image_digest": "TBD"
       },
-      "rust_diagnostic_gates": {
+      "independent_driver": {
         "status": "unresolved",
         "sha": "TBD"
       }
+    }
+  },
+  "implementation_bindings": {
+    "independent_driver": {
+      "implementation_id": "moq-rs",
+      "repository": "https://github.com/cloudflare/moq-rs",
+      "review_sha": "b01d3f6707e3a74f69905722b451a08cbb3364f3",
+      "non_normative": true,
+      "role": "controlled-independent-evidence-driver"
     }
   },
   "oracle": {
@@ -55,7 +60,7 @@
     "semantic_layer": "Runner gate success criteria describe protocol-visible behavior between publisher, relay, and subscriber roles without prescribing an implementation.",
     "binding_rule": "Exact vectors and executable functions belong to driver bindings and evidence; they are not normative protocol behavior.",
     "binding_reference_rule": "gate_normative_references apply to the implementation-neutral semantic contract; binding-specific references and limitations are labeled by driver binding.",
-    "independence_rule": "moxygen and moq-test-client must not port or share each other's generators or assertions"
+    "independence_rule": "moxygen and each controlled independent driver must not port or share each other's generators or assertions"
   },
   "identifier_policy": {
     "profile_id": "The profile ID identifies enduring protocol semantics through RFC publication and never encodes a draft version or implementation revision.",
@@ -75,8 +80,15 @@
   "support_verification": {
     "state": "unverified",
     "verified_at": null,
+    "invalidated_at": null,
+    "invalidation_reason": null,
+    "verified_gate_ids": [],
+    "driver_binding": null,
     "pinned_implementation_revision": "TBD",
+    "verified_subject": null,
+    "verified_role": null,
     "target_draft": "draft-18",
+    "result_links": [],
     "evidence_links": [],
     "invalidation_conditions": [
       "target-draft-semantic-change",
@@ -101,34 +113,34 @@
     "diagnostic_gate_timeouts_ms": {
       "subscribe-one-subgroup-per-group": {
         "moxygen_driver": 10000,
-        "independent_moq_test_client": 20000
+        "independent_driver": 20000
       },
       "subscribe-one-subgroup-per-object": {
         "moxygen_driver": 10000,
-        "independent_moq_test_client": 20000
+        "independent_driver": 20000
       },
       "subscribe-two-subgroups-per-group": {
         "moxygen_driver": 10000,
-        "independent_moq_test_client": 20000
+        "independent_driver": 20000
       },
       "subscribe-nonzero-start-group": {
         "moxygen_driver": 10000,
-        "independent_moq_test_client": 20000
+        "independent_driver": 20000
       },
       "subscribe-nonzero-start-object": {
         "moxygen_driver": 10000,
-        "independent_moq_test_client": 20000
+        "independent_driver": 20000
       },
       "subscribe-sparse-group-object-ids": {
         "moxygen_driver": 10000,
-        "independent_moq_test_client": 20000
+        "independent_driver": 20000
       },
       "subscribe-object-properties": {
         "moxygen_driver": 10000,
-        "independent_moq_test_client": 20000
+        "independent_driver": 20000
       }
     },
-    "independent_moq_test_client_timeout_components_ms": {
+    "independent_driver_timeout_components_ms": {
       "rendezvous": 10000,
       "delivery_and_terminal_margin": 10000
     },
@@ -237,7 +249,7 @@
       ],
       "completion": "Wire evidence accounts for the expected objects and stream FIN dispositions."
     },
-    "independent_moq_test_client": {
+    "independent_driver": {
       "readiness": "Observe both SUBSCRIBE_OK and exact namespace-plus-track routing to the publisher serve model.",
       "delivery": [
         "serve-model-subgroup-identity",
@@ -293,11 +305,11 @@
         "mixed",
         "driver-inconclusive"
       ],
-      "rule": "Disposition is profile eligibility, execution is what happened, evaluator_verdict is the evidence judgment, and claimed_outcome is the driver or exported claim under evaluation. A claimed pass can be overturned by the evaluator. Fail requires complete verified evidence and provenance, the exact required assertion set, at least one failed assertion, and a contradiction classification. Inconclusive requires a not-observed assertion or non-verified evidence/provenance and uses none or driver-inconclusive. Unsupported, harness-error, and null verdicts use none."
+      "rule": "Disposition is profile eligibility, execution is what happened, evaluator_verdict is the evidence judgment, and claimed_outcome is the driver or exported claim under evaluation. A claimed pass can be overturned by the evaluator. Fail requires complete verified evidence and provenance, the exact required assertion set, at least one failed assertion, and a contradiction classification. Inconclusive requires a not-observed assertion or non-verified evidence/provenance and uses none or driver-inconclusive. Unsupported requires evaluator and claimed outcome unsupported, none classification, and assertions absent or not-observed. Harness-error and null verdicts use none."
     },
     "independence_classes": [
       "moxygen-driver-binding",
-      "independent-generator-and-oracle"
+      "independent-driver-binding"
     ],
     "assertion_descriptor": {
       "required": [
@@ -330,9 +342,9 @@
       "rule": "A deployment with no verifiable image digest must use visibility=opaque, image_digest=null, and a non-empty opaque reason and locator. It must not use a guessed digest or be described as reproducible.",
       "result_handling": "Opaque runs may report protocol observations, but the record must set reproducibility=opaque and preserve the limitation in every exported claim."
     },
-    "phase_timing_rule": "independent_moq_test_client optionally records setup_ms as concurrent role setup wall time, then records readiness_ms at most 10000 and delivery_terminal_ms at most 10000. moxygen_driver records publisher_readiness_ms at most 10000 and case_ms at most its selected 10000 gate timeout. duration_ms is aggregate process time and must be at least the sum of the binding's recorded sequential wall-clock phases.",
+    "phase_timing_rule": "independent_driver optionally records setup_ms as concurrent role setup wall time, then records readiness_ms at most 10000 and delivery_terminal_ms at most 10000. moxygen_driver records publisher_readiness_ms at most 10000 and case_ms at most its selected 10000 gate timeout. duration_ms is aggregate process time and must be at least the sum of the binding's recorded sequential wall-clock phases.",
     "assertion_linkage_rule": "Every assertion ID belongs to the selected gate required_assertion_ids. A pass contains exactly that complete set with pass status and non-empty evidence references.",
-    "driver_provenance_rule": "driver_landing_sha equals publisher and subscriber deployment source_sha for the selected driver binding.",
+    "driver_provenance_rule": "driver_review_baseline_sha resolves through the selected profile binding; driver_landing_sha equals publisher and subscriber deployment source_sha for that binding.",
     "verification_rule": "reproducibility and independence_class are submitted claims. A publishable evaluator pass requires evidence_integrity_verification=verified and provenance_verification=verified from external publication tooling.",
     "executable_provenance_rule": "Manifest executable landing fields may be unresolved/TBD, but executable result records require full 40-character landing SHAs and must never contain TBD."
   },
@@ -1029,7 +1041,10 @@
       },
       "bindings": {
         "moxygen_driver": {
-          "classification": "moxygen-driver-binding",
+          "binding_classification": "moxygen-driver-binding",
+          "implementation": "moxygen",
+          "repository": "https://github.com/facebookexperimental/moxygen",
+          "independence_classification": "independent-source-generator-and-observer",
           "source_ordinal": 1,
           "source_name": "Basic subscribe with default parameters",
           "topology": "moxygen moqtest_server -> relay-under-test -> moxygen moqtest_client",
@@ -1091,8 +1106,11 @@
             "object_property_types": []
           }
         },
-        "independent_moq_test_client": {
-          "classification": "independent-generator-and-oracle",
+        "independent_driver": {
+          "binding_classification": "independent-driver-binding",
+          "implementation": "moq-rs",
+          "repository": "https://github.com/cloudflare/moq-rs",
+          "independence_classification": "independently-authored-generator-and-observer",
           "planned_function": "test_subscribe_one_subgroup_per_group",
           "topology": "independent publisher role -> relay-under-test -> independent subscriber role",
           "derivation": "The publisher vector and subscriber assertions are derived independently from the target draft and gate semantics, not from moxygen code or its moq-test-00 tuple.",
@@ -1224,7 +1242,10 @@
       },
       "bindings": {
         "moxygen_driver": {
-          "classification": "moxygen-driver-binding",
+          "binding_classification": "moxygen-driver-binding",
+          "implementation": "moxygen",
+          "repository": "https://github.com/facebookexperimental/moxygen",
+          "independence_classification": "independent-source-generator-and-observer",
           "source_ordinal": 2,
           "source_name": "ONE_SUBGROUP_PER_OBJECT forwarding",
           "topology": "moxygen moqtest_server -> relay-under-test -> moxygen moqtest_client",
@@ -1277,8 +1298,11 @@
             "object_property_types": []
           }
         },
-        "independent_moq_test_client": {
-          "classification": "independent-generator-and-oracle",
+        "independent_driver": {
+          "binding_classification": "independent-driver-binding",
+          "implementation": "moq-rs",
+          "repository": "https://github.com/cloudflare/moq-rs",
+          "independence_classification": "independently-authored-generator-and-observer",
           "planned_function": "test_subscribe_one_subgroup_per_object",
           "topology": "independent publisher role -> relay-under-test -> independent subscriber role",
           "derivation": "The publisher vector and subscriber assertions are independently authored from Sections 2.2 and 11.4.2.",
@@ -1393,7 +1417,10 @@
       },
       "bindings": {
         "moxygen_driver": {
-          "classification": "moxygen-driver-binding",
+          "binding_classification": "moxygen-driver-binding",
+          "implementation": "moxygen",
+          "repository": "https://github.com/facebookexperimental/moxygen",
+          "independence_classification": "independent-source-generator-and-observer",
           "source_ordinal": 3,
           "source_name": "TWO_SUBGROUPS_PER_GROUP forwarding",
           "topology": "moxygen moqtest_server -> relay-under-test -> moxygen moqtest_client",
@@ -1459,8 +1486,11 @@
             "object_property_types": []
           }
         },
-        "independent_moq_test_client": {
-          "classification": "independent-generator-and-oracle",
+        "independent_driver": {
+          "binding_classification": "independent-driver-binding",
+          "implementation": "moq-rs",
+          "repository": "https://github.com/cloudflare/moq-rs",
+          "independence_classification": "independently-authored-generator-and-observer",
           "planned_function": "test_subscribe_two_subgroups_per_group",
           "topology": "independent publisher role -> relay-under-test -> independent subscriber role",
           "derivation": "The two-subgroup fixture is independently authored and deliberately uses subgroup IDs unrelated to moxygen's parity IDs.",
@@ -1600,7 +1630,10 @@
       },
       "bindings": {
         "moxygen_driver": {
-          "classification": "moxygen-driver-binding",
+          "binding_classification": "moxygen-driver-binding",
+          "implementation": "moxygen",
+          "repository": "https://github.com/facebookexperimental/moxygen",
+          "independence_classification": "independent-source-generator-and-observer",
           "source_ordinal": 12,
           "source_name": "Start from group 5",
           "topology": "moxygen moqtest_server -> relay-under-test -> moxygen moqtest_client",
@@ -1658,8 +1691,11 @@
             "object_property_types": []
           }
         },
-        "independent_moq_test_client": {
-          "classification": "independent-generator-and-oracle",
+        "independent_driver": {
+          "binding_classification": "independent-driver-binding",
+          "implementation": "moq-rs",
+          "repository": "https://github.com/cloudflare/moq-rs",
+          "independence_classification": "independently-authored-generator-and-observer",
           "planned_function": "test_subscribe_nonzero_start_group",
           "topology": "independent publisher role -> relay-under-test -> independent subscriber role",
           "derivation": "The independent fixture publishes its own bounded track beginning at Group 5; it does not encode a moq-test-00 control tuple.",
@@ -1776,7 +1812,10 @@
       },
       "bindings": {
         "moxygen_driver": {
-          "classification": "moxygen-driver-binding",
+          "binding_classification": "moxygen-driver-binding",
+          "implementation": "moxygen",
+          "repository": "https://github.com/facebookexperimental/moxygen",
+          "independence_classification": "independent-source-generator-and-observer",
           "source_ordinal": 13,
           "source_name": "Start from object 3",
           "topology": "moxygen moqtest_server -> relay-under-test -> moxygen moqtest_client",
@@ -1838,8 +1877,11 @@
             "object_property_types": []
           }
         },
-        "independent_moq_test_client": {
-          "classification": "independent-generator-and-oracle",
+        "independent_driver": {
+          "binding_classification": "independent-driver-binding",
+          "implementation": "moq-rs",
+          "repository": "https://github.com/cloudflare/moq-rs",
+          "independence_classification": "independently-authored-generator-and-observer",
           "planned_function": "test_subscribe_nonzero_start_object",
           "topology": "independent publisher role -> relay-under-test -> independent subscriber role",
           "derivation": "The independent publisher starts its subgroup at Object 3 and the independent subscriber validates absolute Object IDs through the serve model.",
@@ -1952,7 +1994,10 @@
       },
       "bindings": {
         "moxygen_driver": {
-          "classification": "moxygen-driver-binding",
+          "binding_classification": "moxygen-driver-binding",
+          "implementation": "moxygen",
+          "repository": "https://github.com/facebookexperimental/moxygen",
+          "independence_classification": "independent-source-generator-and-observer",
           "source_ordinal": 29,
           "source_name": "Group and object increment of 2",
           "topology": "moxygen moqtest_server -> relay-under-test -> moxygen moqtest_client",
@@ -2017,8 +2062,11 @@
             "gap_properties_present": false
           }
         },
-        "independent_moq_test_client": {
-          "classification": "independent-generator-and-oracle",
+        "independent_driver": {
+          "binding_classification": "independent-driver-binding",
+          "implementation": "moq-rs",
+          "repository": "https://github.com/cloudflare/moq-rs",
+          "independence_classification": "independently-authored-generator-and-observer",
           "planned_function": "test_subscribe_sparse_group_object_ids",
           "topology": "independent publisher role -> relay-under-test -> independent subscriber role",
           "derivation": "The independent fixture uses bounded sparse IDs and validates absolute IDs through the serve model; it does not expose raw wire deltas or peer inference state.",
@@ -2155,7 +2203,10 @@
       },
       "bindings": {
         "moxygen_driver": {
-          "classification": "moxygen-driver-binding",
+          "binding_classification": "moxygen-driver-binding",
+          "implementation": "moxygen",
+          "repository": "https://github.com/facebookexperimental/moxygen",
+          "independence_classification": "independent-source-generator-and-observer",
           "source_ordinal": 40,
           "source_name": "Extensions with higher IDs",
           "topology": "moxygen moqtest_server -> relay-under-test -> moxygen moqtest_client",
@@ -2218,8 +2269,11 @@
             "property_order_asserted": false
           }
         },
-        "independent_moq_test_client": {
-          "classification": "independent-generator-and-oracle",
+        "independent_driver": {
+          "binding_classification": "independent-driver-binding",
+          "implementation": "moq-rs",
+          "repository": "https://github.com/cloudflare/moq-rs",
+          "independence_classification": "independently-authored-generator-and-observer",
           "planned_function": "test_subscribe_object_properties",
           "topology": "independent publisher role -> relay-under-test -> independent subscriber role",
           "derivation": "The independent fixture uses fixed application-specific Object Property pairs while avoiding the Object-scope-forbidden Mandatory Track Property range.",

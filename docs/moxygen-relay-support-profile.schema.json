@@ -9,6 +9,7 @@
     "schema_version",
     "profile",
     "provenance",
+    "implementation_bindings",
     "oracle",
     "identifier_policy",
     "identifier_history",
@@ -89,7 +90,6 @@
           "required": [
             "normative_draft",
             "moxygen_declarations",
-            "moq_rs_review",
             "runner_baseline"
           ],
           "properties": {
@@ -97,9 +97,6 @@
               "$ref": "#/definitions/pinned_source"
             },
             "moxygen_declarations": {
-              "$ref": "#/definitions/pinned_source"
-            },
-            "moq_rs_review": {
               "$ref": "#/definitions/pinned_source"
             },
             "runner_baseline": {
@@ -112,15 +109,34 @@
           "additionalProperties": false,
           "required": [
             "moxygen_conformance_driver",
-            "rust_diagnostic_gates"
+            "independent_driver"
           ],
           "properties": {
             "moxygen_conformance_driver": {
               "$ref": "#/definitions/unresolved_executable_with_image"
             },
-            "rust_diagnostic_gates": {
+            "independent_driver": {
               "$ref": "#/definitions/unresolved_executable"
             }
+          }
+        }
+      }
+    },
+    "implementation_bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["independent_driver"],
+      "properties": {
+        "independent_driver": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["implementation_id", "repository", "review_sha", "non_normative", "role"],
+          "properties": {
+            "implementation_id": {"const": "moq-rs"},
+            "repository": {"const": "https://github.com/cloudflare/moq-rs"},
+            "review_sha": {"const": "b01d3f6707e3a74f69905722b451a08cbb3364f3"},
+            "non_normative": {"const": true},
+            "role": {"const": "controlled-independent-evidence-driver"}
           }
         }
       }
@@ -237,12 +253,19 @@
     "support_verification": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["state", "verified_at", "pinned_implementation_revision", "target_draft", "evidence_links", "invalidation_conditions"],
+      "required": ["state", "verified_at", "invalidated_at", "invalidation_reason", "verified_gate_ids", "driver_binding", "pinned_implementation_revision", "verified_subject", "verified_role", "target_draft", "result_links", "evidence_links", "invalidation_conditions"],
       "properties": {
         "state": {"enum": ["unverified", "verified", "invalidated"]},
         "verified_at": {"oneOf": [{"type": "null"}, {"type": "string", "format": "date-time"}]},
+        "invalidated_at": {"oneOf": [{"type": "null"}, {"type": "string", "format": "date-time"}]},
+        "invalidation_reason": {"oneOf": [{"type": "null"}, {"type": "string", "pattern": "^\\S(?:.*\\S)?$"}]},
+        "verified_gate_ids": {"type": "array", "uniqueItems": true, "items": {"enum": ["subscribe-one-subgroup-per-group", "subscribe-one-subgroup-per-object", "subscribe-two-subgroups-per-group", "subscribe-nonzero-start-group", "subscribe-nonzero-start-object", "subscribe-sparse-group-object-ids", "subscribe-object-properties"]}},
+        "driver_binding": {"oneOf": [{"type": "null"}, {"enum": ["moxygen_driver", "independent_driver"]}]},
         "pinned_implementation_revision": {"oneOf": [{"const": "TBD"}, {"$ref": "#/definitions/verified_implementation_revision"}]},
+        "verified_subject": {"oneOf": [{"type": "null"}, {"type": "string", "pattern": "^\\S(?:.*\\S)?$"}]},
+        "verified_role": {"oneOf": [{"type": "null"}, {"const": "relay"}]},
         "target_draft": {"const": "draft-18"},
+        "result_links": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/definitions/support_result_link"}},
         "evidence_links": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/definitions/support_evidence_link"}},
         "invalidation_conditions": {
           "type": "array",
@@ -255,23 +278,42 @@
       "allOf": [
         {
           "if": {"properties": {"state": {"const": "unverified"}}},
-          "then": {"properties": {"verified_at": {"type": "null"}, "pinned_implementation_revision": {"const": "TBD"}, "evidence_links": {"maxItems": 0}}}
+          "then": {"properties": {"verified_at": {"type": "null"}, "invalidated_at": {"type": "null"}, "invalidation_reason": {"type": "null"}, "verified_gate_ids": {"maxItems": 0}, "driver_binding": {"type": "null"}, "pinned_implementation_revision": {"const": "TBD"}, "verified_subject": {"type": "null"}, "verified_role": {"type": "null"}, "result_links": {"maxItems": 0}, "evidence_links": {"maxItems": 0}}}
         },
         {
           "if": {"properties": {"state": {"enum": ["verified", "invalidated"]}}},
           "then": {
             "properties": {
               "verified_at": {"type": "string", "format": "date-time"},
+              "verified_gate_ids": {"const": ["subscribe-one-subgroup-per-group", "subscribe-one-subgroup-per-object", "subscribe-two-subgroups-per-group", "subscribe-nonzero-start-group", "subscribe-nonzero-start-object", "subscribe-sparse-group-object-ids", "subscribe-object-properties"]},
+              "driver_binding": {"enum": ["moxygen_driver", "independent_driver"]},
               "pinned_implementation_revision": {"$ref": "#/definitions/verified_implementation_revision"},
-              "evidence_links": {
-                "minItems": 2,
+              "verified_subject": {"type": "string", "pattern": "^\\S(?:.*\\S)?$"},
+              "verified_role": {"const": "relay"},
+              "result_links": {
+                "minItems": 7,
+                "maxItems": 7,
                 "allOf": [
-                  {"contains": {"properties": {"kind": {"const": "result-record"}}, "required": ["kind"]}},
-                  {"contains": {"properties": {"kind": {"const": "evidence-artifact"}}, "required": ["kind"]}}
+                  {"contains": {"properties": {"gate_id": {"const": "subscribe-one-subgroup-per-group"}}, "required": ["gate_id"]}},
+                  {"contains": {"properties": {"gate_id": {"const": "subscribe-one-subgroup-per-object"}}, "required": ["gate_id"]}},
+                  {"contains": {"properties": {"gate_id": {"const": "subscribe-two-subgroups-per-group"}}, "required": ["gate_id"]}},
+                  {"contains": {"properties": {"gate_id": {"const": "subscribe-nonzero-start-group"}}, "required": ["gate_id"]}},
+                  {"contains": {"properties": {"gate_id": {"const": "subscribe-nonzero-start-object"}}, "required": ["gate_id"]}},
+                  {"contains": {"properties": {"gate_id": {"const": "subscribe-sparse-group-object-ids"}}, "required": ["gate_id"]}},
+                  {"contains": {"properties": {"gate_id": {"const": "subscribe-object-properties"}}, "required": ["gate_id"]}}
                 ]
-              }
+              },
+              "evidence_links": {"minItems": 1}
             }
           }
+        },
+        {
+          "if": {"properties": {"state": {"const": "verified"}}},
+          "then": {"properties": {"invalidated_at": {"type": "null"}, "invalidation_reason": {"type": "null"}}}
+        },
+        {
+          "if": {"properties": {"state": {"const": "invalidated"}}},
+          "then": {"properties": {"invalidated_at": {"type": "string", "format": "date-time"}, "invalidation_reason": {"type": "string", "pattern": "^\\S(?:.*\\S)?$"}}}
         }
       ]
     },
@@ -299,7 +341,7 @@
         "readiness_timeout_ms",
         "runner_whole_container_limit_ms",
         "diagnostic_gate_timeouts_ms",
-        "independent_moq_test_client_timeout_components_ms",
+        "independent_driver_timeout_components_ms",
         "intended_case_timeouts_ms",
         "rule"
       ],
@@ -318,7 +360,7 @@
             "$ref": "#/definitions/binding_gate_timeouts"
           }
         },
-        "independent_moq_test_client_timeout_components_ms": {
+        "independent_driver_timeout_components_ms": {
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -553,7 +595,7 @@
       "additionalProperties": false,
       "required": [
         "moxygen_driver",
-        "independent_moq_test_client"
+        "independent_driver"
       ],
       "properties": {
         "moxygen_driver": {
@@ -583,7 +625,7 @@
             }
           }
         },
-        "independent_moq_test_client": {
+        "independent_driver": {
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -737,7 +779,7 @@
           "items": {
             "enum": [
               "moxygen-driver-binding",
-              "independent-generator-and-oracle"
+              "independent-driver-binding"
             ]
           }
         },
@@ -857,12 +899,21 @@
         "image_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
       }
     },
+    "support_result_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate_id", "locator", "sha256"],
+      "properties": {
+        "gate_id": {"enum": ["subscribe-one-subgroup-per-group", "subscribe-one-subgroup-per-object", "subscribe-two-subgroups-per-group", "subscribe-nonzero-start-group", "subscribe-nonzero-start-object", "subscribe-sparse-group-object-ids", "subscribe-object-properties"]},
+        "locator": {"type": "string", "pattern": "^(https://|artifact:)[^\\s]+$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
     "support_evidence_link": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "locator", "sha256"],
+      "required": ["locator", "sha256"],
       "properties": {
-        "kind": {"enum": ["result-record", "evidence-artifact"]},
         "locator": {"type": "string", "pattern": "^(https://|artifact:)[^\\s]+$"},
         "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
       }
@@ -872,13 +923,13 @@
       "additionalProperties": false,
       "required": [
         "moxygen_driver",
-        "independent_moq_test_client"
+        "independent_driver"
       ],
       "properties": {
         "moxygen_driver": {
           "const": 10000
         },
-        "independent_moq_test_client": {
+        "independent_driver": {
           "const": 20000
         }
       }
@@ -1176,14 +1227,14 @@
           "additionalProperties": false,
           "required": [
             "moxygen_driver",
-            "independent_moq_test_client"
+            "independent_driver"
           ],
           "properties": {
             "moxygen_driver": {
               "$ref": "#/definitions/moxygen_binding"
             },
-            "independent_moq_test_client": {
-              "$ref": "#/definitions/independent_binding"
+            "independent_driver": {
+              "$ref": "#/definitions/independent_driver_binding"
             }
           }
         },
@@ -1237,7 +1288,10 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "classification",
+        "binding_classification",
+        "implementation",
+        "repository",
+        "independence_classification",
         "source_ordinal",
         "source_name",
         "topology",
@@ -1245,8 +1299,17 @@
         "vector"
       ],
       "properties": {
-        "classification": {
+        "binding_classification": {
           "const": "moxygen-driver-binding"
+        },
+        "implementation": {
+          "const": "moxygen"
+        },
+        "repository": {
+          "const": "https://github.com/facebookexperimental/moxygen"
+        },
+        "independence_classification": {
+          "const": "independent-source-generator-and-observer"
         },
         "source_ordinal": {
           "type": "integer",
@@ -1269,19 +1332,31 @@
         }
       }
     },
-    "independent_binding": {
+    "independent_driver_binding": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "classification",
+        "binding_classification",
+        "implementation",
+        "repository",
+        "independence_classification",
         "planned_function",
         "topology",
         "derivation",
         "vector"
       ],
       "properties": {
-        "classification": {
-          "const": "independent-generator-and-oracle"
+        "binding_classification": {
+          "const": "independent-driver-binding"
+        },
+        "implementation": {
+          "const": "moq-rs"
+        },
+        "repository": {
+          "const": "https://github.com/cloudflare/moq-rs"
+        },
+        "independence_classification": {
+          "const": "independently-authored-generator-and-observer"
         },
         "planned_function": {
           "enum": [
@@ -1302,7 +1377,7 @@
           "minLength": 1
         },
         "vector": {
-          "$ref": "#/definitions/independent_vector"
+          "$ref": "#/definitions/independent_driver_vector"
         }
       }
     },
@@ -1375,7 +1450,7 @@
         }
       }
     },
-    "independent_vector": {
+    "independent_driver_vector": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -1488,7 +1563,7 @@
             "type": "array",
             "minItems": 1,
             "items": {
-              "$ref": "#/definitions/independent_object_property"
+              "$ref": "#/definitions/independent_driver_object_property"
             }
           }
         },
@@ -1562,7 +1637,7 @@
         }
       }
     },
-    "independent_object_property": {
+    "independent_driver_object_property": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -1706,7 +1781,7 @@
         "independence_class": {
           "enum": [
             "moxygen-driver-binding",
-            "independent-generator-and-oracle"
+            "independent-driver-binding"
           ]
         },
         "reproducibility": {
@@ -1921,10 +1996,7 @@
               "type": "null"
             },
             "claimed_outcome": {
-              "enum": [
-                "not-run",
-                "unsupported"
-              ]
+              "const": "not-run"
             }
           }
         },
@@ -2207,7 +2279,6 @@
                 }
               },
               "phase_timings_ms": {
-                "required": ["publisher_readiness_ms", "case_ms"],
                 "not": {
                   "anyOf": [
                     {"required": ["setup_ms"]},
@@ -2225,7 +2296,7 @@
               "identity": {
                 "properties": {
                   "driver_binding": {
-                    "const": "independent_moq_test_client"
+                    "const": "independent_driver"
                   }
                 }
               }
@@ -2241,7 +2312,7 @@
                 }
               },
               "independence_class": {
-                "const": "independent-generator-and-oracle"
+                "const": "independent-driver-binding"
               },
               "reproduction": {
                 "properties": {
@@ -2251,7 +2322,6 @@
                 }
               },
               "phase_timings_ms": {
-                "required": ["readiness_ms", "delivery_terminal_ms"],
                 "not": {
                   "anyOf": [
                     {"required": ["publisher_readiness_ms"]},
@@ -2261,6 +2331,24 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "evaluator_verdict": {"const": "pass"},
+              "identity": {"properties": {"driver_binding": {"const": "moxygen_driver"}}}
+            }
+          },
+          "then": {"properties": {"phase_timings_ms": {"required": ["publisher_readiness_ms", "case_ms"]}}}
+        },
+        {
+          "if": {
+            "properties": {
+              "evaluator_verdict": {"const": "pass"},
+              "identity": {"properties": {"driver_binding": {"const": "independent_driver"}}}
+            }
+          },
+          "then": {"properties": {"phase_timings_ms": {"required": ["setup_ms", "readiness_ms", "delivery_terminal_ms"]}}}
         },
         {
           "if": {
@@ -2290,6 +2378,23 @@
             "properties": {"evaluator_verdict": {"type": "null"}}
           },
           "then": {"properties": {"failure_classification": {"const": "none"}}}
+        },
+        {
+          "if": {
+            "anyOf": [
+              {"properties": {"evaluator_verdict": {"const": "unsupported"}}},
+              {"properties": {"claimed_outcome": {"const": "unsupported"}}}
+            ]
+          },
+          "then": {
+            "properties": {
+              "execution": {"const": "completed"},
+              "evaluator_verdict": {"const": "unsupported"},
+              "claimed_outcome": {"const": "unsupported"},
+              "failure_classification": {"const": "none"},
+              "assertions": {"items": {"properties": {"status": {"const": "not-observed"}}}}
+            }
+          }
         },
         {
           "if": {"properties": {"identity": {"properties": {"gate_id": {"const": "subscribe-one-subgroup-per-group"}}}}},
@@ -2374,7 +2479,7 @@
         "driver_binding": {
           "enum": [
             "moxygen_driver",
-            "independent_moq_test_client"
+            "independent_driver"
           ]
         },
         "source_binding": {
@@ -2495,7 +2600,7 @@
         "gate_revision",
         "normative_draft_sha",
         "moxygen_declaration_baseline_sha",
-        "moq_rs_review_baseline_sha",
+        "driver_review_baseline_sha",
         "runner_sha",
         "driver_landing_sha"
       ],
@@ -2521,8 +2626,8 @@
         "moxygen_declaration_baseline_sha": {
           "const": "0d886e3e907e2236a6d927afefd09bb0c3dc8211"
         },
-        "moq_rs_review_baseline_sha": {
-          "const": "b01d3f6707e3a74f69905722b451a08cbb3364f3"
+        "driver_review_baseline_sha": {
+          "enum": ["0d886e3e907e2236a6d927afefd09bb0c3dc8211", "b01d3f6707e3a74f69905722b451a08cbb3364f3"]
         },
         "runner_sha": {
           "type": "string",

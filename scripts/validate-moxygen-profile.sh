@@ -40,10 +40,11 @@ if ! jq -e '
   (.required | type == "array") and
   (.properties.profile | type == "object") and
   (.properties.provenance | type == "object") and
+  (.properties.implementation_bindings | type == "object") and
   (.properties.identifier_policy | type == "object") and
   (.properties.identifier_history | type == "object") and
   (.properties.support_verification | type == "object") and
-  (.properties.execution_policy.required | sort) == (["readiness_timeout_ms","runner_whole_container_limit_ms","diagnostic_gate_timeouts_ms","independent_moq_test_client_timeout_components_ms","intended_case_timeouts_ms","rule"] | sort) and
+  (.properties.execution_policy.required | sort) == (["readiness_timeout_ms","runner_whole_container_limit_ms","diagnostic_gate_timeouts_ms","independent_driver_timeout_components_ms","intended_case_timeouts_ms","rule"] | sort) and
   (.properties.result_record_contract | type == "object") and
   (.properties.result_record_contract.properties.state_model.required | sort) == (["disposition","execution","evaluator_verdict","claimed_outcome","failure_classification","rule"] | sort) and
   (.properties.result_record_contract.properties.state_model.properties | keys) == ["claimed_outcome","disposition","evaluator_verdict","execution","failure_classification","rule"] and
@@ -51,10 +52,13 @@ if ! jq -e '
   (.properties.gates | type == "object") and
   (.definitions.case | type == "object") and
   (.definitions.gate | type == "object") and
+  (.definitions.moxygen_binding | type == "object") and
+  (.definitions.independent_driver_binding | type == "object") and
   (.definitions.binding_gate_timeouts | type == "object") and
   (.definitions.retired_identifier | type == "object") and
   (.definitions.verified_implementation_revision | type == "object") and
   (.definitions.support_evidence_link | type == "object") and
+  (.definitions.support_result_link | type == "object") and
   (.definitions.result_record | type == "object") and
   (.definitions.phase_timings | type == "object") and
   (.definitions.assertion_id.enum | type == "array") and
@@ -63,7 +67,7 @@ if ! jq -e '
   (.definitions.deployment | type == "object") and
   (.definitions.result_record.required | contains(["identity","disposition","execution","evaluator_verdict","claimed_outcome","failure_classification","independence_class","reproducibility","evidence_integrity_verification","provenance_verification","protocol","revisions","deployments","phase_timings_ms","assertions","evidence","reproduction"])) and
   (.definitions.result_identity.required | contains(["profile_id","profile_version","profile_revision","target_draft","gate_id","gate_revision","driver_binding","source_binding"])) and
-  (.definitions.exact_revisions.required | contains(["schema_version","profile_version","profile_revision","target_draft","gate_revision","normative_draft_sha","moxygen_declaration_baseline_sha","moq_rs_review_baseline_sha","runner_sha","driver_landing_sha"])) and
+  (.definitions.exact_revisions.required | contains(["schema_version","profile_version","profile_revision","target_draft","gate_revision","normative_draft_sha","moxygen_declaration_baseline_sha","driver_review_baseline_sha","runner_sha","driver_landing_sha"])) and
   (.definitions.assertion.required | contains(["id","description","basis","status","expected","observed","evidence_ids"])) and
   (.definitions.evidence.required | contains(["id","category","kind","sha256","media_type","byte_length","producer","captured_at_utc","locator"])) and
   (.definitions.deployment.required | contains(["name","role","visibility","version","source_sha","image_digest","opaque"])) and
@@ -72,18 +76,20 @@ if ! jq -e '
   .definitions.result_identity.properties.gate_revision.const == 1 and
   .definitions.exact_revisions.properties.normative_draft_sha.const == "cb2e772fd8ca8cbe7550b1765c269be89fb1c886" and
   .definitions.exact_revisions.properties.moxygen_declaration_baseline_sha.const == "0d886e3e907e2236a6d927afefd09bb0c3dc8211" and
-  .definitions.exact_revisions.properties.moq_rs_review_baseline_sha.const == "b01d3f6707e3a74f69905722b451a08cbb3364f3" and
+  .definitions.exact_revisions.properties.driver_review_baseline_sha.enum == ["0d886e3e907e2236a6d927afefd09bb0c3dc8211","b01d3f6707e3a74f69905722b451a08cbb3364f3"] and
   .definitions.exact_revisions.properties.driver_landing_sha.pattern == "^[0-9a-f]{40}$" and
   .definitions.semantic_id.pattern == "^[a-z]+(?:-[a-z]+)*$" and
-  .definitions.binding_gate_timeouts.required == ["moxygen_driver","independent_moq_test_client"] and
+  .definitions.binding_gate_timeouts.required == ["moxygen_driver","independent_driver"] and
   .definitions.binding_gate_timeouts.properties.moxygen_driver.const == 10000 and
-  .definitions.binding_gate_timeouts.properties.independent_moq_test_client.const == 20000 and
-  .properties.execution_policy.properties.independent_moq_test_client_timeout_components_ms.properties.rendezvous.const == 10000 and
-  .properties.execution_policy.properties.independent_moq_test_client_timeout_components_ms.properties.delivery_and_terminal_margin.const == 10000 and
+  .definitions.binding_gate_timeouts.properties.independent_driver.const == 20000 and
+  .properties.execution_policy.properties.independent_driver_timeout_components_ms.properties.rendezvous.const == 10000 and
+  .properties.execution_policy.properties.independent_driver_timeout_components_ms.properties.delivery_and_terminal_margin.const == 10000 and
   .definitions.retired_identifier.required == ["kind","id","last_valid_target","last_valid_profile_revision","reason"] and
   .properties.identifier_history.properties.reviewed_for_target.const == "draft-18" and
   .properties.support_verification.properties.target_draft.const == "draft-18" and
-  (.properties.support_verification.allOf | length) == 2 and
+  (.properties.support_verification.allOf | length) == 4 and
+  .properties.support_verification.allOf[1].then.properties.verified_gate_ids.const == .definitions.result_identity.properties.gate_id.enum and
+  (.properties.support_verification.allOf[1].then.properties.result_links.allOf | length) == 7 and
   .definitions.verified_implementation_revision.properties.source_sha.pattern == "^[0-9a-f]{40}$" and
   .definitions.verified_implementation_revision.properties.image_digest.pattern == "^sha256:[0-9a-f]{64}$" and
   (.definitions.assertion_id.enum | length) == 21 and
@@ -98,7 +104,7 @@ if ! jq -e '
   .definitions.evidence.properties.category.enum == ["publisher-readiness","control-observations","object-observations","delivery-observations","tap14","process-logs","reproduction-metadata"] and
   (.definitions.result_record.properties.evidence.allOf | length) == 7 and
   (.definitions.result_record.oneOf | length) == 4 and
-  (.definitions.result_record.allOf | length) == 17 and
+  (.definitions.result_record.allOf | length) == 20 and
   .definitions.result_record.allOf[0].then.properties.assertions.minItems == 3 and
   .definitions.result_record.allOf[0].then.properties.assertions.maxItems == 3 and
   .definitions.result_record.allOf[1].then.properties.evidence_integrity_verification.const == "verified" and
@@ -107,22 +113,29 @@ if ! jq -e '
   .definitions.result_record.allOf[1].then.properties.assertions.maxItems == 3 and
   .definitions.result_record.allOf[5].then.properties.reproduction.properties.per_case_timeout_ms.const == 10000 and
   .definitions.result_record.allOf[6].then.properties.reproduction.properties.per_case_timeout_ms.const == 20000 and
-  (.definitions.result_record.allOf[5].then.properties.phase_timings_ms.required | contains(["publisher_readiness_ms","case_ms"])) and
-  (.definitions.result_record.allOf[6].then.properties.phase_timings_ms.required | contains(["readiness_ms","delivery_terminal_ms"])) and
-  .definitions.result_record.allOf[7].then.properties.failure_classification.enum == ["none","driver-inconclusive"] and
-  (.definitions.result_record.allOf[7].then.anyOf | length) == 3 and
-  .definitions.result_record.allOf[8].then.properties.failure_classification.const == "none" and
-  .definitions.result_record.allOf[9].then.properties.failure_classification.const == "none" and
-  [.definitions.result_record.allOf[10:][] | .if.properties.identity.properties.gate_id.const] == .definitions.result_identity.properties.gate_id.enum and
+  (.definitions.result_record.allOf[7].then.properties.phase_timings_ms.required | contains(["publisher_readiness_ms","case_ms"])) and
+  (.definitions.result_record.allOf[8].then.properties.phase_timings_ms.required | contains(["setup_ms","readiness_ms","delivery_terminal_ms"])) and
+  .definitions.result_record.allOf[9].then.properties.failure_classification.enum == ["none","driver-inconclusive"] and
+  (.definitions.result_record.allOf[9].then.anyOf | length) == 3 and
+  .definitions.result_record.allOf[10].then.properties.failure_classification.const == "none" and
+  .definitions.result_record.allOf[11].then.properties.failure_classification.const == "none" and
+  .definitions.result_record.allOf[12].then.properties.claimed_outcome.const == "unsupported" and
+  [.definitions.result_record.allOf[13:][] | .if.properties.identity.properties.gate_id.const] == .definitions.result_identity.properties.gate_id.enum and
   (.definitions.deployment.allOf | length) == 2 and
-  (.definitions.independent_vector.required | contains(["namespace_prefix","namespace_rule","publisher_cid_component","track_name","groups","object_ids","subgroups","publisher_priority_by_subgroup","payloads"])) and
+  (.definitions.independent_driver_vector.required | contains(["namespace_prefix","namespace_rule","publisher_cid_component","track_name","groups","object_ids","subgroups","publisher_priority_by_subgroup","payloads"])) and
   .definitions.fixed_payload_contract.properties.kind.const == "fixed-source-constants" and
   .definitions.fixed_payload_contract.properties.unique_per_object.const == true and
   .definitions.fixed_payload_contract.properties.verification.const == "exact-byte-match" and
   (.definitions.fixed_payload_contract.required | index("items")) != null and
-  .definitions.independent_object_property.properties.type.not.minimum == 16384 and
-  .definitions.independent_object_property.properties.type.not.maximum == 32767 and
-  .definitions.independent_binding.properties.planned_function.enum == ["test_subscribe_one_subgroup_per_group","test_subscribe_one_subgroup_per_object","test_subscribe_two_subgroups_per_group","test_subscribe_nonzero_start_group","test_subscribe_nonzero_start_object","test_subscribe_sparse_group_object_ids","test_subscribe_object_properties"] and
+  .definitions.independent_driver_object_property.properties.type.not.minimum == 16384 and
+  .definitions.independent_driver_object_property.properties.type.not.maximum == 32767 and
+  .definitions.independent_driver_binding.properties.planned_function.enum == ["test_subscribe_one_subgroup_per_group","test_subscribe_one_subgroup_per_object","test_subscribe_two_subgroups_per_group","test_subscribe_nonzero_start_group","test_subscribe_nonzero_start_object","test_subscribe_sparse_group_object_ids","test_subscribe_object_properties"] and
+  .definitions.moxygen_binding.properties.implementation.const == "moxygen" and
+  .definitions.moxygen_binding.properties.repository.const == "https://github.com/facebookexperimental/moxygen" and
+  .definitions.moxygen_binding.properties.independence_classification.const == "independent-source-generator-and-observer" and
+  .definitions.independent_driver_binding.properties.implementation.const == "moq-rs" and
+  .definitions.independent_driver_binding.properties.repository.const == "https://github.com/cloudflare/moq-rs" and
+  .definitions.independent_driver_binding.properties.independence_classification.const == "independently-authored-generator-and-observer" and
   .definitions.evidence.properties.sha256.pattern == "^[0-9a-f]{64}$" and
   .definitions.reproduction.properties.per_case_timeout_ms.enum == [10000,20000] and
   .definitions.deployment.properties.image_digest.oneOf[0].pattern == "^sha256:[0-9a-f]{64}$"
@@ -160,6 +173,7 @@ check "schema-critical top-level shape is invalid" '
   .schema_version == "1.0.0" and
   (.profile | type == "object") and
   (.provenance | type == "object") and
+  (.implementation_bindings | type == "object") and
   (.oracle | type == "object") and
   (.identifier_policy | type == "object") and
   (.identifier_history | type == "object") and
@@ -178,24 +192,26 @@ check "schema-critical top-level shape is invalid" '
   (.gates | type == "array")'
 
 check "unknown manifest, profile, provenance, case, gate, binding, or result-contract keys are present" '
-  (keys == ["$schema","binding_evidence_contracts","capability_boundaries","cases","disposition_reasons","executable_requirements","execution_policy","gates","identifier_history","identifier_policy","implementation_independence_classes","known_driver_risks","oracle","profile","provenance","required_evidence","result_record_contract","result_semantics","schema_version","support_verification"]) and
+  (keys == ["$schema","binding_evidence_contracts","capability_boundaries","cases","disposition_reasons","executable_requirements","execution_policy","gates","identifier_history","identifier_policy","implementation_bindings","implementation_independence_classes","known_driver_risks","oracle","profile","provenance","required_evidence","result_record_contract","result_semantics","schema_version","support_verification"]) and
   (.profile | keys == ["declaration_count","deferred_count","diagnostic_gate_count","id","intended_count","revision","target_draft","version"]) and
   (.provenance | keys == ["executable_landings","reference_baselines"]) and
-  (.provenance.reference_baselines | keys == ["moq_rs_review","moxygen_declarations","normative_draft","runner_baseline"]) and
-  (.provenance.executable_landings | keys == ["moxygen_conformance_driver","rust_diagnostic_gates"]) and
+  (.provenance.reference_baselines | keys == ["moxygen_declarations","normative_draft","runner_baseline"]) and
+  (.provenance.executable_landings | keys == ["independent_driver","moxygen_conformance_driver"]) and
+  (.implementation_bindings | keys == ["independent_driver"]) and
+  (.implementation_bindings.independent_driver | keys == ["implementation_id","non_normative","repository","review_sha","role"]) and
   (.identifier_policy | keys == ["equivalent_migration","gate_ids","profile_id","retired_id_reuse","semantic_change","source_binding_ids","source_ordinals_and_names","unified_semantic_test_ids"]) and
   (.identifier_history | keys == ["compatibility","retired_ids","reviewed_for_target"]) and
-  (.support_verification | keys == ["evidence_links","invalidation_conditions","pinned_implementation_revision","state","target_draft","verified_at"]) and
+  (.support_verification | keys == ["driver_binding","evidence_links","invalidated_at","invalidation_conditions","invalidation_reason","pinned_implementation_revision","result_links","state","target_draft","verified_at","verified_gate_ids","verified_role","verified_subject"]) and
   all(.identifier_history.retired_ids[];
     (keys == ["id","kind","last_valid_profile_revision","last_valid_target","reason"] or
      keys == ["id","kind","last_valid_profile_revision","last_valid_target","reason","replacement_id"])) and
-  (.execution_policy | keys == ["diagnostic_gate_timeouts_ms","independent_moq_test_client_timeout_components_ms","intended_case_timeouts_ms","readiness_timeout_ms","rule","runner_whole_container_limit_ms"]) and
-  (.execution_policy.independent_moq_test_client_timeout_components_ms | keys == ["delivery_and_terminal_margin","rendezvous"]) and
+  (.execution_policy | keys == ["diagnostic_gate_timeouts_ms","independent_driver_timeout_components_ms","intended_case_timeouts_ms","readiness_timeout_ms","rule","runner_whole_container_limit_ms"]) and
+  (.execution_policy.independent_driver_timeout_components_ms | keys == ["delivery_and_terminal_margin","rendezvous"]) and
   all(.cases[]; keys == ["disposition","gate_ids","id","independence","ordinal","reason","request","source_name","source_section"]) and
   all(.gates[]; keys == ["bindings","evidence","gate_normative_references","id","moxygen_source_binding_id","required_assertion_ids","revision","semantic_contract"]) and
-  all(.gates[].bindings; keys == ["independent_moq_test_client","moxygen_driver"]) and
-  all(.gates[].bindings.moxygen_driver; keys == ["classification","readiness","source_name","source_ordinal","topology","vector"]) and
-  all(.gates[].bindings.independent_moq_test_client; keys == ["classification","derivation","planned_function","topology","vector"]) and
+  all(.gates[].bindings; keys == ["independent_driver","moxygen_driver"]) and
+  all(.gates[].bindings.moxygen_driver; keys == ["binding_classification","implementation","independence_classification","readiness","repository","source_name","source_ordinal","topology","vector"]) and
+  all(.gates[].bindings.independent_driver; keys == ["binding_classification","derivation","implementation","independence_classification","planned_function","repository","topology","vector"]) and
   (.result_record_contract | keys == ["assertion_descriptor","assertion_linkage_rule","driver_provenance_rule","evidence_descriptor","executable_provenance_rule","identity_rule","independence_classes","opaque_deployment_policy","phase_timing_rule","schema_ref","state_model","verification_rule","version"]) and
   (.result_record_contract.state_model | keys == ["claimed_outcome","disposition","evaluator_verdict","execution","failure_classification","rule"]) and
   (.result_record_contract.assertion_descriptor | keys == ["required","unique_by"]) and
@@ -216,8 +232,14 @@ check "pinned provenance does not match the reviewed sources" '
   .provenance.reference_baselines.normative_draft.tag == "draft-ietf-moq-transport-18" and
   .provenance.reference_baselines.normative_draft.sha == "cb2e772fd8ca8cbe7550b1765c269be89fb1c886" and
   .provenance.reference_baselines.moxygen_declarations.sha == "0d886e3e907e2236a6d927afefd09bb0c3dc8211" and
-  .provenance.reference_baselines.moq_rs_review.sha == "b01d3f6707e3a74f69905722b451a08cbb3364f3" and
-  .provenance.reference_baselines.runner_baseline.sha == "e63ee5aa0b22b16cbd86d022840a7e74fd806602"'
+  .provenance.reference_baselines.runner_baseline.sha == "e63ee5aa0b22b16cbd86d022840a7e74fd806602" and
+  .implementation_bindings.independent_driver == {
+    "implementation_id":"moq-rs",
+    "repository":"https://github.com/cloudflare/moq-rs",
+    "review_sha":"b01d3f6707e3a74f69905722b451a08cbb3364f3",
+    "non_normative":true,
+    "role":"controlled-independent-evidence-driver"
+  }'
 
 profile_target_draft=$(jq -er '.profile.target_draft' "$PROFILE")
 reference_target_draft=$(jq -er '.current_target' "$TARGET_DRAFT_REFERENCE")
@@ -260,23 +282,17 @@ check_formal_target_declarations() {
 check_formal_target_declarations "$PROFILE_DOCUMENT"
 check_formal_target_declarations "$GATE_DOCUMENT"
 
-base_target_validator="$ROOT_DIR/scripts/validate-target-draft.sh"
-if [[ -x "$base_target_validator" ]]; then
-  "$base_target_validator" "$PROFILE_DOCUMENT"
-  "$base_target_validator" "$GATE_DOCUMENT"
-fi
-
 check "a pinned provenance SHA is not 40 lowercase hexadecimal characters" '
   [
     .provenance.reference_baselines.normative_draft.sha,
     .provenance.reference_baselines.moxygen_declarations.sha,
-    .provenance.reference_baselines.moq_rs_review.sha,
+    .implementation_bindings.independent_driver.review_sha,
     .provenance.reference_baselines.runner_baseline.sha
   ] | all(test("^[0-9a-f]{40}$"))'
 
 check "executable landings must remain explicitly unresolved/TBD" '
   .provenance.executable_landings.moxygen_conformance_driver == {"status":"unresolved","sha":"TBD","image_digest":"TBD"} and
-  .provenance.executable_landings.rust_diagnostic_gates == {"status":"unresolved","sha":"TBD"}'
+  .provenance.executable_landings.independent_driver == {"status":"unresolved","sha":"TBD"}'
 
 check "identifier lifecycle policy changed or weakened" '
   .identifier_policy == {
@@ -313,11 +329,40 @@ check "identifier review target or retired-ID history is invalid" '
     ((has("replacement_id") | not) or
       ((.replacement_id | test("^[a-z]+(-[a-z]+)*$")) and .replacement_id != .id)))'
 
+check "support verification result coverage is incomplete or ambiguous" '
+  . as $profile |
+  .support_verification as $support |
+  if $support.state == "unverified" then
+    $support.verified_gate_ids == [] and $support.result_links == [] and $support.evidence_links == []
+  else
+    ($support.verified_gate_ids | sort) == ([ $profile.gates[].id ] | sort) and
+    ([$support.result_links[].gate_id] | sort) == ([ $profile.gates[].id ] | sort) and
+    ([$support.result_links[].gate_id] | length) == ([$support.result_links[].gate_id] | unique | length) and
+    ([$support.result_links[].locator] | length) == ([$support.result_links[].locator] | unique | length) and
+    ([$support.result_links[].sha256] | length) == ([$support.result_links[].sha256] | unique | length) and
+    ($support.evidence_links | length) > 0 and
+    ([$support.evidence_links[].locator] | length) == ([$support.evidence_links[].locator] | unique | length) and
+    ([$support.evidence_links[].sha256] | length) == ([$support.evidence_links[].sha256] | unique | length)
+  end'
+
+check "support invalidation predates verification" '
+  if .support_verification.verified_at != null and .support_verification.invalidated_at != null then
+    ((.support_verification.invalidated_at | fromdateiso8601) >=
+     (.support_verification.verified_at | fromdateiso8601))
+  else true end'
+
 check "support verification state is overstated or internally inconsistent" '
   .support_verification.state == "unverified" and
   .support_verification.verified_at == null and
+  .support_verification.invalidated_at == null and
+  .support_verification.invalidation_reason == null and
+  .support_verification.verified_gate_ids == [] and
+  .support_verification.driver_binding == null and
   .support_verification.pinned_implementation_revision == "TBD" and
+  .support_verification.verified_subject == null and
+  .support_verification.verified_role == null and
   .support_verification.target_draft == .profile.target_draft and
+  .support_verification.result_links == [] and
   .support_verification.evidence_links == [] and
   .support_verification.invalidation_conditions == [
     "target-draft-semantic-change",
@@ -332,8 +377,8 @@ check "semantic gates and implementation bindings are not cleanly separated" '
   .oracle.binding_reference_rule == "gate_normative_references apply to the implementation-neutral semantic contract; binding-specific references and limitations are labeled by driver binding." and
   all(.gates[];
     ((.semantic_contract | tostring | test("moxygen|moq-test-00|moqtest"; "i")) | not) and
-    .bindings.moxygen_driver.classification == "moxygen-driver-binding" and
-    .bindings.independent_moq_test_client.classification == "independent-generator-and-oracle")'
+    .bindings.moxygen_driver.binding_classification == "moxygen-driver-binding" and
+    .bindings.independent_driver.binding_classification == "independent-driver-binding")'
 
 check "per-case timeout policy is incomplete or exceeds the runner container limit" '
   . as $profile |
@@ -341,26 +386,26 @@ check "per-case timeout policy is incomplete or exceeds the runner container lim
   .execution_policy.readiness_timeout_ms == 10000 and
   (.execution_policy.diagnostic_gate_timeouts_ms | keys | sort) == ([.gates[].id] | sort) and
   all(.execution_policy.diagnostic_gate_timeouts_ms[];
-    keys == ["independent_moq_test_client","moxygen_driver"] and
+    keys == ["independent_driver","moxygen_driver"] and
     .moxygen_driver == 10000 and
-    .independent_moq_test_client == 20000) and
-  .execution_policy.independent_moq_test_client_timeout_components_ms == {
+    .independent_driver == 20000) and
+  .execution_policy.independent_driver_timeout_components_ms == {
     "rendezvous":10000,
     "delivery_and_terminal_margin":10000
   } and
-  (.execution_policy.independent_moq_test_client_timeout_components_ms.rendezvous +
-   .execution_policy.independent_moq_test_client_timeout_components_ms.delivery_and_terminal_margin) == 20000 and
+  (.execution_policy.independent_driver_timeout_components_ms.rendezvous +
+   .execution_policy.independent_driver_timeout_components_ms.delivery_and_terminal_margin) == 20000 and
   all(.execution_policy.diagnostic_gate_timeouts_ms[];
-    .independent_moq_test_client ==
-      ($profile.execution_policy.independent_moq_test_client_timeout_components_ms.rendezvous +
-       $profile.execution_policy.independent_moq_test_client_timeout_components_ms.delivery_and_terminal_margin)) and
+    .independent_driver ==
+      ($profile.execution_policy.independent_driver_timeout_components_ms.rendezvous +
+       $profile.execution_policy.independent_driver_timeout_components_ms.delivery_and_terminal_margin)) and
   ([.execution_policy.diagnostic_gate_timeouts_ms[].moxygen_driver] | add) == 70000 and
   (.execution_policy.intended_case_timeouts_ms | keys | sort) == ([.cases[] | select(.disposition == "intended") | .id] | sort) and
   .execution_policy.intended_case_timeouts_ms["subscribe-low-frequency-updates"] >= 30000 and
   .execution_policy.intended_case_timeouts_ms["subscribe-many-groups-and-objects"] >= 30000 and
   all(.execution_policy.intended_case_timeouts_ms[]; . < 120000) and
   all(.execution_policy.diagnostic_gate_timeouts_ms[];
-    .moxygen_driver < 120000 and .independent_moq_test_client < 120000) and
+    .moxygen_driver < 120000 and .independent_driver < 120000) and
   (.execution_policy.rule | contains("by gate ID and driver binding")) and
   (.execution_policy.rule | contains("70000 ms")) and
   (.execution_policy.rule | contains("120000 ms"))'
@@ -421,7 +466,7 @@ check "diagnostic gates must have seven unique immutable IDs, source bindings, a
   ([.gates[].id] | length) == ([.gates[].id] | unique | length) and
   ([.gates[].moxygen_source_binding_id] | length) == ([.gates[].moxygen_source_binding_id] | unique | length) and
   ([.gates[].bindings.moxygen_driver.source_name] | length) == ([.gates[].bindings.moxygen_driver.source_name] | unique | length) and
-  ([.gates[].bindings.independent_moq_test_client.planned_function] | length) == ([.gates[].bindings.independent_moq_test_client.planned_function] | unique | length) and
+  ([.gates[].bindings.independent_driver.planned_function] | length) == ([.gates[].bindings.independent_driver.planned_function] | unique | length) and
   all(.gates[]; . as $gate |
     .revision == 1 and
     (.id | test("^[a-z]+(-[a-z]+)*$")) and
@@ -432,29 +477,35 @@ check "diagnostic gates must have seven unique immutable IDs, source bindings, a
     (.required_assertion_ids | type == "array" and length == ($gate.semantic_contract.success_criteria | length)) and
     ([.required_assertion_ids[]] | length) == ([.required_assertion_ids[]] | unique | length) and
     all(.required_assertion_ids[]; startswith($gate.id + ".")) and
-    .bindings.moxygen_driver.classification == "moxygen-driver-binding" and
+    .bindings.moxygen_driver.binding_classification == "moxygen-driver-binding" and
+    .bindings.moxygen_driver.implementation == "moxygen" and
+    .bindings.moxygen_driver.repository == "https://github.com/facebookexperimental/moxygen" and
+    .bindings.moxygen_driver.independence_classification == "independent-source-generator-and-observer" and
     .bindings.moxygen_driver.topology == "moxygen moqtest_server -> relay-under-test -> moxygen moqtest_client" and
     (.bindings.moxygen_driver.readiness | contains("REQUEST_OK")) and
-    .bindings.independent_moq_test_client.classification == "independent-generator-and-oracle" and
-    .bindings.independent_moq_test_client.topology == "independent publisher role -> relay-under-test -> independent subscriber role" and
-    (.bindings.independent_moq_test_client.planned_function | test("^test_[a-z]+(_[a-z]+)*$")) and
-    (.bindings.independent_moq_test_client.derivation | type == "string" and length > 0) and
+    .bindings.independent_driver.binding_classification == "independent-driver-binding" and
+    .bindings.independent_driver.implementation == "moq-rs" and
+    .bindings.independent_driver.repository == "https://github.com/cloudflare/moq-rs" and
+    .bindings.independent_driver.independence_classification == "independently-authored-generator-and-observer" and
+    .bindings.independent_driver.topology == "independent publisher role -> relay-under-test -> independent subscriber role" and
+    (.bindings.independent_driver.planned_function | test("^test_[a-z]+(_[a-z]+)*$")) and
+    (.bindings.independent_driver.derivation | type == "string" and length > 0) and
     (.gate_normative_references | type == "array" and length > 0) and
     (.gate_normative_references | (index("7") != null and index("9") != null)) and
     (.bindings.moxygen_driver.vector.track_namespace | type == "array" and length == 16) and
     .bindings.moxygen_driver.vector.track_namespace[0] == "moq-test-00" and
-    (.bindings.independent_moq_test_client.vector.namespace_prefix | test("^moq-test/interop/[a-z]+(-[a-z]+)*$")) and
-    .bindings.independent_moq_test_client.vector.namespace_prefix == ("moq-test/interop/" + $gate.id) and
-    .bindings.independent_moq_test_client.vector.namespace_rule == (.bindings.independent_moq_test_client.vector.namespace_prefix + "/{publisher_cid}") and
-    .bindings.independent_moq_test_client.vector.publisher_cid_component == {"source":"publisher_connection_id","purpose":"per-run namespace uniqueness and exact-track routing isolation"} and
-    (.bindings.independent_moq_test_client.vector.payloads | del(.items)) == {"kind":"fixed-source-constants","unique_per_object":true,"verification":"exact-byte-match"} and
-    (.bindings.independent_moq_test_client.vector.payloads.items | type == "array" and length > 0) and
-    all(.bindings.independent_moq_test_client.vector.payloads.items[];
+    (.bindings.independent_driver.vector.namespace_prefix | test("^moq-test/interop/[a-z]+(-[a-z]+)*$")) and
+    .bindings.independent_driver.vector.namespace_prefix == ("moq-test/interop/" + $gate.id) and
+    .bindings.independent_driver.vector.namespace_rule == (.bindings.independent_driver.vector.namespace_prefix + "/{publisher_cid}") and
+    .bindings.independent_driver.vector.publisher_cid_component == {"source":"publisher_connection_id","purpose":"per-run namespace uniqueness and exact-track routing isolation"} and
+    (.bindings.independent_driver.vector.payloads | del(.items)) == {"kind":"fixed-source-constants","unique_per_object":true,"verification":"exact-byte-match"} and
+    (.bindings.independent_driver.vector.payloads.items | type == "array" and length > 0) and
+    all(.bindings.independent_driver.vector.payloads.items[];
       (keys == ["ascii","group","hex","object","subgroup"]) and
       (.ascii | type == "string" and length > 0) and
       .ascii == ($gate.id + "-g" + (.group|tostring) + "-s" + (.subgroup|tostring) + "-o" + (.object|tostring)) and
       (.hex | test("^([0-9a-f]{2})+$"))) and
-    (.bindings.independent_moq_test_client.vector as $vector |
+    (.bindings.independent_driver.vector as $vector |
       ([ $vector.groups[] as $group | $vector.subgroups | to_entries[] | . as $subgroup | $subgroup.value[] | {group:$group,subgroup:($subgroup.key|tonumber),object:.} ] | sort_by(.group,.subgroup,.object)) ==
       ([ $vector.payloads.items[] | {group,subgroup,object} ] | sort_by(.group,.subgroup,.object)) and
       ([ $vector.groups[] as $group | $vector.subgroups | keys[] | ($group|tostring) + "/" + . ] | unique | sort) == ($vector.publisher_priority_by_subgroup | keys | sort) and
@@ -482,7 +533,7 @@ check "canonical gate identities, functions, vectors, or totals changed" '
     "subscribe-object-properties"
   ] and
   [.gates[].bindings.moxygen_driver.source_ordinal] == [1,2,3,12,13,29,40] and
-  [.gates[].bindings.independent_moq_test_client.planned_function] == [
+  [.gates[].bindings.independent_driver.planned_function] == [
     "test_subscribe_one_subgroup_per_group",
     "test_subscribe_one_subgroup_per_object",
     "test_subscribe_two_subgroups_per_group",
@@ -502,7 +553,7 @@ check "canonical gate identities, functions, vectors, or totals changed" '
   ] and
   [.gates[].bindings.moxygen_driver.vector.expected_object_count] == [18,18,21,12,12,21,10] and
   [.gates[].bindings.moxygen_driver.vector.expected_stream_count] == [3,18,6,3,2,3,10] and
-  [.gates[].bindings.independent_moq_test_client.vector.namespace_prefix] == [
+  [.gates[].bindings.independent_driver.vector.namespace_prefix] == [
     "moq-test/interop/subscribe-one-subgroup-per-group",
     "moq-test/interop/subscribe-one-subgroup-per-object",
     "moq-test/interop/subscribe-two-subgroups-per-group",
@@ -511,10 +562,10 @@ check "canonical gate identities, functions, vectors, or totals changed" '
     "moq-test/interop/subscribe-sparse-group-object-ids",
     "moq-test/interop/subscribe-object-properties"
   ] and
-  [.gates[].bindings.independent_moq_test_client.vector.track_name] == ["one-subgroup-per-group","one-subgroup-per-object","two-subgroups-per-group","nonzero-start-group","nonzero-start-object","sparse-group-object-ids","object-properties"] and
-  [.gates[].bindings.independent_moq_test_client.vector.groups] == [[0,1],[0],[2],[5,6],[0],[0,2],[9]] and
-  [.gates[].bindings.independent_moq_test_client.vector.object_ids] == [[0,1,2],[4,5,6],[0,1,2,3,4,5],[0,1],[3,4,5],[0,2,4],[4,7]] and
-  [.gates[].bindings.independent_moq_test_client.vector.subgroups] == [
+  [.gates[].bindings.independent_driver.vector.track_name] == ["one-subgroup-per-group","one-subgroup-per-object","two-subgroups-per-group","nonzero-start-group","nonzero-start-object","sparse-group-object-ids","object-properties"] and
+  [.gates[].bindings.independent_driver.vector.groups] == [[0,1],[0],[2],[5,6],[0],[0,2],[9]] and
+  [.gates[].bindings.independent_driver.vector.object_ids] == [[0,1,2],[4,5,6],[0,1,2,3,4,5],[0,1],[3,4,5],[0,2,4],[4,7]] and
+  [.gates[].bindings.independent_driver.vector.subgroups] == [
     {"0":[0,1,2]},
     {"40":[4],"41":[5],"42":[6]},
     {"10":[0,2,4],"11":[1,3,5]},
@@ -523,7 +574,7 @@ check "canonical gate identities, functions, vectors, or totals changed" '
     {"0":[0,2,4]},
     {"7":[4,7]}
   ] and
-  [.gates[].bindings.independent_moq_test_client.vector.publisher_priority_by_subgroup] == [
+  [.gates[].bindings.independent_driver.vector.publisher_priority_by_subgroup] == [
     {"0/0":17,"1/0":23},
     {"0/40":29,"0/41":31,"0/42":37},
     {"2/10":41,"2/11":43},
@@ -532,11 +583,11 @@ check "canonical gate identities, functions, vectors, or totals changed" '
     {"0/0":61,"2/0":67},
     {"9/7":59}
   ] and
-  all(.gates[].bindings.independent_moq_test_client.vector.payloads; (del(.items)) == {"kind":"fixed-source-constants","unique_per_object":true,"verification":"exact-byte-match"}) and
+  all(.gates[].bindings.independent_driver.vector.payloads; (del(.items)) == {"kind":"fixed-source-constants","unique_per_object":true,"verification":"exact-byte-match"}) and
   all(.gates[0:6][];
-    (.bindings.independent_moq_test_client.vector | has("object_properties_by_object") | not) and
-    (.bindings.independent_moq_test_client.vector | has("object_property_ranges") | not)) and
-  .gates[6].bindings.independent_moq_test_client.vector.object_properties_by_object == {
+    (.bindings.independent_driver.vector | has("object_properties_by_object") | not) and
+    (.bindings.independent_driver.vector | has("object_property_ranges") | not)) and
+  .gates[6].bindings.independent_driver.vector.object_properties_by_object == {
     "4":[
       {"type":14336,"type_hex":"0x3800","value_kind":"integer","value":4660,"value_hex":"0x1234"},
       {"type":14337,"type_hex":"0x3801","value_kind":"bytes","value_ascii":"high-type-3801","value_hex":"686967682d747970652d33383031"}
@@ -546,13 +597,13 @@ check "canonical gate identities, functions, vectors, or totals changed" '
       {"type":14339,"type_hex":"0x3803","value_kind":"bytes","value_ascii":"high-type-3803","value_hex":"686967682d747970652d33383033"}
     ]
   } and
-  .gates[6].bindings.independent_moq_test_client.vector.object_property_ranges == {
+  .gates[6].bindings.independent_driver.vector.object_property_ranges == {
     "application_specific":{"minimum":14336,"maximum":16383,"hex":"0x3800..0x3fff"},
     "forbidden_object_scope":{"minimum":16384,"maximum":32767,"hex":"0x4000..0x7fff"}
   }'
 
 check "independent Object Properties enter the forbidden Object-scope range or use the wrong value form" '
-  [.gates[] | (.bindings.independent_moq_test_client.vector.object_properties_by_object // {}) | .[] | .[]] |
+  [.gates[] | (.bindings.independent_driver.vector.object_properties_by_object // {}) | .[] | .[]] |
   all(.[];
     (.type < 16384 or .type > 32767) and
     ((.value_kind == "integer" and (.type % 2) == 0 and (.value | type) == "number") or
@@ -584,11 +635,11 @@ check "required gate evidence is incomplete or references unknown descriptors" '
   (.required_evidence | keys | sort) == $required and
   all(.required_evidence[]; type == "string" and length > 0) and
   all(.gates[]; (.evidence | sort) == $required) and
-  (.binding_evidence_contracts | keys) == ["independent_moq_test_client","moxygen_driver"] and
+  (.binding_evidence_contracts | keys) == ["independent_driver","moxygen_driver"] and
   (.binding_evidence_contracts.moxygen_driver.readiness | contains("same active case")) and
   (.binding_evidence_contracts.moxygen_driver.readiness | contains("announce-only run is not proof")) and
-  .binding_evidence_contracts.independent_moq_test_client.not_directly_observed == ["publish-namespace-request-ok","raw-object-id-deltas","first-object-bit","wire-fin-or-reset"] and
-  (.binding_evidence_contracts.independent_moq_test_client.completion | contains("TRACK_ENDED"))'
+  .binding_evidence_contracts.independent_driver.not_directly_observed == ["publish-namespace-request-ok","raw-object-id-deltas","first-object-bit","wire-fin-or-reset"] and
+  (.binding_evidence_contracts.independent_driver.completion | contains("TRACK_ENDED"))'
 
 check "result record contract does not separate claims, evaluator verdict, evidence, and provenance" '
   .result_record_contract.version == "1.0.0" and
@@ -601,7 +652,7 @@ check "result record contract does not separate claims, evaluator verdict, evide
   (.result_record_contract.state_model.rule | contains("Fail requires complete verified evidence")) and
   (.result_record_contract.state_model.rule | contains("Inconclusive requires")) and
   (.result_record_contract.state_model.rule | contains("uses none or driver-inconclusive")) and
-  .result_record_contract.independence_classes == ["moxygen-driver-binding","independent-generator-and-oracle"] and
+  .result_record_contract.independence_classes == ["moxygen-driver-binding","independent-driver-binding"] and
   (.result_record_contract.assertion_descriptor.required | sort) == (["id","description","basis","status","expected","observed","evidence_ids"] | sort) and
   .result_record_contract.assertion_descriptor.unique_by == "id" and
   (.result_record_contract.evidence_descriptor.required | sort) == (["id","category","kind","sha256","media_type","byte_length","producer","captured_at_utc","locator"] | sort) and
@@ -613,6 +664,7 @@ check "result record contract does not separate claims, evaluator verdict, evide
   (.result_record_contract.phase_timing_rule | contains("at least the sum")) and
   (.result_record_contract.assertion_linkage_rule | contains("selected gate required_assertion_ids")) and
   (.result_record_contract.assertion_linkage_rule | contains("exactly that complete set")) and
+  (.result_record_contract.driver_provenance_rule | contains("driver_review_baseline_sha resolves through the selected profile binding")) and
   (.result_record_contract.driver_provenance_rule | contains("publisher and subscriber deployment source_sha")) and
   (.result_record_contract.verification_rule | contains("submitted claims")) and
   (.result_record_contract.verification_rule | contains("evidence_integrity_verification=verified")) and
@@ -630,20 +682,20 @@ check "unsupported capability boundaries are incomplete" '
   ] | sort)'
 
 check_digest "identifier, oracle, or result semantic policy drifted" \
-  "01c68c06e867bca3b0db1feb9f1c4d7d2df5626a52c7dde13b132a05014f2ca9" \
-  '{identifier_policy,identifier_history,support_verification,oracle,result_semantics,result_record_contract}'
+  "41f9ca9ea5f739240bf6ca3b72a33c12e2951bcdec0571a62dce417212e606ca" \
+  '{identifier_policy,identifier_history,implementation_bindings,support_verification,oracle,result_semantics,result_record_contract}'
 
 check_digest "full 58-case inventory drifted" \
   "82708746e0a474bb9358bbf089723872a51267e17fe046364c4198604dee9a08" \
   '.cases | map({id,ordinal,source_name,source_section,request,disposition,reason,independence,gate_ids})'
 
 check_digest "complete moxygen gate bindings drifted" \
-  "6d7d959955a8a2c182580358e1f8f2202031ee1522c9175a67ce36e7757c7f86" \
+  "ccb78b935d2c2624affa47b13a6677cd31d056fc37d124085986bd018df6b15b" \
   '.gates | map({id,revision,moxygen_source_binding_id,binding:.bindings.moxygen_driver})'
 
 check_digest "complete independent gate bindings drifted" \
-  "7fb5156e6ab4c443c65f5c3b3b5968111db9061b3b6a1f10425d5be64358fda3" \
-  '.gates | map({id,revision,binding:.bindings.independent_moq_test_client})'
+  "050a52cd87210b0f6f83d881162521aa3bff590c4684bb3bc4d6b035f63c7050" \
+  '.gates | map({id,revision,binding:.bindings.independent_driver})'
 
 check_digest "revision-1 gate references or semantic contracts drifted" \
   "d9c51b1e71706c65f3be97ea859a65ba5c8f3669a036cab30bb59c63defaf8e0" \
@@ -654,7 +706,12 @@ check_digest "intended moxygen source-case timeouts drifted" \
   '.execution_policy.intended_case_timeouts_ms'
 
 check_digest "provenance, timeout, TLS, or driver-risk policy drifted" \
-  "dcba766b4c69e1561e3b5ceeb23e88b32f2d1c3592235eaa02c927d774e77c5e" \
-  '{execution_policy,executable_requirements,known_driver_risks,provenance,binding_evidence_contracts,required_evidence}'
+  "f73f36e2cd62feadb705d4fb548c7a0a7aef06974561a459ebd357cac3beb814" \
+  '{execution_policy,executable_requirements,known_driver_risks,provenance,implementation_bindings,binding_evidence_contracts,required_evidence}'
+
+base_target_validator="$ROOT_DIR/scripts/validate-target-draft.sh"
+if [[ -x "$base_target_validator" ]]; then
+  "$base_target_validator" "$PROFILE_DOCUMENT" "$GATE_DOCUMENT"
+fi
 
 echo "Validated moxygen relay support profile for target draft-18: 58 cases (27 intended, 31 deferred), 7 gates"

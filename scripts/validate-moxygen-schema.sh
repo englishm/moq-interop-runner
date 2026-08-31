@@ -6,7 +6,7 @@ ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 PROFILE=${1:-"$ROOT_DIR/docs/moxygen-relay-support-profile.json"}
 SCHEMA=${2:-"$ROOT_DIR/docs/moxygen-relay-support-profile.schema.json"}
 RESULT=${3:-}
-EXPECTED_SCHEMA_SHA256="5c45f55c6cfd8c6a29f2980d2bf3a29d4abcdb13c22d42f717f4b3d3f0969483"
+EXPECTED_SCHEMA_SHA256="9a76d5d985ef0ea7da32f5ec5af5e8b02de82203badfb780d44a19a5e4710228"
 
 for file in "$PROFILE" "$SCHEMA"; do
   if [[ ! -f "$file" ]]; then
