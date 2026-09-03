@@ -1,0 +1,61 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16, moqt-15, moq-00
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 207
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E0903 00:56:27.354733     1 MoQRelaySession.cpp:1116] PublishNamespaceDone for unknown publishNamespace, sess=0x55ce77fcf510
+ok 2 - announce-only
+  ---
+  duration_ms: 276
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E0903 00:56:27.630611     1 MoQSession.cpp:4998] No matching subscribe ID=0 sess=0x55ce77f6f1b0
+ok 3 - subscribe-error
+  ---
+  duration_ms: 275
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer FINed without terminal reply
+  ...
+E0903 00:56:28.087797     1 MoQSession.cpp:4998] No matching subscribe ID=0 sess=0x55ce77ff0cc0
+E20260903 00:56:28.088559     1 HQControlCodec.h:58] Unexpected control stream EOF
+E20260903 00:56:28.089627     1 HQSession.cpp:3115] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=6a7103cac667f23f, local=10.1.0.231:57708, 8.228.3.228:443=upstream, drain=done
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 457
+  negotiated_version: draft-18
+  error: Subscribe failed: peer FINed without terminal reply
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 239
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E0903 00:56:28.660055     1 MoQSession.cpp:4998] No matching subscribe ID=0 sess=0x55ce77f779a0
+E20260903 00:56:28.660578     1 HQControlCodec.h:58] Unexpected control stream EOF
+E20260903 00:56:28.660640     1 HQSession.cpp:3115] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=904de7f7642e9629, local=10.1.0.231:58271, 8.228.3.228:443=upstream, drain=done
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 1044
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): peer FINed without terminal reply
+  ...
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
