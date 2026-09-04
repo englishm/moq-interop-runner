@@ -2,18 +2,20 @@
 # validate-registration.sh - Validate implementations.json registration changes.
 #
 # Runs the default checks for a PR that adds/removes/edits a client or relay
-# registration. Usable locally and in CI. Three checks:
+# registration. Usable locally and in CI. Four checks:
 #
 #   1. Schema     - implementations.json validates against implementations.schema.json
-#   2. Test plan  - for each changed implementation, show the pairs + negotiated
+#   2. Test specs - canonical specs match implementations.json.current_target,
+#                   removed IDs are retired, and retirement history is append-only
+#   3. Test plan  - for each changed implementation, show the pairs + negotiated
 #                   draft versions that WOULD be tested (run-interop-tests.sh --dry-run)
-#   3. Image      - the Docker image(s) the changed impl registers actually exist
+#   4. Image      - the Docker image(s) the changed impl registers actually exist
 #                   (soft warning: a private/unpullable image cannot be checked on
 #                   a fork PR, so it must not hard-fail the gate)
 #
-# Only the schema check is a hard gate. The plan is informational; image problems
-# are warnings. Interop pass/fail is NOT evaluated here — that is the maintainer-
-# gated live run.
+# The schema and test-spec checks are hard gates. The plan is informational;
+# image problems are warnings. Interop pass/fail is NOT evaluated here — that is
+# the maintainer-gated live run.
 #
 # Usage:
 #   ./validate-registration.sh [--base <ref>] [--impl <name>] [--summary <file>]
@@ -23,14 +25,15 @@
 #   --summary <file> Append the markdown report here (default: $GITHUB_STEP_SUMMARY, else stdout)
 #
 # Exit codes:
-#   0 - Schema valid (warnings may be present)
-#   1 - Schema invalid, or a usage/environment error
+#   0 - Schema and test-spec policy valid (warnings may be present)
+#   1 - A hard gate failed, or a usage/environment error
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/implementations.json"
 SCHEMA_FILE="$SCRIPT_DIR/implementations.schema.json"
+TARGET_DRAFT_VALIDATOR="$SCRIPT_DIR/scripts/validate-target-draft.sh"
 
 BASE_REF="origin/main"
 EXPLICIT_IMPL=""
@@ -50,11 +53,19 @@ done
 
 # Markdown report accumulates in a temp file, then is appended to the target.
 REPORT="$(mktemp "${TMPDIR:-/tmp}/validate-registration.XXXXXX")"
-trap 'rm -f "$REPORT"' EXIT
+PREVIOUS_RETIRED_FILE=""
+PREVIOUS_SPEC_FILE=""
+cleanup() {
+    rm -f "$REPORT"
+    [ -z "$PREVIOUS_RETIRED_FILE" ] || rm -f "$PREVIOUS_RETIRED_FILE"
+    [ -z "$PREVIOUS_SPEC_FILE" ] || rm -f "$PREVIOUS_SPEC_FILE"
+}
+trap cleanup EXIT
 md() { printf '%s\n' "$1" >> "$REPORT"; }
 
 # Track the worst outcome for the final exit code and headline.
 SCHEMA_OK=true
+TARGET_DRAFT_OK=true
 WARNINGS=0
 
 #############################################################################
@@ -63,6 +74,7 @@ WARNINGS=0
 command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required" >&2; exit 1; }
 [ -f "$CONFIG_FILE" ] || { echo "ERROR: $CONFIG_FILE not found" >&2; exit 1; }
 [ -f "$SCHEMA_FILE" ] || { echo "ERROR: $SCHEMA_FILE not found" >&2; exit 1; }
+[ -x "$TARGET_DRAFT_VALIDATOR" ] || { echo "ERROR: $TARGET_DRAFT_VALIDATOR not found or not executable" >&2; exit 1; }
 
 if ! jq empty "$CONFIG_FILE" 2>/dev/null; then
     md "## Registration validation"
@@ -100,7 +112,24 @@ else
 fi
 
 #############################################################################
-# 2. Determine changed implementations
+# 2. Target-draft test-spec validation (hard gate)
+#############################################################################
+target_draft_error=""
+target_draft_args=()
+if git cat-file -e "$BASE_REF:docs/tests/retired-test-identifiers.json" 2>/dev/null; then
+    PREVIOUS_RETIRED_FILE="$(mktemp "${TMPDIR:-/tmp}/previous-retired-test-identifiers.XXXXXX")"
+    git show "$BASE_REF:docs/tests/retired-test-identifiers.json" > "$PREVIOUS_RETIRED_FILE"
+    target_draft_args+=(--previous-retired "$PREVIOUS_RETIRED_FILE")
+fi
+if git cat-file -e "$BASE_REF:docs/tests/TEST-CASES.md" 2>/dev/null; then
+    PREVIOUS_SPEC_FILE="$(mktemp "${TMPDIR:-/tmp}/previous-test-cases.XXXXXX")"
+    git show "$BASE_REF:docs/tests/TEST-CASES.md" > "$PREVIOUS_SPEC_FILE"
+    target_draft_args+=(--previous-spec "$PREVIOUS_SPEC_FILE")
+fi
+target_draft_error="$("$TARGET_DRAFT_VALIDATOR" "${target_draft_args[@]}" 2>&1)" || TARGET_DRAFT_OK=false
+
+#############################################################################
+# 3. Determine changed implementations
 #############################################################################
 CHANGED=()
 REMOVED=()
@@ -156,6 +185,18 @@ else
     md ""
     md '```'
     md "${schema_error:-validation failed}"
+    md '```'
+fi
+md ""
+
+# --- Target-draft test specs ---
+if [ "$TARGET_DRAFT_OK" = true ]; then
+    md "**Test specs:** ✅ $target_draft_error"
+else
+    md "**Test specs:** ❌ target-draft policy invalid"
+    md ""
+    md '```'
+    md "${target_draft_error:-validation failed}"
     md '```'
 fi
 md ""
@@ -220,14 +261,14 @@ fi
 
 # --- Footer / headline ---
 md "---"
-if [ "$SCHEMA_OK" = true ]; then
+if [ "$SCHEMA_OK" = true ] && [ "$TARGET_DRAFT_OK" = true ]; then
     if [ "$WARNINGS" -gt 0 ]; then
         md "✅ Schema valid · ⚠️ $WARNINGS image warning(s) (non-blocking)"
     else
         md "✅ All checks passed."
     fi
 else
-    md "❌ Schema invalid — fix the errors above."
+    md "❌ Hard validation failed — fix the errors above."
 fi
 
 #############################################################################
@@ -238,4 +279,4 @@ if [ -n "$SUMMARY_OUT" ] && [ "$SUMMARY_OUT" != "/dev/stdout" ]; then
     cat "$REPORT" >> "$SUMMARY_OUT"
 fi
 
-[ "$SCHEMA_OK" = true ]
+[ "$SCHEMA_OK" = true ] && [ "$TARGET_DRAFT_OK" = true ]
