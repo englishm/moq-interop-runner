@@ -3,7 +3,7 @@
 | Attribute | Value |
 |-----------|-------|
 | Identifier | `data-subgroup-basic` |
-| Maturity | Proposal |
+| Status | Proposal |
 | Proposed placement | First data-plane core level |
 | Contract revision | 1 |
 | Corpus revision | 1 |
