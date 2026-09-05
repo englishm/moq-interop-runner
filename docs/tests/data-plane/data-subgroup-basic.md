@@ -3,7 +3,7 @@
 | Attribute | Value |
 |-----------|-------|
 | Identifier | `data-subgroup-basic` |
-| Maturity | Candidate |
+| Maturity | Proposal |
 | Proposed placement | First data-plane core level |
 | Specification revision | 1 |
 | Case revision | 1 |

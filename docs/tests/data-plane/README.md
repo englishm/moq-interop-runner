@@ -9,7 +9,7 @@ These conventions avoid repeating common setup in each scenario. A scenario
 overrides them only when the protocol property under test requires a different
 flow.
 
-## Candidate Tests
+## Proposed Scenarios
 
 - [`data-subgroup-basic`](./data-subgroup-basic.md) verifies baseline finite
   subgroup delivery through namespace-based routing.
