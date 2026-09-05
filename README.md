@@ -61,7 +61,7 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 | moq (moq-dev, JS) | Luke Curley | 14-17 | client | |
 | quiche-moq | Google | 16 | relay | `https://quichemoq.dev:443` |
 | moqtransport | TUM | 13 | relay | (no persistent relay) |
-| MOQtail | OzU | 18 | relay | `https://relay18.moqtail.dev` |
+| MOQtail | OzU | 18 | relay | `https://relay.moqtail.dev` |
 | libquicr | Cisco | 14 | relay | `https://us-west-2.relay.quicr.org:33437/relay` |
 | imquic | Meetecho | 16-18 | relay, client | `https://lminiero.it:9000` |
 | moq-go | Vsevolod Strukchinsky | 20 | relay, client |  |
