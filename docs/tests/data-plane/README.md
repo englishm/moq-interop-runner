@@ -9,6 +9,11 @@ These conventions avoid repeating common setup in each scenario. A scenario
 overrides them only when the protocol property under test requires a different
 flow.
 
+## Candidate Tests
+
+- [`data-subgroup-basic`](./data-subgroup-basic.md) verifies baseline finite
+  subgroup delivery through namespace-based routing.
+
 ## Normal Publication Flow
 
 The normal flow is publisher first:
