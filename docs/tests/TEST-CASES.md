@@ -256,6 +256,11 @@ the expected behavior clearer.
 
 ### Data Flow Tests
 
+These identifiers are early placeholders retained for historical context. New
+publisher-first proposals are developed as individual prose specifications in
+the [data-plane test area](./data-plane/README.md); adding a proposal there does
+not activate it in the runner.
+
 | Identifier | Description | Key Protocol References |
 |------------|-------------|------------------------|
 | `single-object` | Publisher sends 1 object, subscriber receives it | §10 (Data Streams) |
