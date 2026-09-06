@@ -5,8 +5,7 @@
 | Identifier | `data-subgroup-basic` |
 | Status | Proposal |
 | Proposed placement | First data-plane core level |
-| Contract revision | 1 |
-| Corpus revision | 1 |
+| Specification revision | 1 |
 
 ## Purpose
 
@@ -98,7 +97,7 @@ expired shared deadline fails the test.
 
 ## Diagnostics
 
-The client should report `publisher_connection_id` and
-`subscriber_connection_id` when available. Optional TAP YAML may also identify
-the negotiated draft, transport substrate, contract revision, corpus
-revision, and the first missing or unexpected object.
+The client should report `publisher` and `subscriber` session metadata when
+available. Optional TAP YAML may also identify the implementation version,
+specification revision, total test duration, and the first missing or unexpected
+object.
