@@ -78,11 +78,13 @@ Tests are organized by functional category:
 |------|----------|-------------|
 | `setup-only` | Session | Connect, complete SETUP exchange, close gracefully |
 | `announce-only` | Namespace | Announce namespace, receive OK, close |
-| `publish-namespace-done` | Namespace | Announce, then send PUBLISH_NAMESPACE_DONE |
+| `publish-namespace-done` | Namespace | Announce, then withdraw by cancelling the request stream |
 | `subscribe-error` | Subscription | Subscribe to non-existent track, expect error |
 | `rendezvous-timeout` | Subscription | Subscribe with a rendezvous window, expect TIMEOUT |
 | `announce-subscribe` | Subscription | Publisher announces, subscriber subscribes |
 | `subscribe-before-announce` | Subscription | Subscribe before publisher announces |
+| `publish-without-subscriber` | Track publishing | Exercise the Forward-State-aware PUBLISH lifecycle without a subscriber |
+| `publish-to-pending-subscription` | Track publishing | Deliver PUBLISH data to a subscriber-first pending request |
 
 See [docs/tests/TEST-CASES.md](./docs/tests/TEST-CASES.md) for detailed specifications with protocol references.
 
