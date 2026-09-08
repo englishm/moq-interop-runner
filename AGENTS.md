@@ -37,7 +37,7 @@ This is a framework for testing interoperability between MoQT (Media over QUIC T
 |------|------------|
 | Understand the project | `README.md` |
 | Get started as a contributor | `docs/GETTING-STARTED.md` |
-| See test case definitions | `docs/tests/TEST-CASES.md` |
+| See test catalog and definitions | `docs/tests/README.md` |
 | Build a test client | `docs/IMPLEMENTING-A-TEST-CLIENT.md` |
 | Test client interface contract | `docs/TEST-CLIENT-INTERFACE.md` |
 | Docker testing workflows | `docs/DOCKER-TESTING.md` |
@@ -93,7 +93,8 @@ Full guide: `docs/IMPLEMENTING-A-TEST-CLIENT.md`
 
 ### Adding or Modifying Test Cases
 
-Test cases are defined in `docs/tests/TEST-CASES.md`. Current tests:
+The test catalog and contribution process are in `docs/tests/README.md`.
+Existing test cases remain defined in `docs/tests/TEST-CASES.md`:
 
 | Identifier | Category | Description |
 |------------|----------|-------------|
@@ -105,7 +106,10 @@ Test cases are defined in `docs/tests/TEST-CASES.md`. Current tests:
 | `announce-subscribe` | Subscription | Publisher announces, subscriber subscribes |
 | `subscribe-before-announce` | Subscription | Out-of-order subscribe/announce |
 
-When adding tests, follow the existing format (identifier, protocol refs, procedure, success criteria). Both the spec doc and test client implementations need updates.
+When adding tests, follow `docs/tests/README.md`. A new test may be implemented
+by one client before other clients adopt it. Treat the absence of a result as
+unknown rather than unsupported. Keep unrelated test scenarios in separate
+commits when practical so they can be reviewed independently.
 
 ### Maintaining the Framework
 

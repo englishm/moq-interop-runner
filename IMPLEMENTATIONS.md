@@ -119,10 +119,14 @@ Standard environment variables (optional but recommended):
 
 Remote endpoints specify their transport type:
 
-| Transport | URL Scheme | Description |
-|-----------|------------|-------------|
-| `webtransport` | `https://` | WebTransport (supported in browsers) |
-| `quic` | `moqt://` | Raw QUIC |
+| Transport | Accepted URL Scheme | Description |
+|-----------|---------------------|-------------|
+| `webtransport` | `https://` or `moqt://` | WebTransport (`https://` remains a compatibility locator; draft 18 and later use canonical `moqt://`) |
+| `quic` | `moqt://` | Native QUIC |
+
+The `transport` field records the intended transport independently of the URL
+scheme. See [Decision 003](docs/decisions/003-url-scheme-transport-selection.md)
+for the migration plan.
 
 Optional endpoint properties:
 - `tls_disable_verify`: Set `true` for self-signed certificates

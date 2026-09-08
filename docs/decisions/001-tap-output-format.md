@@ -61,7 +61,10 @@ TAP hits all the goals well:
 
 - **Streaming by design.** Each test point is a single line emitted as the test completes. A human watching a terminal or a CI system tailing logs sees progress in real time.
 
-- **YAML diagnostics.** TAP14 supports optional YAML blocks after any test point. This is how we get extensible metadata (connection IDs, mlog paths, latency, expected/received values) without complicating the base format. Basic parsers that don't understand YAML still work fine.
+- **YAML diagnostics.** TAP14 supports optional YAML blocks after any test point.
+  This provides extensible session, timing, and failure context without
+  complicating the base format. Basic parsers that don't understand YAML still
+  work fine.
 
 - **SKIP and TODO directives.** `SKIP` maps directly to "this test client doesn't implement this test case." `TODO` could represent known issues. The harness can distinguish "not implemented" from "failed" without inventing custom conventions.
 
@@ -112,19 +115,24 @@ TAP version 14
 ok 1 - setup-only
   ---
   duration_ms: 24
-  connection_id: 84ee7793841adcadd926a1baf1c677cc
+  sessions:
+    client:
+      quic_initial_destination_connection_id: "84ee7793841adcadd926a1baf1c677cc"
   ...
 ok 2 - announce-only
   ---
   duration_ms: 31
-  connection_id: a1b2c3d4e5f6789
+  sessions:
+    publisher:
+      quic_initial_destination_connection_id: "a1b2c3d4e5f67890"
   ...
 not ok 3 - subscribe-error
   ---
   duration_ms: 2001
-  expected: SUBSCRIBE_ERROR
-  received: timeout
-  connection_id: def789
+  message: "timed out waiting for REQUEST_ERROR"
+  sessions:
+    subscriber:
+      quic_initial_destination_connection_id: "def7890123456789"
   ...
 ```
 
@@ -155,9 +163,9 @@ ok 3 - publish-namespace-done # SKIP not implemented
 
 ## Future Directions
 
-These are ideas, not commitments:
-
-- **YAML diagnostic schema.** Define a set of known field names (connection_id, duration_ms, mlog_path, expected, received, etc.) so implementations can align on metadata without us mandating it all upfront. Start optional, promote to required as the ecosystem matures.
+These are ideas, not commitments. The currently optional common YAML field names
+are documented in [TAP-YAML-METADATA.md](../TAP-YAML-METADATA.md); TAP output
+without YAML remains valid and sufficient for the current basic interop report.
 
 - **Output linting.** A tool that validates test client TAP output against the spec and any MoQT-specific conventions. Could catch issues before they surface as mysterious harness failures.
 

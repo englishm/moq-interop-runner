@@ -4,6 +4,7 @@ This document has been reorganized into separate, focused documents:
 
 | Document | Content |
 |----------|---------|
+| **[tests/README.md](./tests/README.md)** | Test catalog, lifecycle labels, support levels, and profiles |
 | **[tests/TEST-CASES.md](./tests/TEST-CASES.md)** | Test case definitions with protocol references |
 | **[TEST-CLIENT-INTERFACE.md](./TEST-CLIENT-INTERFACE.md)** | CLI, environment variables, exit codes, output format |
 | **[IMPLEMENTING-A-TEST-CLIENT.md](./IMPLEMENTING-A-TEST-CLIENT.md)** | Guide for implementing a compatible test client |
