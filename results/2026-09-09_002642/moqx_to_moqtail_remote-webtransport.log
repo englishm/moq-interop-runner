@@ -1,0 +1,57 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://relay.moqtail.dev...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://relay.moqtail.dev \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://relay.moqtail.dev
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16, moqt-15, moq-00
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 194
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E0909 00:57:25.346704     1 MoQRelaySession.cpp:1116] PublishNamespaceDone for unknown publishNamespace, sess=0x55a0d9a78f70
+ok 2 - announce-only
+  ---
+  duration_ms: 183
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E0909 00:57:25.522604     1 MoQSession.cpp:5069] No matching subscribe ID=0 sess=0x55a0d9a7bed0
+ok 3 - subscribe-error
+  ---
+  duration_ms: 175
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer FINed without terminal reply
+  ...
+E0909 00:57:25.874856     1 MoQSession.cpp:5069] No matching subscribe ID=0 sess=0x55a0d9a91640
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 351
+  negotiated_version: draft-18
+  error: Subscribe failed: peer FINed without terminal reply
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 249
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E0909 00:57:26.296332     1 MoQSession.cpp:5069] No matching subscribe ID=0 sess=0x55a0d9a60be0
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 780
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): peer FINed without terminal reply
+  ...
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
