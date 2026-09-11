@@ -85,8 +85,8 @@ Here's what each field means and what to check:
 | `draft_versions` | **Most important.** Array of MoQT draft versions your implementation currently supports (format: `draft-NN`). If you've added draft-16 support or dropped older versions, update this. The runner uses this to decide which client/relay pairs to test. |
 | `notes` | Brief description — anything important reviewers should know? |
 | `roles` | Which roles your implementation supports. Most implementations start as `relay` only. If you've built a test client, add a `client` role (see [Issue #13](https://github.com/englishm/moq-interop-runner/issues/13)). |
-| `remote[].url` | Your public endpoint URL. `https://` for WebTransport, `moqt://` for raw QUIC. Is this endpoint still running? Has the port or path changed? |
-| `remote[].transport` | `webtransport` or `quic` — does this match the URL scheme? |
+| `remote[].url` | Your public endpoint URL. The runner accepts `https://` as a legacy WebTransport locator and `moqt://` for native QUIC or draft 18 and later WebTransport. Is this endpoint still running? Has the port or path changed? |
+| `remote[].transport` | `webtransport` or `quic` - does this describe the intended transport independently of the URL scheme? |
 | `remote[].tls_disable_verify` | Set to `true` if your endpoint uses a self-signed certificate. If you've switched to a CA-signed cert, you can remove this. |
 | `remote[].status` | Optional. Set to `"inactive"` to temporarily exclude an endpoint from test runs without removing it. Omit or set to `"active"` for live endpoints. |
 
@@ -115,7 +115,7 @@ Roughly ordered by time investment:
 | Run tests against my public relay | 5 min | [Test Your Relay](#test-your-relay) |
 | Register my implementation for the first time | 15 min | [Add Your Implementation](#add-your-implementation) |
 | Build a test client for my MoQT stack | 2-4 hours | [Build a Test Client](#build-a-test-client) |
-| Propose or spec new test cases | — | [docs/tests/TEST-CASES.md](./tests/TEST-CASES.md) |
+| Propose or spec new test cases | — | [Test contribution process](./tests/README.md) |
 
 ## Test Your Relay
 

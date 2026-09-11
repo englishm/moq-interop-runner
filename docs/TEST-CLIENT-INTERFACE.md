@@ -21,8 +21,24 @@ Options:
 
 ### URL Schemes
 
-- `https://` - WebTransport over HTTP/3
-- `moqt://` - Raw QUIC with ALPN `moq-00`
+The current runner accepts both `https://` and `moqt://` relay URLs because
+implementations span several generations of the protocol:
+
+- Through MoQT draft 17, `https://` identifies a WebTransport endpoint and
+  `moqt://` identifies a native QUIC endpoint.
+- Beginning with draft 18, `moqt://` is the canonical URI scheme for both
+  transports. A client can offer native MoQT ALPNs and `h3` on QUIC; selecting
+  `h3` leads the client to derive an `https://` URI and establish WebTransport.
+
+Many current clients still use the URI scheme as their transport selector. The
+runner therefore continues to accept `https://` as a legacy WebTransport
+locator, including for implementations of newer drafts that have not adopted
+the unified URI behavior. New draft 18 and later integrations should use
+`moqt://`. A planned runner interface will constrain native QUIC or
+WebTransport independently of the URI; until then, adapters may translate the
+canonical URI to the locator a client expects. See
+[Decision 003](./decisions/003-url-scheme-transport-selection.md) for the
+migration plan.
 
 ## Environment Variable Interface
 
@@ -30,7 +46,7 @@ For containerized testing, the following environment variables are supported:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `RELAY_URL` | Yes | Relay URL (`https://` for WebTransport, `moqt://` for raw QUIC) |
+| `RELAY_URL` | Yes | Relay locator; accepted schemes and compatibility behavior are described above |
 | `TESTCASE` | No | Specific test to run (runs all if not set) |
 | `TLS_DISABLE_VERIFY` | No | Set to `1` to skip certificate verification |
 | `VERBOSE` | No | Set to `1` for verbose output |
@@ -103,7 +119,12 @@ The harness counts skipped tests separately from passes and failures.
 
 ### YAML Diagnostics
 
-YAML diagnostic blocks after test points are OPTIONAL but encouraged, especially for failures. They provide structured metadata the harness can use for richer reporting.
+YAML diagnostic blocks after test points are OPTIONAL but encouraged, especially
+for failures. They are the preferred place for structured metadata because they
+do not interfere with TAP parsing.
+
+[TAP YAML Metadata](./TAP-YAML-METADATA.md) defines additional common
+field names. All fields remain optional, and the runner ignores unknown fields.
 
 ```tap
 TAP version 14
@@ -111,64 +132,58 @@ TAP version 14
 ok 1 - setup-only
   ---
   duration_ms: 24
-  connection_id: 84ee7793841adcadd926a1baf1c677cc
+  sessions:
+    client:
+      moqt_version: "moqt-18"
+      transport: "quic"
+      quic_initial_destination_connection_id: "84ee7793841adcadd926a1baf1c677cc"
   ...
 ok 2 - announce-only
   ---
   duration_ms: 31
-  connection_id: a1b2c3d4e5f6789
+  sessions:
+    publisher:
+      quic_initial_destination_connection_id: "a1b2c3d4e5f67890"
   ...
 not ok 3 - subscribe-error
   ---
   duration_ms: 2001
-  expected: SUBSCRIBE_ERROR
-  received: timeout
-  connection_id: def789
+  message: "timed out waiting for REQUEST_ERROR"
+  sessions:
+    subscriber:
+      quic_initial_destination_connection_id: "def7890123456789"
   ...
 ok 4 - announce-subscribe
   ---
   duration_ms: 145
-  publisher_connection_id: abc12345
-  subscriber_connection_id: def67890
+  sessions:
+    publisher:
+      quic_initial_destination_connection_id: "abc1234567890def"
+    subscriber:
+      quic_initial_destination_connection_id: "def6789012345abc"
   ...
 ```
 
-YAML blocks MUST be indented 2 spaces relative to the test point they follow. Common fields:
+YAML blocks MUST be indented 2 spaces relative to the test point they follow.
+Each prose specification linked from the [test catalog](./tests/README.md)
+defines its logical session roles. Use those names as keys under `sessions`
+rather than identifying sessions by connection order. If a test has two roles
+of the same kind, its specification assigns distinct names such as
+`subscriber_1` and `subscriber_2`.
 
-| Field | Description |
-|-------|-------------|
-| `duration_ms` | Test duration in milliseconds |
-| `connection_id` | QUIC connection ID for mlog correlation (single-connection tests) |
-| `expected` | What the test expected |
-| `received` | What actually happened |
-
-#### Connection ID Conventions
-
-Connection IDs in YAML diagnostics enable correlation with relay-side mlog/qlog traces. The naming convention depends on the test topology:
-
-- **Single-connection tests** use `connection_id`:
-  ```yaml
-  connection_id: 84ee7793841adcadd926a1baf1c677cc
-  ```
-
-- **Multi-connection tests** use `<role>_connection_id`, where `<role>` is the logical role defined by the test case (e.g., `publisher`, `subscriber`):
-  ```yaml
-  publisher_connection_id: abc12345
-  subscriber_connection_id: def67890
-  ```
-
-The expected roles for each test case are documented in [TEST-CASES.md](./tests/TEST-CASES.md). Implementations SHOULD name connections by role rather than by connection order to avoid fragile positional coupling — the output code should not need to know which role connects first.
-
-Future tests with multiple connections in the same role (e.g., two subscribers) SHOULD use numbered suffixes: `subscriber_1_connection_id`, `subscriber_2_connection_id`.
-
-**Partial failure**: Connection IDs are best-effort. If a test fails partway through, include whatever connection IDs were successfully captured before the failure. For example, if the publisher connects but the subscriber fails:
+**Partial failure**: QUIC Initial Destination Connection IDs are best-effort.
+Include whatever IDs were captured before the failure and omit the field for
+non-QUIC sessions or when the implementation does not expose it. For example,
+if the publisher connects but the subscriber fails:
 
 ```tap
 not ok 5 - announce-subscribe
   ---
   duration_ms: 3001
-  publisher_connection_id: abc12345
   message: "subscriber connection failed"
+  sessions:
+    publisher:
+      quic_initial_destination_connection_id: "abc1234567890def"
   ...
 ```
 
@@ -226,20 +241,22 @@ Test clients MUST implement timeouts to prevent hanging:
 
 - Individual tests SHOULD timeout after their specified duration (see test case specs)
 - If no timeout is specified, default to 5 seconds
-- On timeout, report the test as failed with a clear message in the YAML diagnostics
+- On timeout, report the test as failed. A client MAY include a clear message in
+  optional YAML diagnostics.
 
 ## Error Reporting
 
-When tests fail, include diagnostic context via YAML blocks:
+When tests fail, clients SHOULD include diagnostic context. Optional YAML blocks
+are the preferred way to provide structured details:
 
 ```tap
 not ok 2 - announce-only
   ---
   duration_ms: 2001
-  expected: PUBLISH_NAMESPACE_OK
-  received: timeout
-  message: "no response after 2000 ms"
-  connection_id: 84ee7793841adcadd926a1baf1c677cc
+  message: "timed out waiting for REQUEST_OK after 2000 ms"
+  sessions:
+    publisher:
+      quic_initial_destination_connection_id: "84ee7793841adcadd926a1baf1c677cc"
   ...
 ```
 
@@ -249,9 +266,9 @@ For protocol errors:
 not ok 3 - subscribe-error
   ---
   duration_ms: 45
-  expected: SUBSCRIBE_ERROR
-  received: SUBSCRIBE_OK
-  message: "unexpected success"
-  connection_id: 84ee7793841adcadd926a1baf1c677cc
+  message: "received SUBSCRIBE_OK instead of REQUEST_ERROR"
+  sessions:
+    subscriber:
+      quic_initial_destination_connection_id: "84ee7793841adcadd926a1baf1c677cc"
   ...
 ```

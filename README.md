@@ -84,7 +84,9 @@ Tests are organized by functional category:
 | `announce-subscribe` | Subscription | Publisher announces, subscriber subscribes |
 | `subscribe-before-announce` | Subscription | Subscribe before publisher announces |
 
-See [docs/tests/TEST-CASES.md](./docs/tests/TEST-CASES.md) for detailed specifications with protocol references.
+See the [test catalog](./docs/tests/README.md) for organization and contribution
+guidance, and [docs/tests/TEST-CASES.md](./docs/tests/TEST-CASES.md) for the
+existing detailed specifications with protocol references.
 
 ## Architecture
 
@@ -142,7 +144,7 @@ See [docs/tests/TEST-CASES.md](./docs/tests/TEST-CASES.md) for detailed specific
 Contributions welcome! Key areas:
 
 1. **Add your implementation** - See [IMPLEMENTATIONS.md](./IMPLEMENTATIONS.md)
-2. **Propose new test cases** - Open an issue or PR to `docs/tests/TEST-CASES.md`
+2. **Propose new test cases** - Follow the [test contribution process](./docs/tests/README.md)
 3. **Build a test client** - See [docs/IMPLEMENTING-A-TEST-CLIENT.md](./docs/IMPLEMENTING-A-TEST-CLIENT.md)
 4. **Improve tooling** - Better reporting, CI integration, etc.
 

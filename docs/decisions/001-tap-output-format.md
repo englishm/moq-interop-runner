@@ -2,6 +2,9 @@
 
 **Date:** 2026-02-06
 
+**Updated by:** [TAP YAML Metadata](../TAP-YAML-METADATA.md), which defines
+the current optional diagnostic field vocabulary.
+
 ## Problem
 
 The moq-interop-runner needs a standardized output format for test clients. Without one, every test client author invents their own output, making it difficult for the harness to parse results and for humans to compare behavior across implementations.

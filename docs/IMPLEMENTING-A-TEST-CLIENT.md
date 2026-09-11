@@ -8,7 +8,9 @@ This guide explains how to implement a test client for your MoQT stack that's co
 
 Most MoQT implementations already have CLI tools (moq-rs has `moq-pub`/`moq-sub`/`moq-clock`, moxygen has `moqtest_client`, etc.), but each exercises different scenarios with different output. The goal here is **multiple implementations of the *same* test cases** — standard identifiers (`setup-only`, `announce-subscribe`, ...) with precise success criteria so we can automate the full client x relay matrix with machine-parseable results instead of ad-hoc commands and manual spreadsheet tracking.
 
-If you already have a MoQT implementation, building a test client mostly means wiring your existing protocol logic to the scenarios defined in [TEST-CASES.md](./tests/TEST-CASES.md).
+If you already have a MoQT implementation, building a test client mostly means
+wiring your existing protocol logic to scenarios in the
+[test catalog](./tests/README.md).
 
 ## Overview
 
@@ -30,7 +32,9 @@ Your test client MUST implement the interface defined in [TEST-CLIENT-INTERFACE.
 
 ## Test Case Implementation
 
-For each test case you support, implement the procedure described in [tests/TEST-CASES.md](./tests/TEST-CASES.md).
+For each test case you support, follow the prose specification linked from the
+[test catalog](./tests/README.md). Existing tests remain collected in
+[TEST-CASES.md](./tests/TEST-CASES.md).
 
 ### Example: `setup-only`
 
@@ -52,7 +56,9 @@ def test_setup_only(relay_url):
             return TestResult.fail(
                 f"Expected SERVER_SETUP, got {msg.type}",
                 duration=time.now() - start,
-                connection_id=conn.id
+                sessions={"client": {
+                    "quic_initial_destination_connection_id": conn.initial_dcid
+                }}
             )
         
         # 4. Close gracefully
@@ -60,7 +66,9 @@ def test_setup_only(relay_url):
         
         return TestResult.pass(
             duration=time.now() - start,
-            connection_id=conn.id
+            sessions={"client": {
+                "quic_initial_destination_connection_id": conn.initial_dcid
+            }}
         )
         
     except Timeout:
@@ -102,20 +110,26 @@ def test_subscribe_error(relay_url):
             conn.close()
             return TestResult.pass(
                 duration=time.now() - start,
-                connection_id=conn.id
+                sessions={"subscriber": {
+                    "quic_initial_destination_connection_id": conn.initial_dcid
+                }}
             )
         elif msg.type == SUBSCRIBE_OK:
             # Unexpected success
             return TestResult.fail(
                 "Expected SUBSCRIBE_ERROR, got SUBSCRIBE_OK",
                 duration=time.now() - start,
-                connection_id=conn.id
+                sessions={"subscriber": {
+                    "quic_initial_destination_connection_id": conn.initial_dcid
+                }}
             )
         else:
             return TestResult.fail(
                 f"Unexpected message type: {msg.type}",
                 duration=time.now() - start,
-                connection_id=conn.id
+                sessions={"subscriber": {
+                    "quic_initial_destination_connection_id": conn.initial_dcid
+                }}
             )
             
     except Timeout:
@@ -165,7 +179,14 @@ def test_announce_subscribe(relay_url):
             sub.close()
             return TestResult.pass(
                 duration=time.now() - start,
-                extra=f"pub={pub.id[:8]}, sub={sub.id[:8]}"
+                sessions={
+                    "publisher": {
+                        "quic_initial_destination_connection_id": pub.initial_dcid
+                    },
+                    "subscriber": {
+                        "quic_initial_destination_connection_id": sub.initial_dcid
+                    },
+                }
             )
         else:
             return TestResult.fail(
@@ -214,22 +235,19 @@ def format_tap_result(number, result):
         line += f" # SKIP {result.skip_reason}"
         return line
 
-    # Add YAML diagnostic block for richer context
-    yaml_lines = []
+    # Use a YAML library so arbitrary diagnostic strings are escaped safely.
+    metadata = {}
     if result.duration_ms is not None:
-        yaml_lines.append(f"  duration_ms: {result.duration_ms}")
-    if result.connection_id:
-        yaml_lines.append(f"  connection_id: {result.connection_id}")
+        metadata["duration_ms"] = result.duration_ms
+    if result.sessions:
+        metadata["sessions"] = result.sessions
     if not result.passed and result.message:
-        yaml_lines.append(f"  message: \"{result.message}\"")
-    if result.expected:
-        yaml_lines.append(f"  expected: {result.expected}")
-    if result.received:
-        yaml_lines.append(f"  received: {result.received}")
+        metadata["message"] = result.message
 
-    if yaml_lines:
+    if metadata:
+        rendered = yaml.safe_dump(metadata, sort_keys=False).rstrip()
         line += "\n  ---\n"
-        line += "\n".join(yaml_lines)
+        line += textwrap.indent(rendered, "  ")
         line += "\n  ..."
 
     return line
@@ -249,16 +267,18 @@ Don't let tests hang indefinitely - always fail with a clear timeout message.
 
 When `--tls-disable-verify` is set (or `TLS_DISABLE_VERIFY=1`), disable certificate verification. This is necessary for testing with self-signed certificates in containerized environments.
 
-## Connection ID Extraction
+## QUIC Connection ID Extraction
 
-Extract the QUIC connection ID for mlog correlation and include it in the YAML diagnostic block. This is typically available from your QUIC implementation:
+Include the client's QUIC Initial Destination Connection ID under the logical
+session role when the QUIC stack exposes it. APIs differ by stack; use the
+Destination Connection ID from the client's first QUIC Initial packet, not a
+process-local connection handle. Omit the field for non-QUIC sessions or when
+the value is unavailable. Encode the bytes as lowercase hexadecimal without
+separators or a `0x` prefix:
 
 ```python
-# Example with quinn (Rust)
-let cid = connection.stable_id();
-
-# Example with aioquic (Python)  
-cid = connection._quic.host_cid.hex()
+# Pseudocode; use the equivalent API in your QUIC stack.
+cid = connection.initial_destination_connection_id()
 ```
 
 In TAP output, the connection ID appears in the YAML diagnostics:
@@ -267,7 +287,9 @@ In TAP output, the connection ID appears in the YAML diagnostics:
 ok 1 - setup-only
   ---
   duration_ms: 24
-  connection_id: 84ee7793841adcadd926a1baf1c677cc
+  sessions:
+    client:
+      quic_initial_destination_connection_id: "84ee7793841adcadd926a1baf1c677cc"
   ...
 ```
 
@@ -277,8 +299,11 @@ For multi-connection tests, include both IDs:
 ok 2 - announce-subscribe
   ---
   duration_ms: 156
-  publisher_connection_id: abc12345
-  subscriber_connection_id: def67890
+  sessions:
+    publisher:
+      quic_initial_destination_connection_id: "abc1234567890def"
+    subscriber:
+      quic_initial_destination_connection_id: "def6789012345abc"
   ...
 ```
 

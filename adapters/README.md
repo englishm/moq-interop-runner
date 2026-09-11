@@ -33,7 +33,7 @@ The interop runner expects client images to follow:
 
 | Convention | Description |
 |------------|-------------|
-| `RELAY_URL` | Relay URL (`https://` for WebTransport, `moqt://` for raw QUIC) |
+| `RELAY_URL` | Relay locator (`https://` for legacy WebTransport clients; `moqt://` for native QUIC or draft 18 and later WebTransport) |
 | `TESTCASE` | Specific test to run (optional; runs all if not set) |
 | `TLS_DISABLE_VERIFY=1` | Skip TLS certificate verification |
 | TAP version 14 on stdout | Machine-parseable test output |

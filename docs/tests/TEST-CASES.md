@@ -1,6 +1,9 @@
 # MoQT Interoperability Test Cases
 
-> **This is the reference specification for test cases.** To propose new test cases, open a PR against this file. To implement these tests in your MoQT stack, see [IMPLEMENTING-A-TEST-CLIENT.md](../IMPLEMENTING-A-TEST-CLIENT.md).
+> **This is the reference specification for the tests listed below.** The
+> [test catalog and contribution process](./README.md) explains how to add more.
+> To implement these tests in your MoQT stack, see
+> [IMPLEMENTING-A-TEST-CLIENT.md](../IMPLEMENTING-A-TEST-CLIENT.md).
 
 This document defines interoperability test cases for Media over QUIC Transport (MoQT). These specifications are designed to be implementation-neutral and precise enough that any MoQT implementation can build a compatible test client.
 
@@ -16,7 +19,8 @@ Each test case follows this structure:
 - **Protocol References**: Relevant MoQT draft sections
 - **Procedure**: Step-by-step behavior
 - **Success Criteria**: What constitutes a pass
-- **Diagnostic Roles**: For multi-connection tests, the named roles for connection ID reporting (see [Connection ID Conventions](../TEST-CLIENT-INTERFACE.md#connection-id-conventions))
+- **Diagnostic Roles**: Stable role names used under `sessions` in
+  [YAML diagnostics](../TAP-YAML-METADATA.md#session-fields)
 - **mlog Events**: Suggested qlog/mlog events for validation (optional)
 
 ---
@@ -41,6 +45,8 @@ Each test case follows this structure:
 
 **Timeout**: 2 seconds
 
+**Diagnostic Roles**: `client`
+
 **mlog Events** (relay-side, suggested):
 
 ```json
@@ -50,7 +56,7 @@ Each test case follows this structure:
 
 ---
 
-## Category: Namespace Publishing
+## Category: Namespace Discovery
 
 ### `announce-only`
 
@@ -71,6 +77,8 @@ Each test case follows this structure:
 - No error response
 
 **Timeout**: 2 seconds after sending PUBLISH_NAMESPACE
+
+**Diagnostic Roles**: `publisher`
 
 **mlog Events** (relay-side, suggested):
 
@@ -103,6 +111,8 @@ Each test case follows this structure:
 
 **Timeout**: 2 seconds after sending PUBLISH_NAMESPACE
 
+**Diagnostic Roles**: `publisher`
+
 ---
 
 ## Category: Subscriptions
@@ -127,6 +137,8 @@ Each test case follows this structure:
 - Exit code 0 (the error was expected and correctly handled)
 
 **Timeout**: 2 seconds
+
+**Diagnostic Roles**: `subscriber`
 
 **mlog Events** (relay-side, suggested):
 
@@ -161,6 +173,8 @@ A relay may use a shorter timeout than requested, so the test does not impose a 
 
 **Timeout**: 2 seconds
 
+**Diagnostic Roles**: `subscriber`
+
 ---
 
 ### `announce-subscribe`
@@ -193,7 +207,8 @@ A relay may use a shorter timeout than requested, so the test does not impose a 
 
 **Timeout**: 3 seconds total
 
-**Diagnostic Roles**: `publisher`, `subscriber` — report as `publisher_connection_id` and `subscriber_connection_id` in YAML diagnostics
+**Diagnostic Roles**: `publisher`, `subscriber` - use these names under
+`sessions` in [YAML diagnostics](../TAP-YAML-METADATA.md#session-fields)
 
 ---
 
@@ -227,13 +242,17 @@ Either outcome is valid; the test checks for graceful handling.
 
 **Timeout**: 3.5 seconds total
 
-**Diagnostic Roles**: `publisher`, `subscriber` — report as `publisher_connection_id` and `subscriber_connection_id` in YAML diagnostics (regardless of connection order)
+**Diagnostic Roles**: `publisher`, `subscriber` - use these names under
+`sessions` in [YAML diagnostics](../TAP-YAML-METADATA.md#session-fields),
+regardless of connection order
 
 ---
 
 ## Future Test Cases
 
-This section outlines potential future test cases. The actual test definitions will be added as implementations mature and working group consensus develops.
+This section collects early ideas that do not yet have complete test
+specifications. They can be developed as implementations and discussion make
+the expected behavior clearer.
 
 ### Data Flow Tests
 
@@ -251,18 +270,16 @@ Different use cases may require different message flow patterns:
 - **PUBLISH_NAMESPACE + SUBSCRIBE flow**: Publisher announces availability, subscriber requests specific track
 - **SUBSCRIBE_NAMESPACE + PUBLISH flow**: Subscriber expresses interest in namespace prefix, publisher sends tracks
 
-As moq-rs and other implementations add support for both patterns, we should develop test cases that exercise each.
+### Test Client Capability Discovery
 
-### Test Client Capability Matrix
+Test clients may implement the [`--list` interface](../TEST-CLIENT-INTERFACE.md#list-output)
+to report the identifiers they support. Clients remain compatible without this
+interface. When neither `--list` nor a test result provides an explicit signal,
+support is unknown rather than unsupported.
 
-As the test suite grows, different test clients may support different subsets of tests. A capability matrix could help:
-
-| Test Client | `setup-only` | `announce-only` | `publish-namespace-done` | `subscribe-error` | `announce-subscribe` | `subscribe-before-announce` |
-|-------------|--------------|-----------------|--------------------------|-------------------|----------------------|-----------------------------|
-| moq-test-client (moq-rs) | Yes | Yes | Yes | Yes | Yes | Yes |
-| implementation-b | Yes | Yes | No | Yes | No | No |
-
-The mechanism for declaring and discovering these capabilities is TBD - potentially via a `--list` command that outputs supported test identifiers.
+This signal may eventually support things like the coverage summaries described
+in the [test catalog](./README.md#support-levels-and-profiles). As of September
+2026, the runner does not derive support levels or profiles from it.
 
 ---
 
