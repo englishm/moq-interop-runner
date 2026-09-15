@@ -1,0 +1,67 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against moqt://us-west-2.relay.quicr.org:33437...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://us-west-2.relay.quicr.org:33437 \
+	-e TLS_DISABLE_VERIFY=1 \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://us-west-2.relay.quicr.org:33437
+# Transport: QUIC
+# Offered ALPNs: moqt-18, moqt-16, moqt-15, moq-00
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 213
+  negotiated_version: draft-16
+  info: SETUP exchange completed successfully
+  ...
+W0915 01:54:29.740317     1 MoQSession.cpp:6051] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x5575d93f84e0
+E0915 01:54:29.760767     1 MoQRelaySession.cpp:1116] PublishNamespaceDone for unknown publishNamespace, sess=0x5575d93f84e0
+ok 2 - announce-only
+  ---
+  duration_ms: 236
+  negotiated_version: draft-16
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+W0915 01:54:29.805190     1 MoQSession.cpp:6051] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x5575d942f8f0
+E0915 01:54:29.825602     1 MoQCodec.cpp:126] Conn error=3
+E0915 01:54:29.825618     1 MoQSession.cpp:5836] MoQCodec control stream parse error err=3
+ok 3 - subscribe-error
+  ---
+  duration_ms: 64
+  negotiated_version: draft-16
+  info: Subscribe correctly returned error: Session closed
+  ...
+W0915 01:54:30.137345     1 MoQSession.cpp:6051] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x5575d9402bd0
+W0915 01:54:30.367812     1 MoQSession.cpp:6051] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x5575d93f8e60
+E0915 01:54:30.387588     1 MoQCodec.cpp:126] Conn error=3
+E0915 01:54:30.387605     1 MoQSession.cpp:5836] MoQCodec control stream parse error err=3
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 561
+  negotiated_version: draft-16
+  error: Subscribe failed: Session closed
+  ...
+W0915 01:54:30.432560     1 MoQSession.cpp:6051] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x5575d943f2d0
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 64
+  negotiated_version: draft-16
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+W0915 01:54:30.497466     1 MoQSession.cpp:6051] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x5575d9440830
+E0915 01:54:30.517648     1 MoQCodec.cpp:126] Conn error=3
+E0915 01:54:30.517666     1 MoQSession.cpp:5836] MoQCodec control stream parse error err=3
+W0915 01:54:31.042790     1 MoQSession.cpp:6051] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x5575d9401670
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 610
+  negotiated_version: draft-16
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Session closed
+  ...
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
