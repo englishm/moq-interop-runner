@@ -22,8 +22,8 @@ mapping or object numbering.
 ## Roles And Preconditions
 
 The test client operates one publisher session and one subscriber session
-through the relay under test. Both sessions negotiate MoQT draft 18 and support
-subgroup stream delivery.
+through the relay under test. Both sessions negotiate the current MoQT interop
+target draft and support subgroup stream delivery.
 
 The roles follow the [normal publisher-first publication
 flow](./README.md#normal-publication-flow). They use a run-unique Full Track

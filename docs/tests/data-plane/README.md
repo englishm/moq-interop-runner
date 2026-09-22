@@ -44,9 +44,9 @@ specify it when that distinction is the property under test.
 ## Common Subscription Stimulus
 
 The downstream SUBSCRIBE sets GROUP_ORDER to Ascending. It omits FORWARD and
-SUBSCRIBER_PRIORITY, selecting their draft-18 defaults of Forward State 1 and
-Subscriber Priority 128. It also omits SUBSCRIPTION_FILTER, so all newly
-published objects pass the filter.
+SUBSCRIBER_PRIORITY, selecting their defaults of Forward State 1 and Subscriber
+Priority 128 (unchanged since MoQT draft 18). It also omits SUBSCRIPTION_FILTER,
+so all newly published objects pass the filter.
 
 All other optional parameters are omitted, including RENDEZVOUS_TIMEOUT, object
 and subgroup delivery timeouts, and NEW_GROUP_REQUEST. An environment may add
