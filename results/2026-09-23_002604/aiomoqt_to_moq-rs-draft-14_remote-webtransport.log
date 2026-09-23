@@ -1,0 +1,70 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://draft-14.cloudflare.mediaoverquic.com:443/moq...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://draft-14.cloudflare.mediaoverquic.com:443/moq \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  [PASS] subscribe-error: Error received (expected): code=4
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+  [FAIL] subscribe-before-announce: Failed: TimeoutError
+ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-18' coro=<_MOQTSessionMixin._await_response() done, defined at /app/aiomoqt/protocol.py:413> exception=MOQTRequestError('request error: code=4 reason=not found: Track not found [error:0377689e-8a71-45be-97e5-71d935a8fd50]')>
+Traceback (most recent call last):
+  File "/app/aiomoqt/protocol.py", line 439, in _await_response
+    raise MOQTRequestError(
+aiomoqt.types.MOQTRequestError: request error: code=4 reason=not found: Track not found [error:0377689e-8a71-45be-97e5-71d935a8fd50]
+TAP version 14
+# date: 2026-09-23T01:40:18Z
+# ended: 2026-09-23T01:40:35Z
+# target: https://draft-14.cloudflare.mediaoverquic.com:443/moq
+# version: aiomoqt/0.11.1
+# note: preference probe pinned draft-14
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 331.8
+  connection_id: unknown
+  message: SERVER_SETUP received with compatible version
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 586.7
+  connection_id: unknown
+  message: PUBLISH_NAMESPACE_OK received
+  ...
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 747.8
+  connection_id: unknown
+  message: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 4 - subscribe-error
+  ---
+  duration_ms: 404.0
+  connection_id: unknown
+  message: Error received (expected): code=4
+  expected: SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST
+  ...
+ok 5 - announce-subscribe
+  ---
+  duration_ms: 882.6
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: SUBSCRIBE_OK received — relay routed subscription
+  ...
+not ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 7604.0
+  publisher_connection_id: unknown
+  subscriber_connection_id: unknown
+  message: Failed: TimeoutError
+  received: TimeoutError
+  ...
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
