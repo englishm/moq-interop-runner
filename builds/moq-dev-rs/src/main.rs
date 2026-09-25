@@ -351,6 +351,19 @@ async fn test_publish_namespace_done(
     })
 }
 
+/// An origin whose announce interest is only `path` and its descendants.
+///
+/// An unrestricted origin sends SUBSCRIBE_NAMESPACE for the empty prefix. Several
+/// IETF relays never answer that, so the publisher's namespace is accepted and
+/// then never delivered to the subscriber.
+fn subscriber_origin(path: &str) -> anyhow::Result<moq_net::origin::Producer> {
+    let pattern = moq_net::Pattern::subtree(path)
+        .map_err(|err| anyhow::anyhow!("invalid subscribe scope {path}: {err}"))?;
+    moq_tokio::origin::spawn()
+        .scope("", &moq_net::Patterns::from(pattern))
+        .with_context(|| format!("failed to scope subscriber to {path}"))
+}
+
 /// Wait until the peer announces `path` exactly, then resolve that broadcast.
 async fn announced_broadcast(
     consumer: &moq_net::origin::Consumer,
@@ -399,8 +412,9 @@ async fn test_announce_subscribe(
     // Give the relay time to process the announce
     tokio::time::sleep(Duration::from_millis(300)).await;
 
-    // Subscriber setup
-    let sub_origin = moq_tokio::origin::spawn();
+    // Subscriber setup. Scope the announce interest to the test namespace so the
+    // relay is asked for that prefix rather than every namespace.
+    let sub_origin = subscriber_origin(TEST_NAMESPACE)?;
     let sub_consumer = sub_origin.consume();
 
     let sub_session = client
