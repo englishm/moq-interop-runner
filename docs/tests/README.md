@@ -22,6 +22,11 @@ as participants revisit them; adding a label does not change their behavior.
 | `announce-subscribe` | Subscription | [TEST-CASES.md](./TEST-CASES.md#announce-subscribe) |
 | `subscribe-before-announce` | Subscription | [TEST-CASES.md](./TEST-CASES.md#subscribe-before-announce) |
 
+## Test Areas
+
+- [Data-plane tests](./data-plane/README.md) define shared publisher-first
+  conventions for new end-to-end object-delivery scenarios.
+
 ## Specification Layout
 
 `TEST-CASES.md` remains the reference for existing tests. New tests may use one
