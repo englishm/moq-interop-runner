@@ -1,0 +1,60 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://34-72-6-160.sslip.io:443...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://34-72-6-160.sslip.io:443 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://34-72-6-160.sslip.io:443
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16, moqt-15, moq-00
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 216
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E20260930 01:05:05.578568     1 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=04a852efc48894f8, local=10.1.1.154:60690, 34.72.6.160:443=upstream, drain=done
+E0930 01:05:05.689687     1 MoQRelaySession.cpp:1123] PublishNamespaceDone for unknown publishNamespace, sess=0x55ef7adf5d40
+ok 2 - announce-only
+  ---
+  duration_ms: 222
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E20260930 01:05:05.768429     1 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=975971a30c388665, local=10.1.1.154:45840, 34.72.6.160:443=upstream, drain=done
+ok 3 - subscribe-error
+  ---
+  duration_ms: 190
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: Session closed
+  ...
+E20260930 01:05:05.999763     1 HQSession.cpp:583] Connection closed with error err=91141958510814 msg=Client closed by peer reason= proto=h3, client CID=, server CID=89c8e092eea381b9, local=10.1.1.154:58828, 34.72.6.160:443=upstream, drain=done
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 232
+  negotiated_version: draft-18
+  error: PUBLISH_NAMESPACE failed: unauthorized
+  ...
+E20260930 01:05:06.226824     1 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=881b2a128a646e4f, local=10.1.1.154:44221, 34.72.6.160:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 225
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E20260930 01:05:06.412561     1 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=09822fbceff013b7, local=10.1.1.154:58635, 34.72.6.160:443=upstream, drain=done
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 848
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Session closed
+  ...
+E20260930 01:05:07.214397     1 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=0692236d1354ff4a, local=10.1.1.154:55585, 34.72.6.160:443=upstream, drain=done
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
