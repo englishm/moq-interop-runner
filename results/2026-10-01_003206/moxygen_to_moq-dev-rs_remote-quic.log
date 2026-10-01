@@ -1,0 +1,59 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against moqt://cdn.moq.dev:443/anon...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://cdn.moq.dev:443/anon \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://cdn.moq.dev:443/anon
+# Transport: QUIC
+# Offered ALPNs: moqt-18, moqt-16, moqt-15, moq-00
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 1226
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E1001 01:08:08.006384     1 MoQRelaySession.cpp:1123] PublishNamespaceDone for unknown publishNamespace, sess=0x565085f20630
+ok 2 - announce-only
+  ---
+  duration_ms: 270
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E1001 01:08:08.027214     1 MoQSession.cpp:5162] No matching subscribe ID=0 sess=0x565085efaf00
+ok 3 - subscribe-error
+  ---
+  duration_ms: 20
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: Session closed
+  ...
+E1001 01:08:09.631810     1 MoQSession.cpp:5162] No matching subscribe ID=0 sess=0x565085f391c0
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 1604
+  negotiated_version: draft-18
+  error: Subscribe failed: Session closed
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 18
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1001 01:08:09.759180     1 MoQSession.cpp:5162] No matching subscribe ID=0 sess=0x565085f19840
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 834
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Session closed
+  ...
+E20261001 01:08:11.486752     1 EventHandler.cpp:95] EventBase: failed to register event handler for fd 13: No such file or directory
+E20261001 01:08:11.487763     1 EventHandler.cpp:95] EventBase: failed to register event handler for fd 9: No such file or directory
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
