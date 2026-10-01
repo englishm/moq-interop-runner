@@ -1,8 +1,4 @@
-use std::{
-    fs::File,
-    io::Read,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use anyhow::Context;
 use clap::Parser;
@@ -333,112 +329,69 @@ async fn test_publish_namespace_done(
     })
 }
 
-/// Observe a namespace's complete downstream lifecycle through SUBSCRIBE_NAMESPACE:
-/// NAMESPACE when a publisher appears, followed by NAMESPACE_DONE when it withdraws.
+async fn next_namespace_state(
+    announcements: &mut moq_net::announce::Consumer,
+    namespace: &str,
+) -> anyhow::Result<bool> {
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            let event = announcements
+                .next()
+                .await
+                .context("namespace subscription closed")?;
+            if event.path.as_str() == namespace {
+                return Ok(event.broadcast.is_some());
+            }
+        }
+    })
+    .await
+    .context("timeout waiting for namespace event")?
+}
+
+/// Observe NAMESPACE followed by NAMESPACE_DONE for one unique namespace.
 async fn test_subscribe_namespace_lifecycle(
     client: &moq_native::Client,
     relay_url: &url::Url,
 ) -> anyhow::Result<Diagnostics> {
-    // A unique name prevents a stale remote-relay announcement from satisfying the
-    // test. The 128-bit run id is read directly from the operating system RNG so
-    // concurrent matrix jobs cannot collide.
-    let mut random = [0u8; 16];
-    File::open("/dev/urandom")
-        .context("failed to open operating-system random source")?
-        .read_exact(&mut random)
-        .context("failed to generate namespace run id")?;
-    let run_id = format!("{:032x}", u128::from_be_bytes(random));
-    let namespace = format!(
-        "{}/subscribe-namespace-lifecycle/{}",
-        TEST_NAMESPACE, run_id
-    );
+    let subscriber_id = Origin::random();
+    let publisher_id = Origin::random();
+    let namespace =
+        format!("{TEST_NAMESPACE}/subscribe-namespace-lifecycle/{subscriber_id}-{publisher_id}");
 
-    // Subscriber first: scoping the subscriber to the exact path creates the
-    // SUBSCRIBE_NAMESPACE request whose NAMESPACE/NAMESPACE_DONE events we observe.
-    let sub_origin = Origin::random()
+    let sub_origin = subscriber_id
         .produce()
         .scope(&[moq_net::Path::new(namespace.as_str())])
         .context("failed to scope namespace subscriber")?;
-    let sub_consumer = sub_origin.consume();
-    let mut announcements = sub_consumer.announced();
-    let sub_session = tokio::time::timeout(
-        Duration::from_secs(5),
-        client
-            .clone()
-            .with_subscriber(sub_origin)
-            .connect(relay_url.clone()),
-    )
-    .await
-    .context("namespace_subscriber timed out during SETUP")?
-    .context("namespace_subscriber failed to connect")?;
+    let mut announcements = sub_origin.consume().announced();
+    let sub_session = client
+        .clone()
+        .with_subscriber(sub_origin)
+        .connect(relay_url.clone())
+        .await
+        .context("namespace subscriber failed to connect")?;
     let negotiated = sub_session.version().to_string();
 
-    // A second session publishes the exact namespace after the subscription exists.
-    let pub_origin = Origin::random().produce();
+    let pub_origin = publisher_id.produce();
     let mut broadcast = pub_origin
         .create_broadcast(&namespace, broadcast::Route::new().with_announce(true))
         .context("failed to create lifecycle broadcast")?;
-    let pub_session = tokio::time::timeout(
-        Duration::from_secs(5),
-        client
-            .clone()
-            .with_publisher(&pub_origin)
-            .connect(relay_url.clone()),
-    )
-    .await
-    .context("namespace_publisher timed out during SETUP")?
-    .context("namespace_publisher failed to connect")?;
+    let pub_session = client
+        .clone()
+        .with_publisher(&pub_origin)
+        .connect(relay_url.clone())
+        .await
+        .context("namespace publisher failed to connect")?;
 
-    tokio::time::timeout(Duration::from_secs(3), async {
-        loop {
-            let event = announcements
-                .next()
-                .await
-                .context("namespace_subscriber closed before NAMESPACE")?;
-            if event.path.as_str() != namespace {
-                continue;
-            }
-            if event.broadcast.is_none() {
-                anyhow::bail!("received NAMESPACE_DONE before NAMESPACE");
-            }
-            return Ok::<(), anyhow::Error>(());
-        }
-    })
-    .await
-    .with_context(|| {
-        format!(
-            "namespace_subscriber timed out waiting for NAMESPACE (negotiated {})",
-            negotiated
-        )
-    })??;
-
-    // Cancelling the publisher's namespace request must be observable on the still
-    // active subscriber request as NAMESPACE_DONE for the same namespace.
+    anyhow::ensure!(
+        next_namespace_state(&mut announcements, &namespace).await?,
+        "received NAMESPACE_DONE before NAMESPACE"
+    );
     broadcast.finish();
     drop(broadcast);
-
-    tokio::time::timeout(Duration::from_secs(3), async {
-        loop {
-            let event = announcements
-                .next()
-                .await
-                .context("namespace_subscriber closed before NAMESPACE_DONE")?;
-            if event.path.as_str() != namespace {
-                continue;
-            }
-            if event.broadcast.is_some() {
-                anyhow::bail!("received duplicate NAMESPACE before NAMESPACE_DONE");
-            }
-            return Ok::<(), anyhow::Error>(());
-        }
-    })
-    .await
-    .with_context(|| {
-        format!(
-            "namespace_subscriber timed out waiting for NAMESPACE_DONE (negotiated {})",
-            negotiated
-        )
-    })??;
+    anyhow::ensure!(
+        !next_namespace_state(&mut announcements, &namespace).await?,
+        "received duplicate NAMESPACE before NAMESPACE_DONE"
+    );
 
     pub_session.abort(Error::Cancel);
     sub_session.abort(Error::Cancel);
