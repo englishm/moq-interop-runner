@@ -227,6 +227,7 @@ When `--list` is specified, output one test identifier per line (not TAP format)
 setup-only
 announce-only
 publish-namespace-done
+subscribe-namespace-lifecycle
 subscribe-error
 rendezvous-timeout
 announce-subscribe

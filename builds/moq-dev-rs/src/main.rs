@@ -1,4 +1,8 @@
-use std::time::{Duration, Instant};
+use std::{
+    fs::File,
+    io::Read,
+    time::{Duration, Instant},
+};
 
 use anyhow::Context;
 use clap::Parser;
@@ -42,6 +46,7 @@ const TESTS: &[&str] = &[
     "setup-only",
     "announce-only",
     "publish-namespace-done",
+    "subscribe-namespace-lifecycle",
     "subscribe-error",
     "announce-subscribe",
     "subscribe-before-announce",
@@ -209,6 +214,7 @@ async fn run_test(
         "setup-only" => Duration::from_secs(2),
         "announce-only" => Duration::from_secs(2),
         "publish-namespace-done" => Duration::from_secs(2),
+        "subscribe-namespace-lifecycle" => Duration::from_secs(12),
         "announce-subscribe" => Duration::from_secs(3),
         _ => Duration::from_secs(5),
     };
@@ -227,6 +233,9 @@ async fn run_test_inner(
         "setup-only" => test_setup_only(client, relay_url).await,
         "announce-only" => test_announce_only(client, relay_url).await,
         "publish-namespace-done" => test_publish_namespace_done(client, relay_url).await,
+        "subscribe-namespace-lifecycle" => {
+            test_subscribe_namespace_lifecycle(client, relay_url).await
+        }
         "announce-subscribe" => test_announce_subscribe(client, relay_url).await,
         _ => anyhow::bail!("unknown test: {}", name),
     }
@@ -320,6 +329,123 @@ async fn test_publish_namespace_done(
     Ok(Diagnostics {
         negotiated: Some(negotiated),
         outcome: Some("namespace withdrawn cleanly".into()),
+        ..Default::default()
+    })
+}
+
+/// Observe a namespace's complete downstream lifecycle through SUBSCRIBE_NAMESPACE:
+/// NAMESPACE when a publisher appears, followed by NAMESPACE_DONE when it withdraws.
+async fn test_subscribe_namespace_lifecycle(
+    client: &moq_native::Client,
+    relay_url: &url::Url,
+) -> anyhow::Result<Diagnostics> {
+    // A unique name prevents a stale remote-relay announcement from satisfying the
+    // test. The 128-bit run id is read directly from the operating system RNG so
+    // concurrent matrix jobs cannot collide.
+    let mut random = [0u8; 16];
+    File::open("/dev/urandom")
+        .context("failed to open operating-system random source")?
+        .read_exact(&mut random)
+        .context("failed to generate namespace run id")?;
+    let run_id = format!("{:032x}", u128::from_be_bytes(random));
+    let namespace = format!(
+        "{}/subscribe-namespace-lifecycle/{}",
+        TEST_NAMESPACE, run_id
+    );
+
+    // Subscriber first: scoping the subscriber to the exact path creates the
+    // SUBSCRIBE_NAMESPACE request whose NAMESPACE/NAMESPACE_DONE events we observe.
+    let sub_origin = Origin::random()
+        .produce()
+        .scope(&[moq_net::Path::new(namespace.as_str())])
+        .context("failed to scope namespace subscriber")?;
+    let sub_consumer = sub_origin.consume();
+    let mut announcements = sub_consumer.announced();
+    let sub_session = tokio::time::timeout(
+        Duration::from_secs(5),
+        client
+            .clone()
+            .with_subscriber(sub_origin)
+            .connect(relay_url.clone()),
+    )
+    .await
+    .context("namespace_subscriber timed out during SETUP")?
+    .context("namespace_subscriber failed to connect")?;
+    let negotiated = sub_session.version().to_string();
+
+    // A second session publishes the exact namespace after the subscription exists.
+    let pub_origin = Origin::random().produce();
+    let mut broadcast = pub_origin
+        .create_broadcast(&namespace, broadcast::Route::new().with_announce(true))
+        .context("failed to create lifecycle broadcast")?;
+    let pub_session = tokio::time::timeout(
+        Duration::from_secs(5),
+        client
+            .clone()
+            .with_publisher(&pub_origin)
+            .connect(relay_url.clone()),
+    )
+    .await
+    .context("namespace_publisher timed out during SETUP")?
+    .context("namespace_publisher failed to connect")?;
+
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            let event = announcements
+                .next()
+                .await
+                .context("namespace_subscriber closed before NAMESPACE")?;
+            if event.path.as_str() != namespace {
+                continue;
+            }
+            if event.broadcast.is_none() {
+                anyhow::bail!("received NAMESPACE_DONE before NAMESPACE");
+            }
+            return Ok::<(), anyhow::Error>(());
+        }
+    })
+    .await
+    .with_context(|| {
+        format!(
+            "namespace_subscriber timed out waiting for NAMESPACE (negotiated {})",
+            negotiated
+        )
+    })??;
+
+    // Cancelling the publisher's namespace request must be observable on the still
+    // active subscriber request as NAMESPACE_DONE for the same namespace.
+    broadcast.finish();
+    drop(broadcast);
+
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            let event = announcements
+                .next()
+                .await
+                .context("namespace_subscriber closed before NAMESPACE_DONE")?;
+            if event.path.as_str() != namespace {
+                continue;
+            }
+            if event.broadcast.is_some() {
+                anyhow::bail!("received duplicate NAMESPACE before NAMESPACE_DONE");
+            }
+            return Ok::<(), anyhow::Error>(());
+        }
+    })
+    .await
+    .with_context(|| {
+        format!(
+            "namespace_subscriber timed out waiting for NAMESPACE_DONE (negotiated {})",
+            negotiated
+        )
+    })??;
+
+    pub_session.abort(Error::Cancel);
+    sub_session.abort(Error::Cancel);
+
+    Ok(Diagnostics {
+        negotiated: Some(negotiated),
+        outcome: Some("observed NAMESPACE followed by NAMESPACE_DONE".into()),
         ..Default::default()
     })
 }
