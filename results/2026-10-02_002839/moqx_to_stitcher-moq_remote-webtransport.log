@@ -1,0 +1,57 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://34-72-6-160.sslip.io:443...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://34-72-6-160.sslip.io:443 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://34-72-6-160.sslip.io:443
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 578
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E20261002 01:01:02.975250     1 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=a7d9a31328a01729, local=10.1.0.171:43437, 34.72.6.160:443=upstream, drain=done
+E1002 01:01:03.196155     1 MoQRelaySession.cpp:1123] PublishNamespaceDone for unknown publishNamespace, sess=0x55f5d9dfcbd0
+ok 2 - announce-only
+  ---
+  duration_ms: 401
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 242
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: Session closed
+  ...
+E20261002 01:01:03.617358     1 HQSession.cpp:583] Connection closed with error err=91141958510814 msg=Client closed by peer reason= proto=h3, client CID=, server CID=8091a8af6e703afa, local=10.1.0.171:49319, 34.72.6.160:443=upstream, drain=done
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 459
+  negotiated_version: draft-18
+  error: PUBLISH_NAMESPACE failed: unauthorized
+  ...
+E20261002 01:01:04.080092     1 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=1da4b0d18cb3321c, local=10.1.0.171:43109, 34.72.6.160:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 390
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 971
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Session closed
+  ...
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
