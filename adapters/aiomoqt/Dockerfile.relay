@@ -1,11 +1,12 @@
 # aiomoqt adapter for MoQT interop testing (relay role)
 #
-# aiomoqt server-side control plane over WebTransport (draft-16/18):
-# SETUP, PUBLISH_NAMESPACE, SUBSCRIBE. No object forwarding.
+# aiomoqt interop relay (draft-14/16/18): SETUP, PUBLISH_NAMESPACE, PUBLISH,
+# SUBSCRIBE and FETCH, forwarding objects; RENDEZVOUS_TIMEOUT on draft-18.
 #
-# Wraps the prebuilt aiomoqt image (MOQT_ROLE switch), pinning relay
-# mode + draft-16/18 WebTransport on the /certs convention (cert.pem /
-# priv.key). Serves on UDP/4443.
+# One UDP port serves raw QUIC (moqt://) and H3/WebTransport (https://),
+# chosen per connection by the negotiated ALPN (MOQT_DUAL=1). Both the
+# aiomoqt-relay and aiomoqt-relay-quic entries build this file; they differ
+# only in image tag and URL.
 #
 # Build:
 #   docker build -t aiomoqt-interop-relay:latest \
@@ -13,15 +14,15 @@
 #
 # Usage:
 #   docker run -v ./certs:/certs -p 4443:4443/udp aiomoqt-interop-relay:latest
-FROM ghcr.io/gmarzot/aiomoqt:latest
+FROM ghcr.io/gmarzot/aiomoqt:0.12.0a1
 
 # The image's entrypoint reads these (docker-entrypoint.sh): relay role,
-# draft-14/16/18 (advertises all; server negotiates), WebTransport (no MOQT_QUIC).
-# Certs default to /certs/cert.pem + /certs/priv.key. draft-14 is appended (kept
-# last) so it is offered to draft-14-only peers without changing the 16/18 order.
+# both transports on one port, draft-18/16/14 newest first. Certs default to
+# /certs/cert.pem + /certs/priv.key.
 ENV MOQT_ROLE=relay
 ENV MOQT_PORT=4443
-ENV MOQT_DRAFT=16,18,14
+ENV MOQT_DUAL=1
+ENV MOQT_DRAFT=18,16,14
 
 EXPOSE 4443/udp
 
