@@ -1,0 +1,58 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://relay.moqtail.dev...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://relay.moqtail.dev \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://relay.moqtail.dev
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16, moqt-15, moq-00
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 153
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E20261004 01:45:46.777175     1 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=e752357d08f953dd, local=10.1.0.162:53682, 172.232.23.42:443=upstream, drain=done
+E1004 01:45:46.865890     1 MoQRelaySession.cpp:1123] PublishNamespaceDone for unknown publishNamespace, sess=0x55cf9a737600
+ok 2 - announce-only
+  ---
+  duration_ms: 135
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E1004 01:45:47.020645     1 MoQSession.cpp:5162] No matching subscribe ID=0 sess=0x55cf9a729b80
+ok 3 - subscribe-error
+  ---
+  duration_ms: 154
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer FINed without terminal reply
+  ...
+E1004 01:45:47.273641     1 MoQSession.cpp:5162] No matching subscribe ID=0 sess=0x55cf9a755020
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 252
+  negotiated_version: draft-18
+  error: Subscribe failed: peer FINed without terminal reply
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 118
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1004 01:45:47.524481     1 MoQSession.cpp:5162] No matching subscribe ID=0 sess=0x55cf9a7459a0
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 759
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): peer FINed without terminal reply
+  ...
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
