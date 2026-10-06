@@ -1,0 +1,59 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://relay.moqtail.dev...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://relay.moqtail.dev \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://relay.moqtail.dev
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 257
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E1006 01:03:54.042453     1 MoQRelaySession.cpp:1123] PublishNamespaceDone for unknown publishNamespace, sess=0x56334fea4880
+ok 2 - announce-only
+  ---
+  duration_ms: 227
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E1006 01:03:54.335791     1 MoQSession.cpp:5178] No matching subscribe ID=0 sess=0x56334fe56210
+ok 3 - subscribe-error
+  ---
+  duration_ms: 293
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer FINed without terminal reply
+  ...
+E1006 01:03:54.861266     1 MoQSession.cpp:5178] No matching subscribe ID=0 sess=0x56334fec0340
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 525
+  negotiated_version: draft-18
+  error: Subscribe failed: peer FINed without terminal reply
+  ...
+E20261006 01:03:54.938666     1 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=d85f3b28e92e976e, local=10.1.0.140:35521, 172.232.23.42:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 264
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1006 01:03:55.401696     1 MoQSession.cpp:5178] No matching subscribe ID=0 sess=0x56334fec8c70
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 921
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): peer FINed without terminal reply
+  ...
+E20261006 01:03:56.093437     1 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=4cb28e08ba4f44ec, local=10.1.0.140:44334, 172.232.23.42:443=upstream, drain=done
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
