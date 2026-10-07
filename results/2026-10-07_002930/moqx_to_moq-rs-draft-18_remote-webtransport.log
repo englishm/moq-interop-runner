@@ -1,0 +1,66 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..6
+ok 1 - setup-only
+  ---
+  duration_ms: 149
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E20261007 01:04:40.525205     1 HQControlCodec.h:58] Unexpected control stream EOF
+E20261007 01:04:40.526103     1 HQSession.cpp:3175] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=de0f0debf6b43734, local=10.1.0.117:38689, 8.228.3.228:443=upstream, drain=done
+E1007 01:04:40.662391     1 MoQRelaySession.cpp:1123] PublishNamespaceDone for unknown publishNamespace, sess=0x561de9c55170
+ok 2 - announce-only
+  ---
+  duration_ms: 173
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E20261007 01:04:40.699149     1 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=c090be854929132a, local=10.1.0.117:47898, 8.228.3.228:443=upstream, drain=done
+E1007 01:04:40.826191     1 MoQSession.cpp:5178] No matching subscribe ID=0 sess=0x561de9c740c0
+E20261007 01:04:40.826568     1 HQControlCodec.h:58] Unexpected control stream EOF
+E20261007 01:04:40.826640     1 HQSession.cpp:3175] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=4bd0dbc62ff15e3d, local=10.1.0.117:35702, 8.228.3.228:443=upstream, drain=done
+ok 3 - subscribe-error
+  ---
+  duration_ms: 163
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer FINed without terminal reply
+  ...
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 408
+  negotiated_version: draft-18
+  error: Subscribe failed: Session closed
+  ...
+E20261007 01:04:41.235117     1 HQControlCodec.h:58] Unexpected control stream EOF
+E20261007 01:04:41.235201     1 HQSession.cpp:3175] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=c7b5854d7101761f, local=10.1.0.117:41071, 8.228.3.228:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 183
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E20261007 01:04:41.565769     1 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=653c781e57361369, local=10.1.0.117:46744, 8.228.3.228:443=upstream, drain=done
+E20261007 01:04:41.718051     1 HQControlCodec.h:58] Unexpected control stream EOF
+E20261007 01:04:41.718134     1 HQSession.cpp:3175] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=aafe44407567528f, local=10.1.0.117:58911, 8.228.3.228:443=upstream, drain=done
+ok 6 - subscribe-before-announce
+  ---
+  duration_ms: 943
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Session closed
+  ...
+E20261007 01:04:42.399240     1 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=6d62e7ba74053f19, local=10.1.0.117:49304, 8.228.3.228:443=upstream, drain=done
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
