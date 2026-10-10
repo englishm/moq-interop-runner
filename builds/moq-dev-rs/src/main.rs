@@ -42,6 +42,7 @@ const TESTS: &[&str] = &[
     "setup-only",
     "announce-only",
     "publish-namespace-done",
+    "subscribe-namespace-lifecycle",
     "subscribe-error",
     "announce-subscribe",
     "subscribe-before-announce",
@@ -209,6 +210,7 @@ async fn run_test(
         "setup-only" => Duration::from_secs(2),
         "announce-only" => Duration::from_secs(2),
         "publish-namespace-done" => Duration::from_secs(2),
+        "subscribe-namespace-lifecycle" => Duration::from_secs(12),
         "announce-subscribe" => Duration::from_secs(3),
         _ => Duration::from_secs(5),
     };
@@ -227,6 +229,9 @@ async fn run_test_inner(
         "setup-only" => test_setup_only(client, relay_url).await,
         "announce-only" => test_announce_only(client, relay_url).await,
         "publish-namespace-done" => test_publish_namespace_done(client, relay_url).await,
+        "subscribe-namespace-lifecycle" => {
+            test_subscribe_namespace_lifecycle(client, relay_url).await
+        }
         "announce-subscribe" => test_announce_subscribe(client, relay_url).await,
         _ => anyhow::bail!("unknown test: {}", name),
     }
@@ -320,6 +325,80 @@ async fn test_publish_namespace_done(
     Ok(Diagnostics {
         negotiated: Some(negotiated),
         outcome: Some("namespace withdrawn cleanly".into()),
+        ..Default::default()
+    })
+}
+
+async fn next_namespace_state(
+    announcements: &mut moq_net::announce::Consumer,
+    namespace: &str,
+) -> anyhow::Result<bool> {
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            let event = announcements
+                .next()
+                .await
+                .context("namespace subscription closed")?;
+            if event.path.as_str() == namespace {
+                return Ok(event.broadcast.is_some());
+            }
+        }
+    })
+    .await
+    .context("timeout waiting for namespace event")?
+}
+
+/// Observe NAMESPACE followed by NAMESPACE_DONE for one unique namespace.
+async fn test_subscribe_namespace_lifecycle(
+    client: &moq_native::Client,
+    relay_url: &url::Url,
+) -> anyhow::Result<Diagnostics> {
+    let subscriber_id = Origin::random();
+    let publisher_id = Origin::random();
+    let namespace =
+        format!("{TEST_NAMESPACE}/subscribe-namespace-lifecycle/{subscriber_id}-{publisher_id}");
+
+    let sub_origin = subscriber_id
+        .produce()
+        .scope(&[moq_net::Path::new(namespace.as_str())])
+        .context("failed to scope namespace subscriber")?;
+    let mut announcements = sub_origin.consume().announced();
+    let sub_session = client
+        .clone()
+        .with_subscriber(sub_origin)
+        .connect(relay_url.clone())
+        .await
+        .context("namespace subscriber failed to connect")?;
+    let negotiated = sub_session.version().to_string();
+
+    let pub_origin = publisher_id.produce();
+    let mut broadcast = pub_origin
+        .create_broadcast(&namespace, broadcast::Route::new().with_announce(true))
+        .context("failed to create lifecycle broadcast")?;
+    let pub_session = client
+        .clone()
+        .with_publisher(&pub_origin)
+        .connect(relay_url.clone())
+        .await
+        .context("namespace publisher failed to connect")?;
+
+    anyhow::ensure!(
+        next_namespace_state(&mut announcements, &namespace).await?,
+        "received NAMESPACE_DONE before NAMESPACE"
+    );
+    broadcast.finish();
+    drop(broadcast);
+    anyhow::ensure!(
+        !next_namespace_state(&mut announcements, &namespace).await?,
+        "received duplicate NAMESPACE before NAMESPACE_DONE"
+    );
+
+    pub_session.abort(Error::Cancel);
+    sub_session.abort(Error::Cancel);
+
+    Ok(Diagnostics {
+        negotiated: Some(negotiated),
+        outcome: Some("observed NAMESPACE followed by NAMESPACE_DONE".into()),
         ..Default::default()
     })
 }

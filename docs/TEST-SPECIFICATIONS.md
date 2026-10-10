@@ -18,6 +18,7 @@ This document has been reorganized into separate, focused documents:
 | `setup-only` | Session | Basic SETUP exchange |
 | `announce-only` | Namespace | PUBLISH_NAMESPACE flow |
 | `publish-namespace-done` | Namespace | Unpublish namespace |
+| `subscribe-namespace-lifecycle` | Namespace | Observe NAMESPACE followed by NAMESPACE_DONE |
 | `subscribe-error` | Subscription | Error for non-existent track |
 | `rendezvous-timeout` | Subscription | Timeout waiting for a publisher |
 | `announce-subscribe` | Subscription | Relay routes subscription to publisher |
