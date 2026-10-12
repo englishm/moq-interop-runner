@@ -70,7 +70,7 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 | moq-web (Typescript) | Cisco | 18-22 | client | |
 | qdroid (Kotlin,C++) | Cisco | 18 | client | |
 | quicr-mac (Swift,C++) | Cisco | 18 | client | |
-| laps (C++) | Cisco | 18 | Relay | 18 | `https://relay.quicr.org:33437/relay`|
+| laps (C++) | Cisco | 18 | Relay | `https://relay.quicr.org:33437/relay` |
 
 
 
