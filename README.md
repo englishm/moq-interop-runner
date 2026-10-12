@@ -67,6 +67,13 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 | moq-go | Vsevolod Strukchinsky | 20 | relay, client |  |
 | moqtopus | Kota Yatagai | 18 | client |  |
 | xquic | Alibaba | 14, 18 | relay, client |  |
+| moq-web (Typescript) | Cisco | 18-22 | client | |
+| qdroid (Kotlin,C++) | Cisco | 18 | client | |
+| quicr-mac (Swift,C++) | Cisco | 18 | client | |
+| laps (C++) | Cisco | 18 | Relay | 18 | `https://relay.quicr.org:33437/relay`|
+
+
+
 
 This table is a snapshot — run `make interop-list` or see [`implementations.json`](./implementations.json) for the current state. See [IMPLEMENTATIONS.md](./IMPLEMENTATIONS.md) for how to add your implementation.
 
@@ -135,6 +142,9 @@ existing detailed specifications with protocol references.
 - [MOQtail](https://github.com/moqtail/moqtail) - OzU (Rust + TypeScript)
 - [moq-go](https://github.com/floatdrop/moq-go) - Vsevolod Strukchinsky (Go)
 - [moqtopus](https://github.com/kota-yata/moqtopus) - Kota Yatagai (C++)
+- [moq-web]](https://github.com/Quicr/moq-web) - Cisco (Typescript)
+- [qdroid] (https://github.com/Quicr/qdroid) - Cisco (Kotlin , C++)
+- [quicr-mac] (https://github.com/Quicr/quicr-mac) - Cisco (swift, C++)
 
 ### Inspiration
 
