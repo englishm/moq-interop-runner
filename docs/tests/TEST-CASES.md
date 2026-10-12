@@ -307,6 +307,18 @@ An alternative approach uses standardized mlog (qlog for MoQT) output:
 
 This approach could enable more sophisticated validation (e.g., verifying relay internal behavior) and reduce test client complexity. See the mlog event suggestions in each test case for the types of events that would be useful.
 
+### Future: Test Relay Validation
+
+[Decision 004](../decisions/004-client-validation-with-test-relays.md) plans
+to check clients from the relay side with a test relay:
+1. The runner starts a test relay for one test and, optionally, one relay variant
+2. The client runs the same test against it and reports its own result
+3. The test relay checks the client's messages and reports a TAP result
+4. A result passes only when both sides pass
+
+A test relay can also exercise each relay behavior that a test permits. The
+contract is defined in [TEST-RELAY-INTERFACE.md](../TEST-RELAY-INTERFACE.md).
+
 ---
 
 ## References

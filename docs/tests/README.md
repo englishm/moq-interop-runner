@@ -44,7 +44,8 @@ reproduce the scenario. It will usually state:
 - required roles, preconditions, and controlled procedure;
 - observable success criteria and permitted variation;
 - timeout behavior and useful diagnostics;
-- core level or profile membership, when applicable.
+- core level or profile membership, when applicable;
+- optional [client validation sections](#client-validation-sections).
 
 The prose specification is normative. Examples, implementation source, and TAP
 YAML diagnostics can illustrate or report the test, but do not define it.
@@ -157,6 +158,54 @@ instead of a new revision. Revisions are never reused or reset.
 A client that reports [`test_spec_revision`](../TAP-YAML-METADATA.md#common-fields)
 reports the revision it implemented, which may be older than the latest one in
 this repository. An omitted revision is unknown; it is not assumed to be 1.
+
+## Client Validation Sections
+
+[Decision 004](../decisions/004-client-validation-with-test-relays.md)
+describes client validation, in which a test relay checks a client's behavior
+from the relay side. The runner does not use these sections yet. A
+specification may add the two optional sections below without changing its
+procedure. The [test relay interface](../TEST-RELAY-INTERFACE.md) defines how
+test relays use them.
+
+### Relay-Side Observations
+
+This section lists what a test relay checks about the client. Observations are
+limited to the messages that the test's procedure requires. For
+`announce-only`, the client sends PUBLISH_NAMESPACE for `moq-test/interop` on a
+new request stream. After REQUEST_OK, it closes the session gracefully, as the
+procedure requires.
+
+### Relay Variants
+
+This section names relay behaviors that a test relay exercises one at a time.
+Each variant must be a behavior that the protocol permits for the negotiated
+draft, and it must cite the text that permits it. Its short name forms the
+entry `test-id@variant` in a test relay's list output.
+
+For example, `subscribe-before-announce` accepts two outcomes, so it could list
+two variants:
+
+- `reject` answers the early SUBSCRIBE at once with REQUEST_ERROR.
+- `hold` keeps the SUBSCRIBE pending, then routes it to the publisher after
+  PUBLISH_NAMESPACE arrives. Draft 18 Section 10.2.6 permits this only when
+  the SUBSCRIBE carries a nonzero RENDEZVOUS_TIMEOUT. Without it, a relay with
+  no publisher must answer at once with DOES_NOT_EXIST. The current procedure
+  does not set RENDEZVOUS_TIMEOUT, so `hold` applies only to clients that add
+  it.
+
+A variant may change when data arrives, but it must keep any send order that
+the draft fixes. Draft 18 Section 10.11 forbids sending PUBLISH_DONE until every
+stream for the subscription is closed. A variant in which PUBLISH_DONE arrives
+before late stream data therefore closes all streams first. It then delays
+their data through send scheduling.
+
+### Revisions And Lifecycle
+
+Adding relay-side observations or relay variants raises a specification's
+[revision](#test-specification-revisions), because an unchanged client can then
+get a different result. A client validation test does not become standard
+until at least two independently maintained test relays implement it.
 
 ## Adding Or Changing A Test
 
