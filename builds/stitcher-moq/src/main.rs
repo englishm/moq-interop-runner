@@ -122,13 +122,15 @@ async fn main() -> anyhow::Result<()> {
             .init();
     }
 
-    let tests: Vec<&str> = match &cli.test {
+    // An empty TESTCASE means "no specific test": the runner's Makefile passes
+    // `-e TESTCASE=` on full-suite runs, and clap reads that as Some("").
+    let tests: Vec<&str> = match cli.test.as_deref().filter(|name| !name.is_empty()) {
         Some(name) => {
-            if !TESTS.contains(&name.as_str()) {
+            if !TESTS.contains(&name) {
                 eprintln!("Unknown test: {}", name);
                 std::process::exit(127);
             }
-            vec![name.as_str()]
+            vec![name]
         }
         None => TESTS.to_vec(),
     };
