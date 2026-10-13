@@ -102,6 +102,7 @@ Existing test cases remain defined in `docs/tests/TEST-CASES.md`:
 | `announce-only` | Namespace | PUBLISH_NAMESPACE flow |
 | `publish-namespace-done` | Namespace | Unpublish namespace |
 | `subscribe-namespace-lifecycle` | Namespace | Observe NAMESPACE followed by NAMESPACE_DONE |
+| `publish-namespace-multi-publisher-retention` | Namespace | Retain a shared namespace after one publisher withdraws |
 | `subscribe-error` | Subscription | Error for non-existent track |
 | `rendezvous-timeout` | Subscription | Timeout waiting for a publisher |
 | `announce-subscribe` | Subscription | Publisher announces, subscriber subscribes |
