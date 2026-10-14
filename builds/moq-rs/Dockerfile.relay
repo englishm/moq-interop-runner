@@ -11,7 +11,8 @@
 # If your network uses TLS inspection, place your CA certificate at
 # builds/moq-rs/extra-ca.pem and it will be trusted during the build.
 
-FROM rust:1.87-bookworm AS builder
+# rust 1.88+ is required by cat-token (the auth-cat feature's dependency).
+FROM rust:1.88-bookworm AS builder
 
 # Support for networks with TLS inspection - trust additional CA if provided
 RUN --mount=type=secret,id=ca_cert,target=/tmp/extra-ca.pem \
@@ -34,12 +35,22 @@ COPY moq-clock-ietf ./moq-clock-ietf
 COPY moq-catalog ./moq-catalog
 COPY moq-test-client ./moq-test-client
 
-# Build release binary
+# Build release binary.
+# The auth-cat feature adds CAT (Common Access Token) verification. It only
+# takes effect when the relay is started with --scope-config (MOQT_SCOPE_CONFIG
+# in the entrypoint), so it doesn't change default behaviour. Older refs that
+# don't define the feature are built without it.
 RUN --mount=type=secret,id=ca_cert,target=/tmp/extra-ca.pem \
     if [ -f /tmp/extra-ca.pem ]; then \
       cat /tmp/extra-ca.pem >> /etc/ssl/certs/ca-certificates.crt; \
     fi && \
-    cargo build --release --bin moq-relay-ietf
+    if grep -q '^auth-cat *=' moq-relay-ietf/Cargo.toml; then \
+      echo "Building moq-relay-ietf with --features auth-cat"; \
+      cargo build --release --bin moq-relay-ietf --features auth-cat; \
+    else \
+      echo "auth-cat feature not defined at this ref; building without it"; \
+      cargo build --release --bin moq-relay-ietf; \
+    fi
 
 # Runtime image
 FROM debian:bookworm-slim AS runtime
@@ -60,7 +71,7 @@ COPY entrypoint-relay.sh /app/run_endpoint.sh
 RUN chmod +x /app/run_endpoint.sh
 
 # Create directories for mounts
-RUN mkdir -p /mlog /certs
+RUN mkdir -p /mlog /certs /config
 
 # Environment variables (following QUIC interop runner conventions)
 ENV MOQT_ROLE=relay

@@ -66,6 +66,44 @@ make build-moq-rs BUILD_ARGS="--target relay"
 | `MOQT_CERT` | `/certs/cert.pem` | Path to TLS certificate |
 | `MOQT_KEY` | `/certs/priv.key` | Path to TLS private key |
 | `MOQT_MLOG_DIR` | `/mlog` | Directory for mlog output |
+| `MOQT_SCOPE_CONFIG` | (unset) | Optional CAT scope-config JSON, e.g. `/config/scope.json`. See below |
+
+The same variables apply to the draft-18 relay image (`./builds/moq-rs-draft-18/build.sh --target relay`).
+
+#### CAT token authorization (optional)
+
+The moq-rs relay images are built with moq-rs's `auth-cat` feature when the source ref defines it. On its own the feature changes nothing: the relay enforces CAT (Common Access Token) bearer tokens only when you give it a scope-config file. Set `MOQT_SCOPE_CONFIG` to the file's path inside the container, and the entrypoint checks that the file exists and passes it as `--scope-config`. With `MOQT_SCOPE_CONFIG` unset, the relay runs without token checks, as before.
+
+The `--scope-config` flag needs a moq-rs ref that includes the scope-config change ([cloudflare/moq-rs scope-config PRs](https://github.com/cloudflare/moq-rs/pulls?q=is%3Apr+scope-config)). Until those land, build from the PR branch with `--ref` (and `--repo` if the branch is on a fork). If the image's relay has no `--scope-config`, the entrypoint exits with an error instead of starting an unprotected relay. The moq-rs README is the full reference for the file format, reload behaviour and which token claims are checked.
+
+Put the config and the issuer's public key in one directory and mount it at `/config`. A relative `pem_file` resolves against the config file's directory. The relay runs as uid 1000, so the files must be readable by that user.
+
+```bash
+mkdir -p cat
+cp /path/to/issuer.pub.pem cat/issuer.pub.pem   # P-256 PUBLIC key (-----BEGIN PUBLIC KEY-----)
+cat > cat/scope.json <<'JSON'
+{
+  "default": {
+    "auth": {
+      "keys": [{ "kid": "issuer-1", "alg": "ES256", "pem_file": "issuer.pub.pem" }],
+      "issuers": ["https://issuer.example"],
+      "audiences": ["moq-relay"]
+    }
+  }
+}
+JSON
+
+./builds/moq-rs-draft-18/build.sh --target relay --ref <ref with --scope-config>
+./generate-certs.sh   # if ./certs doesn't exist yet
+
+docker run --rm -p 4443:4443/udp \
+  -v "$PWD/certs:/certs:ro" \
+  -v "$PWD/cat:/config:ro" \
+  -e MOQT_SCOPE_CONFIG=/config/scope.json \
+  moq-relay-ietf:latest
+```
+
+With only `default`, every connection path is enforced. Tokens must be ES256 CATs signed by that key, with `iss` in `issuers` and `aud` in `audiences`. To give one path its own policy, or leave it open with `"auth": null`, add a `"scopes": { "/path": { ... } }` entry. The file holds public keys only. The relay rejects a private key, and the signing key should never be mounted into the container.
 
 ### moq-test-client
 
