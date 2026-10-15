@@ -248,6 +248,36 @@ regardless of connection order
 
 ---
 
+### `publish-subscribe-media`
+
+**Lifecycle**: Proposal, revision 1. **Draft**: MoQT draft 22.
+
+**Purpose**: Check that a relay forwards a published media catalog and enough
+video objects for a subscriber to decode progressing video. This scenario uses
+the moqxr publisher and moqy subscriber, not the MoQT Test object format.
+
+**Procedure**:
+
+1. Generate a fresh 128-bit lowercase hexadecimal run ID and publish the
+   bundled clear H.264 fragmented MP4 under `moq-test/interop/<run-id>` with
+   `PUBLISH_NAMESPACE`, a media catalog, paced
+   playback, a loop, and a one-second catalog republish interval so the media
+   and its track description remain available to the subscriber.
+2. After the relay accepts the namespace, start moqy against the same relay
+   URL and namespace. It discovers tracks from the catalog and subscribes.
+3. Let delivery run for up to eight seconds, then stop the subscriber cleanly.
+
+**Success criteria**: The subscriber exits cleanly and reports at least two
+decoded video frames. A connection or namespace acceptance alone is not a
+pass. An absent catalog, failed media subscription, or undecodable objects
+cannot meet the frame threshold.
+
+**Diagnostic roles**: `publisher`, `subscriber`. This is a functional media
+delivery probe; it does not assert the exact set of MoQT objects, group IDs,
+or normative error responses used by other test cases.
+
+---
+
 ## Future Test Cases
 
 This section collects early ideas that do not yet have complete test

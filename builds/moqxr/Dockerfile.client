@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1
+FROM debian:bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential ca-certificates cmake git libssl-dev ninja-build pkg-config \
+    libavcodec-dev libavutil-dev libswscale-dev libswresample-dev libsdl2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=moqxr . /src/moqxr
+COPY --from=moqy . /src/moqy
+COPY --from=moq5 . /src/moq5
+COPY --from=picoquic . /src/picoquic
+COPY --from=picotls . /src/picotls
+RUN cmake -S /src/picotls -B /build/picotls \
+    -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build /build/picotls -j 4
+RUN cmake -S /src/moqxr -B /build -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DOPENMOQ_BUILD_TESTS=OFF \
+    -DOPENMOQ_BUILD_EXAMPLES=OFF \
+    -DOPENMOQ_ENABLE_SRT=OFF \
+    -DWITH_AEGIS=OFF \
+    && cmake --build /build --target openmoq-publisher -j 4
+RUN cmake -S /src/moqy -B /build/moqy -G Ninja \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DMOQ5_SOURCE_DIR=/src/moq5 \
+    -DMOQ_PICOQUIC_SOURCE_DIR=/src/picoquic \
+    -DMOQ_PICOTLS_PREFIX=/build/picotls \
+    && cmake --build /build/moqy --target moqy -j 4
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates libssl3 python3 libavcodec59 libavutil57 libswscale6 \
+    libswresample4 libsdl2-2.0-0 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -r -u 1000 -g nogroup moq
+
+WORKDIR /app
+COPY --from=builder /build/openmoq-publisher /app/openmoq-publisher
+COPY --from=builder /build/moqy/moqy /app/moqy
+COPY --from=builder /src/moqxr/tests/fixtures/locmaf-publisher.mp4 /app/fixture.mp4
+COPY client.py /app/client.py
+USER moq
+ENTRYPOINT ["python3", "/app/client.py"]

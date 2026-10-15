@@ -532,6 +532,26 @@
       }
     },
 
+    "moqxr": {
+      "name": "moqxr",
+      "organization": "OpenMOQ",
+      "repository": "https://github.com/openmoq/moqxr",
+      "draft_versions": ["draft-22"],
+      "notes": "Draft-22 test client using moqxr to publish and moqy to subscribe. Runs announce-only and publish-subscribe-media; moqy requires media/catalog discovery and does not implement generic subscription error cases.",
+      "roles": {
+        "client": {
+          "docker": {
+            "image": "moqxr-interop-client:latest",
+            "build": {
+              "dockerfile": "builds/moqxr/Dockerfile.client",
+              "context": "builds/moqxr"
+            },
+            "notes": "Build with ./builds/moqxr/build.sh --local ../moqxr --moq5-local <draft-22-moq5-checkout> using sibling moqy, picoquic, and picotls checkouts. Supports native QUIC and WebTransport relay URLs."
+          }
+        }
+      }
+    },
+
     "moxygen": {
       "name": "moxygen",
       "organization": "Meta",
@@ -597,6 +617,38 @@
             "image": "ghcr.io/englishm/moq-interop-runner-quiche-moq-relay:latest",
             "notes": "Pre-built on GHCR. To build from source: ./builds/quiche-moq/build.sh && docker tag quiche-moq-relay:latest ghcr.io/englishm/moq-interop-runner-quiche-moq-relay:latest"
           }
+        }
+      }
+    },
+    "red5-moq-relay": {
+      "name": "red5-moq-relay",
+      "organization": "Red5",
+      "repository": "https://github.com/red5pro/red5-moq-relay",
+      "draft_versions": ["draft-22"],
+      "notes": "Java relay with native MoQT and WebTransport on a unified UDP listener.",
+      "roles": {
+        "relay": {
+          "docker": {
+            "image": "red5-moq-relay-interop:latest",
+            "build": {
+              "dockerfile": "adapters/red5-moq-relay/Dockerfile.relay",
+              "context": "adapters/red5-moq-relay"
+            },
+            "upstream_image": "red5pro/moq-relay:latest",
+            "notes": "Build the upstream image from source first. The adapter serves native MoQT and WebTransport on UDP 4443."
+          },
+          "remote": [
+            {
+              "url": "moqt://moq-relay.red5.net:4433",
+              "transport": "quic",
+              "draft_version": "draft-22"
+            },
+            {
+              "url": "https://moq-relay.red5.net:4433/moq",
+              "transport": "webtransport",
+              "draft_version": "draft-22"
+            }
+          ]
         }
       }
     },

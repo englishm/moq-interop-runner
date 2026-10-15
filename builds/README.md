@@ -94,6 +94,34 @@ Builds execute arbitrary code from external repositories. Important safeguards:
 }
 ```
 
+## moqxr Publisher And moqy Subscriber Client
+
+The `moqxr` client image includes moqxr for publishing and moqy for media
+subscription. Build it from local checkouts with a draft-22 moq5 revision:
+
+```bash
+./builds/moqxr/build.sh --local ../moqxr \
+  --moq5-local /path/to/draft-22-moq5
+```
+
+The script uses sibling `../moqy` and the picoquic/picotls checkouts under
+`../moq5/.deps/picoquic-refresh` by default. Override these with
+`--moqy-local`, `--picoquic-local`, and `--picotls-local` when needed. It stages
+clean Git revisions for Docker and builds `moqxr-interop-client:latest`.
+
+The image exposes `announce-only` and `publish-subscribe-media` through the
+standard TAP client interface. The media case needs a relay that accepts
+draft 22 and namespace publication under `moq-test/interop`. moqy currently
+provides catalog-driven media subscription, not the raw request/response
+control needed for `subscribe-error` or `rendezvous-timeout`.
+
+Run the registered Red5 draft-22 endpoints with:
+
+```bash
+./run-interop-tests.sh --remote-only --relay red5-moq-relay \
+  --client moqxr --target-version draft-22
+```
+
 ## Provenance Tracking
 
 Each build captures metadata for reproducibility:

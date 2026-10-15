@@ -1,0 +1,22 @@
+# Build the upstream image from the red5-moq-relay source checkout first:
+# docker build -t red5pro/moq-relay:latest /path/to/red5-moq-relay
+FROM red5pro/moq-relay:latest AS upstream
+
+# Preserve the upstream configuration and enable draft 22 for local interop.
+FROM maven:3.9-eclipse-temurin-21 AS config
+COPY --from=upstream /opt/moq-relay/red5-moq-relay-*.jar /tmp/relay.jar
+RUN cd /tmp && jar xf relay.jar server.properties && \
+    sed -i 's/^server.max.draft=18$/server.max.draft=22/' server.properties && \
+    grep -qx 'server.max.draft=22' server.properties
+
+FROM upstream
+COPY --from=config /tmp/server.properties /opt/moq-relay/server.properties
+
+# Red5's unified listener accepts native MoQT and WebTransport on UDP 4443.
+ENV MOQ_RELAY_HOST=0.0.0.0 \
+    MOQ_RELAY_PORT=4443 \
+    MOQ_RELAY_WTPORT=4443 \
+    MOQ_RELAY_CERT_PATH=/certs/cert.pem \
+    MOQ_RELAY_KEY_PATH=/certs/priv.key
+
+EXPOSE 4443/udp
