@@ -6,9 +6,10 @@
 //! offer MoQT draft-22, the Seattle interop target, and implements all six canonical test
 //! cases.
 //!
-//! By default it offers only the MoQT (IETF) drafts the crates implement, `moqt-22` down to
-//! `moqt-14`: this is an MoQT interop client, and against a moq-dev relay an offer that also
-//! listed moq-lite would negotiate moq-lite and exercise nothing IETF. `MOQ_CLIENT_VERSION`
+//! By default it offers the MoQT (IETF) drafts the runner lists it for, `moqt-22` down to
+//! `moqt-18` (#138): this is an MoQT interop client, and against a moq-dev relay an offer that also
+//! listed moq-lite would negotiate moq-lite and exercise nothing IETF. Offering older drafts let
+//! relays that prefer them pick moqt-14 or moqt-16, outside the matrix's targets. `MOQ_CLIENT_VERSION`
 //! (comma-separated, e.g. `moq-transport-18` or `moq-lite-05`) overrides the offer.
 //!
 //! Honest about what moq-net can put on the wire, and about what it can observe:
@@ -88,17 +89,14 @@ const TEST_NAMESPACE: &str = "moq-test/interop";
 const TEST_TRACK: &str = "test-track";
 const NONEXISTENT_NAMESPACE: &str = "nonexistent/namespace";
 
-/// The default offer: every MoQT draft moq-net 0.3 implements, newest first.
+/// The default offer, newest first: the drafts implementations.json lists for this client.
+/// moq-net 0.3 also speaks drafts 14-17; MOQ_CLIENT_VERSION can still ask for them.
 const IETF_VERSIONS: &[&str] = &[
     "moq-transport-22",
     "moq-transport-21",
     "moq-transport-20",
     "moq-transport-19",
     "moq-transport-18",
-    "moq-transport-17",
-    "moq-transport-16",
-    "moq-transport-15",
-    "moq-transport-14",
 ];
 
 #[tokio::main]
@@ -138,7 +136,7 @@ async fn main() -> anyhow::Result<()> {
     let relay_url = url::Url::parse(&cli.relay).context("invalid relay URL")?;
 
     // The offered protocol versions: MOQ_CLIENT_VERSION (comma-separated, e.g.
-    // "moq-transport-18") when set, otherwise every MoQT draft (see IETF_VERSIONS).
+    // "moq-transport-18") when set, otherwise drafts 22-18 (see IETF_VERSIONS).
     let offered: Vec<String> = match std::env::var("MOQ_CLIENT_VERSION") {
         Ok(v) if !v.trim().is_empty() => v
             .split(',')
