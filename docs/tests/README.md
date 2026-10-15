@@ -22,6 +22,7 @@ as participants revisit them; adding a label does not change their behavior.
 | `rendezvous-timeout` | Subscription | [TEST-CASES.md](./TEST-CASES.md#rendezvous-timeout) |
 | `announce-subscribe` | Subscription | [TEST-CASES.md](./TEST-CASES.md#announce-subscribe) |
 | `subscribe-before-announce` | Subscription | [TEST-CASES.md](./TEST-CASES.md#subscribe-before-announce) |
+| `publish-subscribe-media` | Media delivery | [TEST-CASES.md](./TEST-CASES.md#publish-subscribe-media) |
 
 ## Test Areas
 

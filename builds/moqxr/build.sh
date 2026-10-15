@@ -6,6 +6,10 @@ SOURCE_DIR="$BUILD_DIR/.sources/moqxr"
 REPO="https://github.com/openmoq/moqxr.git"
 REF="v0.4.4"
 LOCAL=""
+MOQY_LOCAL="${BUILD_DIR}/../../../moqy"
+MOQ5_LOCAL="${BUILD_DIR}/../../../moq5"
+PICOQUIC_LOCAL="${BUILD_DIR}/../../../moq5/.deps/picoquic-refresh/picoquic"
+PICOTLS_LOCAL="${BUILD_DIR}/../../../moq5/.deps/picoquic-refresh/picotls"
 REF_SET=false
 
 while [ "$#" -gt 0 ]; do
@@ -13,6 +17,10 @@ while [ "$#" -gt 0 ]; do
         --repo) REPO="$2"; shift 2 ;;
         --ref) REF="$2"; REF_SET=true; shift 2 ;;
         --local) LOCAL="$2"; shift 2 ;;
+        --moqy-local) MOQY_LOCAL="$2"; shift 2 ;;
+        --moq5-local) MOQ5_LOCAL="$2"; shift 2 ;;
+        --picoquic-local) PICOQUIC_LOCAL="$2"; shift 2 ;;
+        --picotls-local) PICOTLS_LOCAL="$2"; shift 2 ;;
         *) echo "Unknown option: $1" >&2; exit 2 ;;
     esac
 done
@@ -53,6 +61,39 @@ else
 fi
 
 echo "Building moqxr test client from $(git -C "$SOURCE_DIR" rev-parse --short HEAD)"
+
+# Export clean, immutable Git revisions: local build trees contain generated
+# dependencies and can be many gigabytes larger than the actual source.
+stage_source() {
+    local name="$1"
+    local source="$2"
+    local commit
+    commit="$(git -C "$source" rev-parse HEAD)"
+    local staged="$BUILD_DIR/.sources/$name-$commit"
+    if [ ! -d "$staged" ]; then
+        mkdir -p "$staged"
+        git -C "$source" archive HEAD | tar -xf - -C "$staged"
+    fi
+    if [ "$name" = picotls ] && [ ! -f "$staged/deps/picotest/picotest.c" ]; then
+        mkdir -p "$staged/deps/picotest"
+        git -C "$source/deps/picotest" archive HEAD | tar -xf - -C "$staged/deps/picotest"
+    fi
+    echo "$staged"
+}
+
+MOQY_SOURCE="$(stage_source moqy "$MOQY_LOCAL")"
+if ! grep -q 'MOQ_VERSION_DRAFT_22 = 22' "$MOQ5_LOCAL/core/include/moq/session.h"; then
+    echo "moq5 source at $MOQ5_LOCAL lacks draft 22; pass --moq5-local with a draft-22 checkout" >&2
+    exit 1
+fi
+MOQ5_SOURCE="$(stage_source moq5 "$MOQ5_LOCAL")"
+PICOQUIC_SOURCE="$(stage_source picoquic "$PICOQUIC_LOCAL")"
+PICOTLS_SOURCE="$(stage_source picotls "$PICOTLS_LOCAL")"
+
 docker build --build-context "moqxr=$SOURCE_DIR" \
+    --build-context "moqy=$MOQY_SOURCE" \
+    --build-context "moq5=$MOQ5_SOURCE" \
+    --build-context "picoquic=$PICOQUIC_SOURCE" \
+    --build-context "picotls=$PICOTLS_SOURCE" \
     -f "$BUILD_DIR/Dockerfile.client" \
     -t moqxr-interop-client:latest "$BUILD_DIR"
