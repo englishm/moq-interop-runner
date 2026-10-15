@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+FROM debian:bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential ca-certificates cmake git libssl-dev ninja-build pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=moqxr . /src/moqxr
+RUN cmake -S /src/moqxr -B /build -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DOPENMOQ_BUILD_TESTS=OFF \
+    -DOPENMOQ_BUILD_EXAMPLES=OFF \
+    -DOPENMOQ_ENABLE_SRT=OFF \
+    -DWITH_AEGIS=OFF \
+    && cmake --build /build --target openmoq-publisher -j 4
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates libssl3 python3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -r -u 1000 -g nogroup moq
+
+WORKDIR /app
+COPY --from=builder /build/openmoq-publisher /app/openmoq-publisher
+COPY --from=builder /src/moqxr/tests/fixtures/locmaf-publisher.mp4 /app/fixture.mp4
+COPY client.py /app/client.py
+USER moq
+ENTRYPOINT ["python3", "/app/client.py"]
