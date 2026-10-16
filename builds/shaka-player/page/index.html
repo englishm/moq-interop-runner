@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<title>Shaka Player MoQ interop adapter</title>
+<script>
+  // ?debug=1 loads Shaka's debug build so its log reaches the console.
+  const debug = new URLSearchParams(location.search).has('debug');
+  document.write(`<script src="/shaka/shaka-player.experimental${debug ? '.debug' : ''}.js"><\/script>`);
+</script>
+</head>
+<body>
+<video id="video" muted autoplay playsinline></video>
+<script>
+// Player adapter contract used by client.mjs:
+//   moqPlayer.start({url, namespace, draft, fingerprintUri}) -> Promise
+//   moqPlayer.stats() -> {framesDecoded, negotiatedProtocol, error, playerVersion, media}
+(() => {
+  const video = document.getElementById('video');
+  const state = {negotiatedProtocol: null, error: null};
+
+  // Record the WebTransport protocol the server selected (standard API).
+  const NativeWebTransport = window.WebTransport;
+  if (NativeWebTransport) {
+    window.WebTransport = class extends NativeWebTransport {
+      constructor(...args) {
+        super(...args);
+        this.ready.then(() => { state.negotiatedProtocol = this.protocol || null; }, () => {});
+      }
+    };
+  }
+
+  const describe = (e) => e && e.code ? `shaka error ${e.code} (category ${e.category}): ` +
+      JSON.stringify(e.data, (k, v) => v instanceof Error ? String(v) : v) : String(e);
+
+  window.moqPlayer = {
+    async start({url, namespace, draft, fingerprintUri}) {
+      shaka.polyfill.installAll();
+      if (shaka.log && shaka.log.setLevel) shaka.log.setLevel(shaka.log.Level.DEBUG);
+      const player = new shaka.Player();
+      window.player = player;
+      player.addEventListener('error', (event) => { state.error = describe(event.detail); });
+      await player.attach(video);
+      player.configure({manifest: {msf: {
+        namespaces: [namespace],
+        version: `draft-${draft}`,
+        fingerprintUri: fingerprintUri || '',
+      }}});
+      try {
+        await player.load(url, null, 'application/msf');
+      } catch (e) {
+        state.error = describe(e);
+        throw new Error(state.error);
+      }
+      video.play().catch((e) => { state.error = state.error || `play(): ${e}`; });
+    },
+    stats() {
+      const quality = video.getVideoPlaybackQuality ? video.getVideoPlaybackQuality() : null;
+      const ranges = Array.from({length: video.buffered.length},
+          (_, i) => `${video.buffered.start(i).toFixed(2)}-${video.buffered.end(i).toFixed(2)}`);
+      return {
+        framesDecoded: quality ? quality.totalVideoFrames : 0,
+        media: `readyState=${video.readyState} paused=${video.paused} ` +
+            `currentTime=${video.currentTime.toFixed(2)} buffered=[${ranges.join(',')}]`,
+        negotiatedProtocol: state.negotiatedProtocol,
+        error: state.error || (video.error ? `media error ${video.error.code}: ${video.error.message}` : null),
+        playerVersion: window.shaka ? shaka.Player.version : null,
+      };
+    },
+  };
+})();
+</script>
+</body>
+</html>

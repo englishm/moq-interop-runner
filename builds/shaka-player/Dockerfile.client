@@ -1,0 +1,68 @@
+# syntax=docker/dockerfile:1
+# Shaka Player (MSF, experimental build) in a headless browser, fed by the
+# moqxr openmoq-publisher running in the same container. Builds on amd64 and
+# arm64; select the browser with --build-arg BROWSER=chrome|chromium|firefox.
+ARG MOQXR_REF=v0.4.4
+
+# Overridable with `--build-context moqxr-src=<dir>` (build.sh --moqxr-local).
+FROM debian:bookworm AS moqxr-src
+ARG MOQXR_REF
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 --branch "$MOQXR_REF" https://github.com/openmoq/moqxr.git /moqxr
+
+FROM debian:bookworm AS builder
+# moqxr tracks picoquic/picotls master; pin the heads it was verified against.
+ARG PICOQUIC_COMMIT=c124cbe975f71b150ea929d325804335d2bdaa34
+ARG PICOTLS_COMMIT=112054bc74e6d2be646421a7a134ebdf7ea038f9
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential ca-certificates cmake git libssl-dev ninja-build pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+RUN git init -q /src/picoquic && cd /src/picoquic \
+    && git fetch -q --depth 1 https://github.com/private-octopus/picoquic.git "$PICOQUIC_COMMIT" \
+    && git checkout -q FETCH_HEAD \
+    && git init -q /src/picotls && cd /src/picotls \
+    && git fetch -q --depth 1 https://github.com/h2o/picotls.git "$PICOTLS_COMMIT" \
+    && git checkout -q FETCH_HEAD && git submodule update -q --init --recursive --depth 1
+COPY --from=moqxr-src /moqxr /src/moqxr
+RUN cmake -S /src/moqxr -B /build -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DOPENMOQ_BUILD_TESTS=OFF \
+    -DOPENMOQ_BUILD_EXAMPLES=OFF \
+    -DOPENMOQ_ENABLE_SRT=OFF \
+    -DWITH_AEGIS=OFF \
+    -DOPENMOQ_PICOQUIC_SOURCE_DIR=/src/picoquic \
+    -DOPENMOQ_PICOTLS_SOURCE_DIR=/src/picotls \
+    && cmake --build /build --target openmoq-publisher -j 4
+
+FROM node:22-bookworm-slim
+ARG SHAKA_VERSION=5.3.0
+ARG PLAYWRIGHT_VERSION=1.64.1
+# One browser per image: chrome (Google Chrome), chromium (Playwright's
+# headless shell) or firefox (Playwright's build). All decode H.264.
+# Playwright has no arm64 Chrome installer, so arm64 uses Google's apt repo.
+ARG BROWSER=chromium
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright NODE_ENV=production BROWSER=$BROWSER
+WORKDIR /app
+RUN npm install --no-fund --no-audit "shaka-player@$SHAKA_VERSION" \
+        "playwright-core@$PLAYWRIGHT_VERSION" \
+    && apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg libssl3 \
+    && case "$BROWSER/$(dpkg --print-architecture)" in \
+        chrome/amd64) npx playwright-core install --with-deps chrome ;; \
+        chrome/*) curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
+                | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
+            && echo "deb [signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
+                > /etc/apt/sources.list.d/google-chrome.list \
+            && apt-get update && apt-get install -y --no-install-recommends google-chrome-stable ;; \
+        chromium/*) npx playwright-core install --with-deps --only-shell chromium ;; \
+        firefox/*) npx playwright-core install --with-deps firefox ;; \
+        *) echo "unsupported BROWSER=$BROWSER" >&2; exit 1 ;; \
+    esac \
+    && rm -rf /var/lib/apt/lists/* /root/.npm
+COPY --from=builder /build/openmoq-publisher /app/openmoq-publisher
+COPY --from=builder /src/moqxr/tests/fixtures/locmaf-publisher.mp4 /app/fixture.mp4
+COPY page /app/page
+COPY client.mjs /app/client.mjs
+# The node image's "node" user is uid 1000.
+USER node
+ENTRYPOINT ["node", "/app/client.mjs"]
