@@ -112,6 +112,27 @@ function publisherEndpoint(relay) {
   return `https://${url.hostname}:${url.port || 443}${url.pathname}${url.search}`;
 }
 
+// moqxr applies one transport to every --endpoint, so falling back from
+// WebTransport to raw QUIC on the same host and port means a second run.
+function publisherCandidates(relay) {
+  const candidates = [relay];
+  if (relay.startsWith('https://') && process.env.PUBLISHER_RAW_QUIC_FALLBACK !== '0') {
+    const url = new URL(relay);
+    candidates.push(`moqt://${url.hostname}:${url.port || 443}${url.pathname}${url.search}`);
+  }
+  return candidates;
+}
+
+async function waitForNamespace(publisher, namespace) {
+  const deadline = Date.now() + PUBLISHER_WAIT_MS;
+  while (!publisher.output.includes(`namespace published namespace=${namespace}`)) {
+    if (publisher.exited !== null) return `publisher exited ${publisher.exited} before namespace acceptance`;
+    if (Date.now() > deadline) return 'publisher did not confirm namespace acceptance';
+    await sleep(100);
+  }
+  return null;
+}
+
 function startPublisher(relay, draft, namespace) {
   const args = [
     '--input', process.env.MOQXR_FIXTURE || join(APP, 'fixture.mp4'),
@@ -257,6 +278,7 @@ async function runMedia(relay, draft) {
   const browserName = (process.env.BROWSER || 'chromium').toLowerCase();
   const result = { passed: false, frames: 0, stats: {}, message: '', console: [] };
   let publisher = null;
+  let earlierPublisherOutput = '';
   let server = null;
   let browser = null;
   try {
@@ -270,12 +292,18 @@ async function runMedia(relay, draft) {
     await browser.goto(`${origin}/${verbose ? '?debug=1' : ''}`);
 
     // The publisher may reach the relay by another name (safari.sh runs it in Docker).
-    publisher = startPublisher(process.env.PUBLISHER_RELAY_URL || relay, draft, namespace);
-    const deadline = Date.now() + PUBLISHER_WAIT_MS;
-    while (!publisher.output.includes(`namespace published namespace=${namespace}`)) {
-      if (publisher.exited !== null) throw new Error(`publisher exited ${publisher.exited} before namespace acceptance`);
-      if (Date.now() > deadline) throw new Error('publisher did not confirm namespace acceptance');
-      await sleep(100);
+    const candidates = publisherCandidates(process.env.PUBLISHER_RELAY_URL || relay);
+    for (const [index, url] of candidates.entries()) {
+      publisher = startPublisher(url, draft, namespace);
+      const failure = await waitForNamespace(publisher, namespace);
+      if (!failure) {
+        result.publisherTransport = url.startsWith('https://') ? 'webtransport-h3' : 'quic';
+        break;
+      }
+      await stopPublisher(publisher);
+      earlierPublisherOutput += `--- ${url}: ${failure}\n${publisher.output}\n`;
+      if (index === candidates.length - 1) throw new Error(failure);
+      log(`${url}: ${failure}; retrying with ${candidates[index + 1]}`);
     }
     log('publisher namespace accepted');
 
@@ -306,7 +334,7 @@ async function runMedia(relay, draft) {
     if (server) server.close();
   }
   result.duration = Date.now() - started;
-  result.publisherOutput = publisher ? publisher.output : '';
+  result.publisherOutput = earlierPublisherOutput + (publisher ? publisher.output : '');
   return result;
 }
 
@@ -318,8 +346,9 @@ function report(number, testcase, draft, r) {
     duration_ms: r.duration,
     implementation_version: r.stats.playerVersion ? `shaka-player ${r.stats.playerVersion}` : undefined,
     test_spec_revision: 2,
-    sessions: protocol ? {
-      subscriber: { moqt_version: protocol, transport: 'webtransport-h3', webtransport_protocol: protocol },
+    sessions: protocol || r.publisherTransport ? {
+      publisher: r.publisherTransport ? { moqt_version: `moqt-${draft}`, transport: r.publisherTransport } : undefined,
+      subscriber: protocol ? { moqt_version: protocol, transport: 'webtransport-h3', webtransport_protocol: protocol } : undefined,
     } : undefined,
     requested_draft: `draft-${draft}`,
     frames_decoded: r.frames,
