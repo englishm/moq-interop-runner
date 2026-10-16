@@ -16,8 +16,11 @@
 #                        PUBLISHER_RELAY_URL=https://relay:4443
 #                        For a relay running natively on macOS use
 #                        PUBLISHER_NETWORK=bridge with host.docker.internal.
-#                        Colima does not forward UDP ports to macOS, so Safari
-#                        cannot reach a relay in Colima; Docker Desktop does.
+#                        Safari reaches a relay in Docker only if published
+#                        UDP ports are forwarded to macOS. Docker Desktop does
+#                        this; Colima needs `portForwarder: grpc` (or
+#                        `colima start --port-forwarder grpc`), since its
+#                        default ssh forwarder is TCP only.
 #   PUBLISHER_RELAY_URL  relay for the publisher (default: RELAY_URL)
 #   TLS_DISABLE_VERIFY   pin CERT_PATH via serverCertificateHashes and run the
 #                        publisher --insecure (default 1 for localhost, else 0)
