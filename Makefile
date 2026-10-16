@@ -38,6 +38,9 @@ TLS_DISABLE_VERIFY ?= false
 # Optional extra args for `docker run` in test-external.
 # Example: EXTRA_DOCKER_RUN_ARGS="--add-host local.nokiaresearch.com:host-gateway"
 EXTRA_DOCKER_RUN_ARGS ?=
+# Optional client container memory ceiling (compose default: 256M).
+# Set from roles.client.docker.memory_limit by run-interop-tests.sh.
+CLIENT_MEMORY_LIMIT ?=
 
 # Track whether RELAY_URL was set by user (command line or environment)
 RELAY_URL_ORIGIN := $(origin RELAY_URL)
@@ -88,7 +91,7 @@ test: _ensure-certs mlog-clean
 	echo "  Relay:  $(RELAY_IMAGE)"; \
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
-	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
+	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) $(if $(CLIENT_MEMORY_LIMIT),CLIENT_MEMORY_LIMIT=$(CLIENT_MEMORY_LIMIT)) \
 		docker compose -f docker-compose.test.yml up --abort-on-container-exit
 	@echo ""
 	@echo "Test results in mlog/"
@@ -99,7 +102,7 @@ test-verbose: _ensure-certs mlog-clean
 	echo "  Relay:  $(RELAY_IMAGE)"; \
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
-	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) VERBOSE=1 \
+	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) $(if $(CLIENT_MEMORY_LIMIT),CLIENT_MEMORY_LIMIT=$(CLIENT_MEMORY_LIMIT)) VERBOSE=1 \
 		docker compose -f docker-compose.test.yml up --abort-on-container-exit
 
 # Run a specific test
@@ -109,7 +112,7 @@ test-single:
 	echo "  Relay:  $(RELAY_IMAGE)"; \
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
-	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
+	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) $(if $(CLIENT_MEMORY_LIMIT),CLIENT_MEMORY_LIMIT=$(CLIENT_MEMORY_LIMIT)) \
 		docker compose -f docker-compose.test.yml run --rm \
 		-e TESTCASE=$(TESTCASE) \
 		test-client
@@ -122,6 +125,7 @@ test-external:
 	docker run --rm \
 		$(EXTRA_DOCKER_RUN_ARGS) \
 		--network host \
+		$(if $(CLIENT_MEMORY_LIMIT),--memory $(CLIENT_MEMORY_LIMIT)) \
 		-e RELAY_URL=$(RELAY_URL) \
 		$(if $(TESTCASE),-e TESTCASE=$(TESTCASE)) \
 		$(if $(MOQ_CLIENT_VERSION),-e MOQ_CLIENT_VERSION=$(MOQ_CLIENT_VERSION)) \
@@ -317,6 +321,7 @@ help:
 	@echo "Image Configuration:"
 	@echo "  RELAY_IMAGE           Relay Docker image (default: moq-relay-ietf:latest)"
 	@echo "  CLIENT_IMAGE          Test client Docker image (default: moq-test-client:latest)"
+	@echo "  CLIENT_MEMORY_LIMIT   Test client memory ceiling (default: 256M in compose)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make interop-remote                              # Test all public relays"
