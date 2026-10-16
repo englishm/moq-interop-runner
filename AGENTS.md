@@ -17,6 +17,7 @@ This is a framework for testing interoperability between MoQT (Media over QUIC T
 | `Makefile` | Primary command interface (`make help` for all targets) |
 | `run-interop-tests.sh` | Main test orchestration script |
 | `docker-compose.test.yml` | Docker Compose configuration for local testing |
+| `docker-compose.proxy.yml` | Compose override that puts a proxy between client and relay |
 | `generate-report.sh` | Generates HTML interop matrix from test results |
 | `generate-certs.sh` | Generates self-signed TLS certificates for testing |
 | `lib/tap-parser.sh` | TAP v14 output parser for result aggregation |
@@ -28,6 +29,7 @@ This is a framework for testing interoperability between MoQT (Media over QUIC T
 | `docs/` | All documentation (getting started, test specs, guides) |
 | `builds/` | Source build configurations for compiling implementations |
 | `adapters/` | Thin Docker wrappers for upstream images |
+| `proxies/` | Stand-in proxies for testing the proxy hop (`udp-forward`) |
 | `.github/workflows/` | CI: daily interop runs, GHCR image publishing |
 | `results/` | Test output (gitignored, published to gh-pages) |
 
@@ -43,6 +45,7 @@ This is a framework for testing interoperability between MoQT (Media over QUIC T
 | Docker testing workflows | `docs/DOCKER-TESTING.md` |
 | Version matching logic | `docs/VERSION-MATCHING.md` |
 | Adapter conventions | `adapters/README.md` |
+| Testing through a proxy | `docs/PROXY-TESTING.md` |
 | Source build framework | `builds/README.md` |
 | Architecture decisions | `docs/decisions/` |
 
@@ -161,12 +164,20 @@ Implementation keys must match `^[a-z][a-z0-9-]*$` (lowercase, hyphens, digits).
 - **Output**: TAP version 14 on stdout
 - **Exit codes**: 0 = all passed, 1 = failure, 127 = unsupported test
 
+### Proxy Images
+
+- **Topology**: runs as the `relay` service; the relay under test runs as `moq-relay`
+- **Environment**: `MOQT_PORT`, `MOQT_PROXY_HOST`, `MOQT_DRAFT`, `MOQT_UPSTREAM_URL` (and `_HOST`, `_PORT`, `_PATH`, `_CA`), optional `SSLKEYLOGFILE`
+- **Registration**: a `proxy` role, usually added for a run with `--overlay` rather than in `implementations.json`
+- Full contract: `docs/PROXY-TESTING.md`
+
 ### Naming Conventions
 
 - Dockerfiles: `Dockerfile.<role>` (e.g., `Dockerfile.relay`, `Dockerfile.client`)
 - Entrypoints: `entrypoint-<role>.sh`
 - Adapters: `adapters/<impl>/Dockerfile.<role>`
 - Builds: `builds/<impl>/` with `config.json`, `build.sh`, Dockerfiles
+- Proxies: `proxies/<name>/Dockerfile.proxy`, `entrypoint-proxy.sh`, `overlay.json`
 
 ## Useful Commands
 
@@ -192,6 +203,9 @@ make build-impl IMPL=moq-rs BUILD_ARGS="--target client"
 
 # Generate HTML report from results
 make report
+
+# Run Docker pairs directly and through a proxy
+./run-interop-tests.sh --docker-only --overlay proxies/udp-forward/overlay.json --proxy udp-forward
 
 # Test against a specific URL directly
 make test-external RELAY_URL=https://relay.example.com:4443
