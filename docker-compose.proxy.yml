@@ -1,0 +1,65 @@
+# Docker Compose override: put a MoQT proxy between the test client and the relay
+#
+#   test-client ──► relay (the proxy) ──► moq-relay (the relay under test)
+#
+# The proxy takes over the `relay` service and hostname, so client URLs
+# (https://relay:4443, moqt://relay:4443, docker.url) work unchanged. The relay
+# runs as `moq-relay`, a name the test certificate already covers, so the proxy
+# can verify it against /certs/cert.pem. See docs/PROXY-TESTING.md.
+#
+# Usage (via Makefile - recommended):
+#   make test-proxy PROXY_IMAGE=my-proxy:latest RELAY_IMAGE=... CLIENT_IMAGE=...
+#
+# Direct usage:
+#   docker compose -f docker-compose.test.yml -f docker-compose.proxy.yml up --abort-on-container-exit
+#
+# This file only overrides and adds: Compose merges `environment` by name,
+# `volumes` by container path and `depends_on` by service.
+
+services:
+  relay:
+    image: ${PROXY_IMAGE:?PROXY_IMAGE is required}
+    volumes:
+      - ./mlog/proxy:/mlog
+    environment:
+      - MOQT_ROLE=proxy
+      - MOQT_PROXY_HOST=${MOQT_PROXY_HOST:-relay}
+      - MOQT_DRAFT
+      - MOQT_UPSTREAM_URL=${MOQT_UPSTREAM_URL:-https://moq-relay:4443}
+      - MOQT_UPSTREAM_HOST=${MOQT_UPSTREAM_HOST:-moq-relay}
+      - MOQT_UPSTREAM_PORT=${MOQT_UPSTREAM_PORT:-4443}
+      - MOQT_UPSTREAM_PATH=${MOQT_UPSTREAM_PATH:-}
+      - MOQT_UPSTREAM_CA=/certs/cert.pem
+      - SSLKEYLOGFILE=/mlog/sslkeylog.txt
+    depends_on:
+      moq-relay:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: ${PROXY_MEMORY_LIMIT:-512M}
+          cpus: '${PROXY_CPUS:-1.0}'
+
+  # The relay under test. Same conventions as `relay` in docker-compose.test.yml,
+  # without the host port.
+  moq-relay:
+    image: ${RELAY_IMAGE:-moq-relay-ietf:latest}
+    user: "${DOCKER_USER:-1000}:${DOCKER_GROUP:-65534}"
+    volumes:
+      - ./certs:/certs:ro
+      - ./mlog/relay:/mlog
+    environment:
+      - MOQT_ROLE=relay
+      - MOQT_PORT=4443
+    healthcheck:
+      # Same UDP-port check as the relay service in docker-compose.test.yml
+      test: ["CMD", "sh", "-c", "PORT=${MOQT_PORT:-4443}; ss -uln 2>/dev/null | grep -q \":$$PORT \" || netstat -uln 2>/dev/null | grep -q \":$$PORT \" || { HEX=$$(printf '%04X' $$PORT); grep -qi \":$$HEX \" /proc/net/udp 2>/dev/null || grep -qi \":$$HEX \" /proc/net/udp6 2>/dev/null; } || exit 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'

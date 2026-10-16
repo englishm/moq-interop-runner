@@ -14,10 +14,10 @@
 
 SHELL := /bin/bash
 
-.PHONY: test test-verbose test-single test-external clean mlog-clean certs \
-        interop-all interop-docker interop-remote interop-relay interop-client interop-list \
+.PHONY: test test-verbose test-single test-external test-proxy clean mlog-clean certs \
+        interop-all interop-docker interop-remote interop-relay interop-client interop-list interop-proxy \
         relay-start relay-stop logs logs-relay logs-client \
-        build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report help _ensure-certs \
+        build-adapters build-moxygen-adapter build-udp-forward-proxy build-impl build-moq-rs build-moq-go report help _ensure-certs \
         xquic-client-build xquic-client-test-draft18 xquic-relay-build
 
 #############################################################################
@@ -128,6 +128,36 @@ test-external:
 		-e TLS_DISABLE_VERIFY=$(TLS_DISABLE_VERIFY) \
 		$(CLIENT_IMAGE)
 
+# Run with a MoQT proxy between client and relay (see docs/PROXY-TESTING.md).
+# The proxy answers on the relay's hostname; the relay runs as moq-relay.
+# run-interop-tests.sh --proxy sets the MOQT_* variables; by hand, the
+# defaults suit a relay at https://relay:4443.
+#
+# The result is the test client's exit code, read from its container. Compose's
+# own exit code is 0 when the proxy dies before it is healthy (the client never
+# starts), and --force-recreate keeps an earlier run's client from answering.
+PROXY_IMAGE ?=
+PROXY_COMPOSE = docker compose -f docker-compose.test.yml -f docker-compose.proxy.yml
+test-proxy: _ensure-certs mlog-clean
+	@if [ -z "$(PROXY_IMAGE)" ]; then echo "Usage: make test-proxy PROXY_IMAGE=<image> [RELAY_IMAGE=...] [CLIENT_IMAGE=...]"; exit 1; fi
+	@$(RESOLVE_RELAY_URL); \
+	echo "Running interop tests through a proxy..."; \
+	echo "  Relay:  $(RELAY_IMAGE)"; \
+	echo "  Proxy:  $(PROXY_IMAGE)"; \
+	echo "  Client: $(CLIENT_IMAGE)"; \
+	echo "  URL:    $$resolved_relay_url"; \
+	echo "  Draft:  $(or $(MOQT_DRAFT),(not set))"; \
+	export RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) PROXY_IMAGE=$(PROXY_IMAGE); \
+	$(PROXY_COMPOSE) up --abort-on-container-exit --force-recreate; \
+	client=$$($(PROXY_COMPOSE) ps -a --format '{{.State}} {{.ExitCode}}' test-client); \
+	echo ""; \
+	if [ "$$client" != "exited 0" ]; then \
+		echo "FAILED: test-client did not run to a clean exit ($${client:-no container})"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "Test results in mlog/"
+
 # Start relay only (for manual testing)
 relay-start: _ensure-certs
 	RELAY_IMAGE=$(RELAY_IMAGE) docker compose -f docker-compose.test.yml up -d relay
@@ -143,7 +173,7 @@ clean:
 
 mlog-clean:
 	rm -rf mlog/
-	mkdir -p mlog/relay mlog/client
+	mkdir -p mlog/relay mlog/client mlog/proxy
 
 # Show logs
 logs:
@@ -167,6 +197,12 @@ interop-all: _ensure-certs
 # Run only Docker-based tests
 interop-docker: _ensure-certs
 	@./run-interop-tests.sh --docker-only
+
+# Run Docker pairs directly and through a proxy:
+#   make interop-proxy PROXY=udp-forward OVERLAY=proxies/udp-forward/overlay.json [RELAY=x] [CLIENT=y]
+interop-proxy: _ensure-certs
+	@if [ -z "$(PROXY)" ]; then echo "Usage: make interop-proxy PROXY=<name> [OVERLAY=<file>] [RELAY=<name>] [CLIENT=<name>]"; exit 1; fi
+	@./run-interop-tests.sh --docker-only --proxy $(PROXY) $(if $(OVERLAY),--overlay $(OVERLAY)) $(if $(RELAY),--relay $(RELAY)) $(if $(CLIENT),--client $(CLIENT))
 
 # Run only remote endpoint tests (optionally filter by relay: make interop-remote RELAY=moxygen)
 interop-remote:
@@ -202,6 +238,10 @@ build-adapters:
 build-moxygen-adapter:
 	@echo "Building moxygen adapter image..."
 	docker build -t moxygen-interop:latest -f adapters/moxygen/Dockerfile.relay adapters/moxygen/
+
+# Stand-in proxy for testing the proxy hop (see proxies/udp-forward/README.md)
+build-udp-forward-proxy:
+	docker build -t udp-forward-proxy:latest -f proxies/udp-forward/Dockerfile.proxy proxies/udp-forward/
 
 #############################################################################
 # Source Builds
@@ -284,15 +324,18 @@ help:
 	@echo "  interop-relay         Test specific relay: make interop-relay RELAY=moxygen"
 	@echo "  interop-client        Test specific client: make interop-client CLIENT=moq-rs"
 	@echo "  interop-list          List available implementations"
+	@echo "  interop-proxy         Run Docker pairs directly and via a proxy: make interop-proxy PROXY=x OVERLAY=file"
 	@echo ""
 	@echo "Single Tests (requires Docker images):"
 	@echo "  test                  Run tests with configured images"
 	@echo "  test-verbose          Run tests with verbose output"
 	@echo "  test-single           Run single test: make test-single TESTCASE=setup-only"
 	@echo "  test-external         Test external relay: make test-external RELAY_URL=https://..."
+	@echo "  test-proxy            Run tests through a proxy: make test-proxy PROXY_IMAGE=..."
 	@echo ""
 	@echo "Building Images:"
 	@echo "  build-adapters        Build all adapter images"
+	@echo "  build-udp-forward-proxy  Build the stand-in UDP forwarding proxy"
 	@echo "  build-impl            Build from source: make build-impl IMPL=moq-rs"
 	@echo "  build-moq-rs          Convenience target for moq-rs"
 	@echo "  build-moq-go          Convenience target for moq-go"
@@ -317,6 +360,7 @@ help:
 	@echo "Image Configuration:"
 	@echo "  RELAY_IMAGE           Relay Docker image (default: moq-relay-ietf:latest)"
 	@echo "  CLIENT_IMAGE          Test client Docker image (default: moq-test-client:latest)"
+	@echo "  PROXY_IMAGE           Proxy Docker image for test-proxy (no default)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make interop-remote                              # Test all public relays"

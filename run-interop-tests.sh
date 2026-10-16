@@ -45,9 +45,21 @@ TARGET_VERSION=""  # Will be read from config if not specified
 RELAY_FILTER=""    # Filter to specific relay implementation
 CLIENT_FILTER=""   # Filter to specific client implementation
 CLASSIFICATION_FILTER=""  # "", "at", "ahead", or "behind"
+OVERLAY_FILE=""    # Extra registry entries merged over implementations.json
+PROXY=""           # Proxy implementation placed between client and relay
+PROXY_ONLY=false   # Skip the direct (control) runs when PROXY is set
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --overlay)
+            [[ -n "${2:-}" ]] || { echo "Error: --overlay requires a value"; exit 1; }
+            OVERLAY_FILE="$2"; shift 2
+            ;;
+        --proxy)
+            [[ -n "${2:-}" ]] || { echo "Error: --proxy requires a value"; exit 1; }
+            PROXY="$2"; shift 2
+            ;;
+        --proxy-only) PROXY_ONLY=true; shift ;;
         --docker-only) DOCKER_ONLY=true; shift ;;
         --remote-only) REMOTE_ONLY=true; shift ;;
         --list) LIST_ONLY=true; shift ;;
@@ -94,6 +106,9 @@ while [[ $# -gt 0 ]]; do
             echo "  --only-at-target          Only test pairs that negotiate the target version"
             echo "  --only-ahead-of-target    Only test pairs negotiating ahead of the target"
             echo "  --only-behind-target      Only test pairs negotiating behind the target"
+            echo "  --overlay FILE            Merge extra registry entries from FILE over implementations.json"
+            echo "  --proxy NAME              Also run each Docker pair through proxy NAME (client → proxy → relay)"
+            echo "  --proxy-only              With --proxy, skip the direct runs (Docker and remote)"
             echo "  --dry-run                 Show computed test plan without executing"
             echo "  --list                    List available implementations and exit"
             echo "  --help                    Show this help"
@@ -101,6 +116,7 @@ while [[ $# -gt 0 ]]; do
             echo "Notes:"
             echo "  Transport filters (--transport, --quic-only, --webtransport-only) only affect"
             echo "  remote endpoints. Docker tests are unaffected. Use --remote-only to skip Docker."
+            echo "  Proxy runs apply to Docker endpoints only. See docs/PROXY-TESTING.md."
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
@@ -122,10 +138,48 @@ if [ "$DOCKER_ONLY" = true ] && [ "$REMOTE_ONLY" = true ]; then
     exit 1
 fi
 
+if [ "$PROXY_ONLY" = true ] && [ -z "$PROXY" ]; then
+    echo "Error: --proxy-only requires --proxy"
+    exit 1
+fi
+
+if [ -n "$PROXY" ] && [ "$REMOTE_ONLY" = true ]; then
+    echo "Error: --proxy applies to Docker endpoints only and cannot be combined with --remote-only"
+    exit 1
+fi
+
 # Check dependencies
 if ! command -v jq &> /dev/null; then
     echo "Error: jq is required. Install with: brew install jq"
     exit 1
+fi
+
+# Merge the overlay into a temporary registry. Objects merge recursively, so an
+# overlay can add implementations or add a role to an existing one.
+if [ -n "$OVERLAY_FILE" ]; then
+    if [ ! -f "$OVERLAY_FILE" ]; then
+        echo "Error: overlay file not found: $OVERLAY_FILE"
+        exit 1
+    fi
+    MERGED_CONFIG=$(mktemp "${TMPDIR:-/tmp}/moq-interop-config.XXXXXX")
+    trap 'rm -f "$MERGED_CONFIG"' EXIT
+    if ! jq -s '.[0] * .[1]' "$CONFIG_FILE" "$OVERLAY_FILE" > "$MERGED_CONFIG"; then
+        echo "Error: could not merge overlay $OVERLAY_FILE"
+        exit 1
+    fi
+    CONFIG_FILE="$MERGED_CONFIG"
+fi
+
+# In a proxied run the proxy answers on the relay's hostname, and the relay
+# runs under this one (a name already in the test certificate).
+PROXY_UPSTREAM_HOST="moq-relay"
+PROXY_IMAGE=""
+if [ -n "$PROXY" ]; then
+    PROXY_IMAGE=$(jq -r --arg p "$PROXY" '.implementations[$p].roles.proxy.docker.image // empty' "$CONFIG_FILE")
+    if [ -z "$PROXY_IMAGE" ]; then
+        echo "Error: --proxy $PROXY: no implementation with roles.proxy.docker.image (missing --overlay?)"
+        exit 1
+    fi
 fi
 
 # Read target version from config if not specified via CLI
@@ -183,19 +237,43 @@ get_impls_with_role() {
 }
 
 # Compute the version a (client, relay) pair will negotiate.
+# With a third argument, the pair goes through that proxy: a proxy that lists
+# draft_versions also has to support the version (it does not translate); one
+# that lists none does not constrain it.
 # Returns the newest shared draft version, or empty string if none.
 compute_negotiated_version() {
     local client="$1"
     local relay="$2"
-    jq -r --arg client "$client" --arg relay "$relay" '
+    local proxy="${3:-}"
+    jq -r --arg client "$client" --arg relay "$relay" --arg proxy "$proxy" '
         (.implementations[$client].draft_versions // []) as $cv |
         (.implementations[$relay].draft_versions // []) as $rv |
+        (if $proxy == "" then null else .implementations[$proxy].draft_versions end) as $pv |
         # Find shared versions
-        [$cv[] | select(. as $v | $rv | index($v))] |
+        [$cv[] | select(. as $v | ($rv | index($v)) and ($pv == null or ($pv | index($v))))] |
         if length == 0 then ""
         else
             # Return the newest (highest draft number)
             sort_by(ltrimstr("draft-") | tonumber) | reverse | .[0]
+        end
+    ' "$CONFIG_FILE"
+}
+
+# URL clients use for a relay's Docker image (docker.url, else the default).
+docker_relay_url() {
+    jq -r --arg relay "$1" '.implementations[$relay].roles.relay.docker.url // "https://relay:4443"' "$CONFIG_FILE"
+}
+
+# Why a proxied run of this relay cannot work, or empty if it can.
+# Only decided when both sides declare their transports.
+proxy_transport_mismatch() {
+    local relay="$1"
+    jq -r --arg relay "$relay" --arg proxy "$PROXY" '
+        .implementations[$relay].roles.relay.docker.transports as $rt |
+        .implementations[$proxy].roles.proxy.upstream_transports as $pt |
+        if $rt == null or $pt == null then ""
+        elif [$pt[] | select(. as $t | $rt | index($t))] | length > 0 then ""
+        else "\($proxy) reaches relays over \($pt | join("/")); \($relay) serves \($rt | join("/"))"
         end
     ' "$CONFIG_FILE"
 }
@@ -373,9 +451,10 @@ run_test() {
     local relay="$2"
     local version="$3"
     local classification="$4"  # "at", "ahead", or "behind"
-    local mode="$5"      # "docker" or "remote-quic" or "remote-webtransport"
+    local mode="$5"      # "docker", "docker-via-<proxy>", "remote-quic" or "remote-webtransport"
     local target="$6"    # image name or URL
     local tls_disable="${7:-false}"
+    local skip_reason="${8:-}"
 
     TOTAL=$((TOTAL + 1))
 
@@ -384,18 +463,29 @@ run_test() {
     local test_id="${client}_to_${relay}_${display_mode}"
     local result_file="$RESULTS_DIR/${test_id}.log"
 
+    # Proxied runs record which proxy they went through
+    local proxy="" proxy_image=""
+    if [[ "$display_mode" == docker-via-* ]]; then
+        proxy="$PROXY"
+        proxy_image="$PROXY_IMAGE"
+    fi
+
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLUE}Test: $client → $relay${NC}"
+    if [ -n "$proxy" ]; then
+        echo -e "${BLUE}Test: $client → $proxy → $relay${NC}"
+    else
+        echo -e "${BLUE}Test: $client → $relay${NC}"
+    fi
     echo -e "Version: $version | Mode: $display_mode"
     echo -e "Target: $target"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
-    # Handle skipped tests (image unavailable)
+    # Handle skipped tests (image unavailable, or a proxy that cannot reach the relay)
     if [[ "$mode" == *-skip ]]; then
-        local skip_reason
+        # Proxied skips come with their reason from the planner
         if [[ "$mode" == "docker-skip" ]]; then
             skip_reason="relay image unavailable: $target"
-        else
+        elif [ -z "$skip_reason" ]; then
             local skip_client_image
             skip_client_image=$(jq -r --arg c "$client" '.implementations[$c].roles.client.docker.image // empty' "$CONFIG_FILE")
             skip_reason="client image unavailable: $skip_client_image"
@@ -414,7 +504,10 @@ run_test() {
               --arg mode "$display_mode" \
               --arg target "$target" \
               --arg skip_reason "$skip_reason" \
-              '.runs += [{"client": $client, "relay": $relay, "version": $version, "classification": $classification, "mode": $mode, "target": $target, "status": "skip", "exit_code": 0, "skip_reason": $skip_reason}]' \
+              --arg proxy "$proxy" \
+              --arg proxy_image "$proxy_image" \
+              '.runs += [{"client": $client, "relay": $relay, "version": $version, "classification": $classification, "mode": $mode, "target": $target, "status": "skip", "exit_code": 0, "skip_reason": $skip_reason}
+                         + (if $proxy == "" then {} else {"proxy": $proxy, "proxy_image": $proxy_image} end)]' \
               "$SUMMARY_FILE" > "$tmp_file"; then
             mv "$tmp_file" "$SUMMARY_FILE"
         else
@@ -439,43 +532,48 @@ run_test() {
         return
     fi
 
+    # Build make arguments as array to avoid word splitting issues
+    local -a make_args
     if [[ "$mode" == "docker" ]]; then
-        if run_with_timeout "$test_timeout" make test RELAY_IMAGE="$target" CLIENT_IMAGE="$client_image" > "$result_file" 2>&1; then
-            status="pass"
-            PASSED=$((PASSED + 1))
-            echo -e "${GREEN}✓ PASSED${NC}"
-        else
-            exit_code=$?
-            if [ "$exit_code" -eq 124 ]; then
-                status="timeout"
-                FAILED=$((FAILED + 1))
-                echo -e "${RED}⧖ TIMEOUT (killed after ${test_timeout}s)${NC}"
-            else
-                status="fail"
-                FAILED=$((FAILED + 1))
-                echo -e "${RED}✗ FAILED (exit code: $exit_code)${NC}"
-            fi
+        # RELAY_URL is resolved here so that relays from an --overlay get theirs
+        make_args=("test" "RELAY_IMAGE=$target" "CLIENT_IMAGE=$client_image"
+                   "RELAY_URL=$(docker_relay_url "$relay")")
+    elif [ -n "$proxy" ]; then
+        # The proxy takes over the relay's hostname, so clients use the relay's
+        # URL unchanged, and the relay itself runs as $PROXY_UPSTREAM_HOST.
+        local relay_url url_re='^([a-z]+)://([^/:]+)(:([0-9]+))?(/.*)?$'
+        relay_url=$(docker_relay_url "$relay")
+        if ! [[ "$relay_url" =~ $url_re ]]; then
+            echo -e "${RED}✗ FAILED (cannot parse relay URL: $relay_url)${NC}"
+            FAILED=$((FAILED + 1))
+            return
         fi
+        local up_port="${BASH_REMATCH[4]:-443}" up_path="${BASH_REMATCH[5]}"
+        make_args=("test-proxy" "RELAY_IMAGE=$target" "CLIENT_IMAGE=$client_image"
+                   "PROXY_IMAGE=$proxy_image" "RELAY_URL=$relay_url"
+                   "MOQT_DRAFT=$version" "MOQT_PROXY_HOST=${BASH_REMATCH[2]}"
+                   "MOQT_UPSTREAM_URL=${BASH_REMATCH[1]}://$PROXY_UPSTREAM_HOST:$up_port$up_path"
+                   "MOQT_UPSTREAM_HOST=$PROXY_UPSTREAM_HOST" "MOQT_UPSTREAM_PORT=$up_port"
+                   "MOQT_UPSTREAM_PATH=$up_path")
     else
-        # Build make arguments as array to avoid word splitting issues
-        local -a make_args=("test-external" "RELAY_URL=$target" "CLIENT_IMAGE=$client_image")
+        make_args=("test-external" "RELAY_URL=$target" "CLIENT_IMAGE=$client_image")
         [ "$tls_disable" = "true" ] && make_args+=("TLS_DISABLE_VERIFY=1")
+    fi
 
-        if run_with_timeout "$test_timeout" make "${make_args[@]}" > "$result_file" 2>&1; then
-            status="pass"
-            PASSED=$((PASSED + 1))
-            echo -e "${GREEN}✓ PASSED${NC}"
+    if run_with_timeout "$test_timeout" make "${make_args[@]}" > "$result_file" 2>&1; then
+        status="pass"
+        PASSED=$((PASSED + 1))
+        echo -e "${GREEN}✓ PASSED${NC}"
+    else
+        exit_code=$?
+        if [ "$exit_code" -eq 124 ]; then
+            status="timeout"
+            FAILED=$((FAILED + 1))
+            echo -e "${RED}⧖ TIMEOUT (killed after ${test_timeout}s)${NC}"
         else
-            exit_code=$?
-            if [ "$exit_code" -eq 124 ]; then
-                status="timeout"
-                FAILED=$((FAILED + 1))
-                echo -e "${RED}⧖ TIMEOUT (killed after ${test_timeout}s)${NC}"
-            else
-                status="fail"
-                FAILED=$((FAILED + 1))
-                echo -e "${RED}✗ FAILED (exit code: $exit_code)${NC}"
-            fi
+            status="fail"
+            FAILED=$((FAILED + 1))
+            echo -e "${RED}✗ FAILED (exit code: $exit_code)${NC}"
         fi
     fi
 
@@ -490,7 +588,10 @@ run_test() {
           --arg target "$target" \
           --arg status "$status" \
           --argjson exit_code "$exit_code" \
-          '.runs += [{"client": $client, "relay": $relay, "version": $version, "classification": $classification, "mode": $mode, "target": $target, "status": $status, "exit_code": $exit_code}]' \
+          --arg proxy "$proxy" \
+          --arg proxy_image "$proxy_image" \
+          '.runs += [{"client": $client, "relay": $relay, "version": $version, "classification": $classification, "mode": $mode, "target": $target, "status": $status, "exit_code": $exit_code}
+                     + (if $proxy == "" then {} else {"proxy": $proxy, "proxy_image": $proxy_image} end)]' \
           "$SUMMARY_FILE" > "$tmp_file"; then
         mv "$tmp_file" "$SUMMARY_FILE"
     else
@@ -559,6 +660,72 @@ PLAN_CLASS=()
 PLAN_MODE=()
 PLAN_TARGET=()
 PLAN_TLS=()
+PLAN_SKIP=()  # Skip reason given by the planner (proxied runs), else empty
+
+# Append one runnable test to the plan.
+plan_add() {
+    PLAN_CLIENT+=("$1")
+    PLAN_RELAY+=("$2")
+    PLAN_VERSION+=("$3")
+    PLAN_CLASS+=("$4")
+    PLAN_MODE+=("$5")
+    PLAN_TARGET+=("$6")
+    PLAN_TLS+=("$7")
+    PLAN_SKIP+=("${8:-}")
+}
+
+PROXY_IMAGE_MISSING=false
+if [ -n "$PROXY" ] && ! image_exists "$PROXY_IMAGE"; then
+    PROXY_IMAGE_MISSING=true
+    record_missing_image "$PROXY_IMAGE"
+fi
+
+# Plan a pair's proxied run: its Docker endpoint with the proxy in between.
+# The proxy can narrow the version, so the run is classified on its own.
+# Uses the pair's client_image and client_image_missing.
+plan_proxied_run() {
+    local client="$1" relay="$2" endpoints="$3"
+    local label="$client → $PROXY → $relay"
+    local version classification class_display
+    version=$(compute_negotiated_version "$client" "$relay" "$PROXY")
+    classification=$(classify_version "$version" "$TARGET_VERSION")
+    if [ "$classification" = "none" ]; then
+        echo -e "  $label: ${YELLOW}no version shared by all three, skipping${NC}"
+        return
+    fi
+    class_display=$(format_classification "$classification")
+    if [ -n "$CLASSIFICATION_FILTER" ] && [ "$classification" != "$CLASSIFICATION_FILTER" ]; then
+        echo -e "  $label: $version ($class_display) ${YELLOW}-- filtered (--only-${CLASSIFICATION_FILTER}-target)${NC}"
+        return
+    fi
+
+    local docker_mode target tls_disable
+    IFS='|' read -r docker_mode target tls_disable <<< "$(grep '^docker' <<< "$endpoints" || true)"
+    if [ -z "$docker_mode" ]; then
+        echo -e "  $label: $version ($class_display) ${YELLOW}-- no Docker endpoint${NC}"
+        return
+    fi
+
+    local mode="docker-via-$PROXY" reason=""
+    if [ "$docker_mode" = "docker-skip" ]; then
+        reason="relay image unavailable: $target"
+    elif [ "$client_image_missing" = true ]; then
+        reason="client image unavailable: $client_image"
+    elif [ "$PROXY_IMAGE_MISSING" = true ]; then
+        reason="proxy image unavailable: $PROXY_IMAGE"
+    else
+        reason=$(proxy_transport_mismatch "$relay")
+    fi
+
+    echo -e "  $label: $version ($class_display)"
+    if [ -n "$reason" ]; then
+        echo -e "    ${YELLOW}$mode  $target  [SKIP: $reason]${NC}"
+        mode="${mode}-skip"
+    else
+        echo -e "    $mode  $target"
+    fi
+    plan_add "$client" "$relay" "$version" "$classification" "$mode" "$target" "$tls_disable" "$reason"
+}
 
 for client in "${CLIENTS_ARR[@]}"; do
     for relay in "${RELAYS_ARR[@]}"; do
@@ -572,10 +739,15 @@ for client in "${CLIENTS_ARR[@]}"; do
 
         class_display=$(format_classification "$classification")
 
-        # Apply classification filter
-        if [ -n "$CLASSIFICATION_FILTER" ] && [ "$classification" != "$CLASSIFICATION_FILTER" ]; then
+        # Apply classification filter (to the direct runs; a proxied run is
+        # filtered on its own version)
+        plan_direct=true
+        if [ "$PROXY_ONLY" = true ]; then
+            plan_direct=false
+        elif [ -n "$CLASSIFICATION_FILTER" ] && [ "$classification" != "$CLASSIFICATION_FILTER" ]; then
             echo -e "  $client → $relay: $version ($class_display) ${YELLOW}-- filtered (--only-${CLASSIFICATION_FILTER}-target)${NC}"
-            continue
+            [ -z "$PROXY" ] && continue
+            plan_direct=false
         fi
 
         # Check client image availability (applies to all endpoints for this client)
@@ -593,29 +765,29 @@ for client in "${CLIENTS_ARR[@]}"; do
             continue
         fi
 
-        echo -e "  $client → $relay: $version ($class_display)"
-        while IFS='|' read -r mode target tls_disable; do
-            [ -z "$mode" ] && continue
+        if [ "$plan_direct" = true ]; then
+            echo -e "  $client → $relay: $version ($class_display)"
+            while IFS='|' read -r mode target tls_disable; do
+                [ -z "$mode" ] && continue
 
-            # Determine if this test will be skipped
-            effective_mode="$mode"
-            if [ "$mode" = "docker-skip" ]; then
-                echo -e "    ${YELLOW}docker  $target  [SKIP: relay image unavailable]${NC}"
-            elif [ "$client_image_missing" = true ]; then
-                effective_mode="${mode}-skip"
-                echo -e "    ${YELLOW}$mode  $target  [SKIP: client image unavailable ($client_image)]${NC}"
-            else
-                echo -e "    $mode  $target"
-            fi
+                # Determine if this test will be skipped
+                effective_mode="$mode"
+                if [ "$mode" = "docker-skip" ]; then
+                    echo -e "    ${YELLOW}docker  $target  [SKIP: relay image unavailable]${NC}"
+                elif [ "$client_image_missing" = true ]; then
+                    effective_mode="${mode}-skip"
+                    echo -e "    ${YELLOW}$mode  $target  [SKIP: client image unavailable ($client_image)]${NC}"
+                else
+                    echo -e "    $mode  $target"
+                fi
 
-            PLAN_CLIENT+=("$client")
-            PLAN_RELAY+=("$relay")
-            PLAN_VERSION+=("$version")
-            PLAN_CLASS+=("$classification")
-            PLAN_MODE+=("$effective_mode")
-            PLAN_TARGET+=("$target")
-            PLAN_TLS+=("$tls_disable")
-        done <<< "$endpoints"
+                plan_add "$client" "$relay" "$version" "$classification" "$effective_mode" "$target" "$tls_disable"
+            done <<< "$endpoints"
+        fi
+
+        if [ -n "$PROXY" ]; then
+            plan_proxied_run "$client" "$relay" "$endpoints"
+        fi
     done
 done
 
@@ -652,7 +824,7 @@ if [ "$DRY_RUN" = true ]; then
             class_display=$(format_classification "${PLAN_CLASS[$idx]}")
             dry_mode="${PLAN_MODE[$idx]}"
             if [[ "$dry_mode" == *-skip ]]; then
-                echo -e "  $local_n. ${PLAN_CLIENT[$idx]} → ${PLAN_RELAY[$idx]}  ${PLAN_VERSION[$idx]} ($class_display)  ${dry_mode%-skip}  ${PLAN_TARGET[$idx]}  ${YELLOW}[SKIP: image unavailable]${NC}"
+                echo -e "  $local_n. ${PLAN_CLIENT[$idx]} → ${PLAN_RELAY[$idx]}  ${PLAN_VERSION[$idx]} ($class_display)  ${dry_mode%-skip}  ${PLAN_TARGET[$idx]}  ${YELLOW}[SKIP: ${PLAN_SKIP[$idx]:-image unavailable}]${NC}"
             else
                 echo -e "  $local_n. ${PLAN_CLIENT[$idx]} → ${PLAN_RELAY[$idx]}  ${PLAN_VERSION[$idx]} ($class_display)  $dry_mode  ${PLAN_TARGET[$idx]}"
             fi
@@ -666,7 +838,8 @@ fi
 
 for idx in "${SORTED_INDICES[@]}"; do
     run_test "${PLAN_CLIENT[$idx]}" "${PLAN_RELAY[$idx]}" "${PLAN_VERSION[$idx]}" \
-             "${PLAN_CLASS[$idx]}" "${PLAN_MODE[$idx]}" "${PLAN_TARGET[$idx]}" "${PLAN_TLS[$idx]}"
+             "${PLAN_CLASS[$idx]}" "${PLAN_MODE[$idx]}" "${PLAN_TARGET[$idx]}" "${PLAN_TLS[$idx]}" \
+             "${PLAN_SKIP[$idx]}"
 done
 
 #############################################################################
@@ -697,6 +870,22 @@ if [ ${#MISSING_IMAGES[@]} -gt 0 ]; then
     echo -e "  To build adapter images:  ${CYAN}make build-adapters${NC}"
     echo -e "  To build from source:     ${CYAN}make build-impl IMPL=<name>${NC}"
     echo ""
+fi
+
+# Proxied runs that fail where the same pair passes directly, on the same
+# version: the proxy is the first suspect for these.
+if [ -n "$PROXY" ]; then
+    attributable=$(jq -r '
+        [.runs[] | select(.proxy == null and .mode == "docker" and .status == "pass")] as $direct |
+        .runs[] | select(.proxy != null and (.status == "fail" or .status == "timeout")) |
+        select(. as $p | any($direct[]; .client == $p.client and .relay == $p.relay and .version == $p.version)) |
+        "    - \(.client) → \(.proxy) → \(.relay)  \(.version)  \(.status)"
+    ' "$SUMMARY_FILE")
+    if [ -n "$attributable" ]; then
+        echo -e "${YELLOW}Passes direct, fails via $PROXY:${NC}"
+        echo "$attributable"
+        echo ""
+    fi
 fi
 
 echo -e "Results saved to: $RESULTS_DIR"
