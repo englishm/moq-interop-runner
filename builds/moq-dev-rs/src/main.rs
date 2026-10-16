@@ -43,6 +43,7 @@ const TESTS: &[&str] = &[
     "announce-only",
     "publish-namespace-done",
     "subscribe-namespace-lifecycle",
+    "publish-namespace-multi-publisher-retention",
     "subscribe-error",
     "announce-subscribe",
     "subscribe-before-announce",
@@ -212,6 +213,7 @@ async fn run_test(
         "publish-namespace-done" => Duration::from_secs(2),
         "subscribe-namespace-lifecycle" => Duration::from_secs(12),
         "announce-subscribe" => Duration::from_secs(3),
+        "publish-namespace-multi-publisher-retention" => Duration::from_secs(8),
         _ => Duration::from_secs(5),
     };
 
@@ -233,6 +235,9 @@ async fn run_test_inner(
             test_subscribe_namespace_lifecycle(client, relay_url).await
         }
         "announce-subscribe" => test_announce_subscribe(client, relay_url).await,
+        "publish-namespace-multi-publisher-retention" => {
+            test_publish_namespace_multi_publisher_retention(client, relay_url).await
+        }
         _ => anyhow::bail!("unknown test: {}", name),
     }
 }
@@ -471,6 +476,148 @@ async fn test_announce_subscribe(
     Ok(Diagnostics {
         negotiated: Some(negotiated),
         outcome: Some("SUBSCRIBE_OK for moq-test/interop/test-track".into()),
+        ..Default::default()
+    })
+}
+
+/// Verify fan-out after one of two publishers for the same namespace withdraws.
+async fn test_publish_namespace_multi_publisher_retention(
+    client: &moq_native::Client,
+    relay_url: &url::Url,
+) -> anyhow::Result<Diagnostics> {
+    let observer_id = Origin::random();
+    let first_subscriber_id = Origin::random();
+    let second_subscriber_id = Origin::random();
+    let first_publisher_id = Origin::random();
+    let second_publisher_id = Origin::random();
+    let namespace_prefix = format!(
+        "{TEST_NAMESPACE}/publish-namespace-multi-publisher-retention/{observer_id}-{first_subscriber_id}-{second_subscriber_id}-{first_publisher_id}-{second_publisher_id}"
+    );
+    let namespace = format!("{namespace_prefix}/namespace");
+    let sync_namespace = format!("{namespace_prefix}/zz-sync");
+
+    // This observer makes the publisher ordering deterministic: seeing the sync
+    // namespace proves that the second publisher's earlier, duplicate namespace
+    // advertisement has reached the relay.
+    let observer_origin = observer_id
+        .produce()
+        .scope(&[moq_net::Path::new(namespace_prefix.as_str())])
+        .context("failed to scope namespace observer")?;
+    let mut observer_announcements = observer_origin.consume().announced();
+    let observer_session = client
+        .clone()
+        .with_subscriber(observer_origin)
+        .connect(relay_url.clone())
+        .await
+        .context("namespace observer failed to connect")?;
+    let negotiated = observer_session.version().to_string();
+
+    let first_pub_origin = first_publisher_id.produce();
+    let mut first_broadcast = first_pub_origin
+        .create_broadcast(&namespace, broadcast::Route::new().with_announce(true))
+        .context("failed to create first fan-out broadcast")?;
+    let first_pub_session = client
+        .clone()
+        .with_publisher(&first_pub_origin)
+        .connect(relay_url.clone())
+        .await
+        .context("first publisher failed to connect")?;
+    anyhow::ensure!(
+        next_namespace_state(&mut observer_announcements, &namespace).await?,
+        "observer received NAMESPACE_DONE before the first NAMESPACE"
+    );
+
+    let second_pub_origin = second_publisher_id.produce();
+    let mut duplicate_broadcast = second_pub_origin
+        .create_broadcast(&namespace, broadcast::Route::new().with_announce(true))
+        .context("failed to create duplicate fan-out broadcast")?;
+    let mut sync_broadcast = second_pub_origin
+        .create_broadcast(&sync_namespace, broadcast::Route::new().with_announce(true))
+        .context("failed to create publisher synchronization broadcast")?;
+    let second_pub_session = client
+        .clone()
+        .with_publisher(&second_pub_origin)
+        .connect(relay_url.clone())
+        .await
+        .context("second publisher failed to connect")?;
+    anyhow::ensure!(
+        next_namespace_state(&mut observer_announcements, &sync_namespace).await?,
+        "observer received NAMESPACE_DONE before publisher synchronization NAMESPACE"
+    );
+
+    duplicate_broadcast.finish();
+    drop(duplicate_broadcast);
+    sync_broadcast.finish();
+    drop(sync_broadcast);
+    anyhow::ensure!(
+        !next_namespace_state(&mut observer_announcements, &sync_namespace).await?,
+        "observer received duplicate publisher synchronization NAMESPACE"
+    );
+    second_pub_session.abort(Error::Cancel);
+    observer_session.abort(Error::Cancel);
+    drop(observer_announcements);
+
+    let first_origin = first_subscriber_id
+        .produce()
+        .scope(&[moq_net::Path::new(namespace_prefix.as_str())])
+        .context("failed to scope first namespace subscriber")?;
+    let mut first_announcements = first_origin.consume().announced();
+    let first_session = client
+        .clone()
+        .with_subscriber(first_origin)
+        .connect(relay_url.clone())
+        .await
+        .context("first namespace subscriber failed to connect")?;
+
+    let second_origin = second_subscriber_id
+        .produce()
+        .scope(&[moq_net::Path::new(namespace_prefix.as_str())])
+        .context("failed to scope second namespace subscriber")?;
+    let mut second_announcements = second_origin.consume().announced();
+    let second_session = client
+        .clone()
+        .with_subscriber(second_origin)
+        .connect(relay_url.clone())
+        .await
+        .context("second namespace subscriber failed to connect")?;
+
+    let (first_published, second_published) = tokio::try_join!(
+        next_namespace_state(&mut first_announcements, &namespace),
+        next_namespace_state(&mut second_announcements, &namespace),
+    )
+    .context("waiting for both subscribers to receive the retained NAMESPACE")?;
+    anyhow::ensure!(
+        first_published,
+        "first subscriber received NAMESPACE_DONE before retained NAMESPACE"
+    );
+    anyhow::ensure!(
+        second_published,
+        "second subscriber received NAMESPACE_DONE before retained NAMESPACE"
+    );
+
+    first_broadcast.finish();
+    drop(first_broadcast);
+    let (first_withdrawn, second_withdrawn) = tokio::try_join!(
+        next_namespace_state(&mut first_announcements, &namespace),
+        next_namespace_state(&mut second_announcements, &namespace),
+    )
+    .context("waiting for both subscribers to receive NAMESPACE_DONE")?;
+    anyhow::ensure!(
+        !first_withdrawn,
+        "first subscriber received duplicate NAMESPACE"
+    );
+    anyhow::ensure!(
+        !second_withdrawn,
+        "second subscriber received duplicate NAMESPACE"
+    );
+
+    first_pub_session.abort(Error::Cancel);
+    first_session.abort(Error::Cancel);
+    second_session.abort(Error::Cancel);
+
+    Ok(Diagnostics {
+        negotiated: Some(negotiated),
+        outcome: Some("both subscribers received the namespace retained from one publisher".into()),
         ..Default::default()
     })
 }
