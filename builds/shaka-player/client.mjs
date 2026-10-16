@@ -313,13 +313,24 @@ async function runMedia(relay, draft) {
       url: relay, namespace, draft, fingerprintUri: fingerprint ? `${origin}/cert.hex` : '',
     });
 
+    // SHAKA_FULL_WINDOW=1 keeps playing for the whole window instead of stopping
+    // at MIN_FRAMES, to show whether playback keeps up (diagnostic only).
+    const fullWindow = truthy(process.env.SHAKA_FULL_WINDOW);
     const playDeadline = Date.now() + PLAY_WINDOW_MS;
+    let firstFrame = null;
     while (Date.now() < playDeadline) {
       await sleep(250);
       result.stats = await browser.stats();
       result.frames = result.stats.framesDecoded || 0;
-      if (result.frames >= MIN_FRAMES) break;
+      if (result.frames > 0 && !firstFrame) firstFrame = { at: Date.now(), time: result.stats.currentTime };
+      if (result.frames >= MIN_FRAMES && !fullWindow) break;
       if (publisher.exited !== null) break;
+    }
+    if (fullWindow && firstFrame) {
+      result.playback = {
+        wall_s: ((Date.now() - firstFrame.at) / 1000).toFixed(2),
+        media_s: ((result.stats.currentTime ?? firstFrame.time) - firstFrame.time).toFixed(2),
+      };
     }
     if (result.frames < MIN_FRAMES) {
       result.message = `decoded ${result.frames} video frames, need ${MIN_FRAMES}`;
@@ -354,6 +365,7 @@ function report(number, testcase, draft, r) {
     } : undefined,
     requested_draft: `draft-${draft}`,
     frames_decoded: r.frames,
+    playback: r.playback,
     browser: r.browserVersion,
     player_error: r.stats.error,
     media_state: failed || verbose ? r.stats.media : undefined,
