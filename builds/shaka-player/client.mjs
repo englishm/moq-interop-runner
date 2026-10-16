@@ -4,14 +4,15 @@ import { spawn } from 'node:child_process';
 import { randomUUID, X509Certificate } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
+import { createServer as createNetServer } from 'node:net';
 import { extname, join, normalize } from 'node:path';
 import { parseArgs } from 'node:util';
 
 const TESTS = ['publish-subscribe-media'];
 const DRAFTS = new Set(['18', '22']);
 const APP = process.env.SHAKA_APP_DIR || '/app';
-const SHAKA_DIST = join(APP, 'node_modules/shaka-player/dist');
-const CERT = '/certs/cert.pem';
+const SHAKA_DIST = process.env.SHAKA_DIST || join(APP, 'node_modules/shaka-player/dist');
+const CERT = process.env.CERT_PATH || '/certs/cert.pem';
 const PUBLISHER_WAIT_MS = 10000;
 const PLAY_WINDOW_MS = 8000;
 const MIN_FRAMES = 2;
@@ -24,6 +25,8 @@ const BROWSERS = {
   chrome: { type: 'chromium', channel: 'chrome', chromiumSandbox: false, args: CHROMIUM_ARGS },
   chromium: { type: 'chromium', chromiumSandbox: false, args: CHROMIUM_ARGS },
   firefox: { type: 'firefox', firefoxUserPrefs: { 'media.autoplay.default': 0 } },
+  // Host Safari on macOS, driven over W3C WebDriver (see safari.sh); no Playwright.
+  safari: { webdriver: 'safaridriver' },
 };
 
 const { values: opts } = parseArgs({
@@ -92,7 +95,7 @@ function startServer(fingerprint) {
     else if (path.startsWith('/shaka/')) file = join(SHAKA_DIST, path.slice('/shaka/'.length));
     if (path === '/cert.hex' && fingerprint) {
       res.writeHead(200, { 'content-type': 'text/plain' }).end(fingerprint);
-    } else if (file && file.startsWith(APP) && existsSync(file)) {
+    } else if (file && (file.startsWith(APP) || file.startsWith(SHAKA_DIST)) && existsSync(file)) {
       res.writeHead(200, { 'content-type': types[extname(file)] || 'application/octet-stream' })
         .end(readFileSync(file));
     } else {
@@ -144,15 +147,107 @@ async function stopPublisher(publisher) {
   await done;
 }
 
-async function launchBrowser(name) {
+// Each driver exposes: version, goto(url), start(options), stats(), close().
+// start() resolves once playback is kicked off; failures land in console.
+async function launchBrowser(name, consoleLines) {
   const entry = BROWSERS[name];
   if (!entry) throw new Error(`unknown BROWSER "${name}" (expected ${Object.keys(BROWSERS).join(', ')})`);
+  if (entry.webdriver) return launchWebDriver(name, entry.webdriver, consoleLines);
   const playwright = await import('playwright-core');
   const { type, ...launch } = entry;
+  let browser;
   try {
-    return await playwright[type].launch({ headless: true, ...launch });
+    browser = await playwright[type].launch({ headless: true, ...launch });
   } catch (error) {
     throw new Error(`cannot launch BROWSER "${name}"; is it installed in this image? ${error.message.split('\n')[0]}`);
+  }
+  const page = await browser.newPage();
+  page.on('console', (msg) => consoleLines.push(`${msg.type()}: ${msg.text()}`));
+  page.on('pageerror', (error) => consoleLines.push(`pageerror: ${error.message}`));
+  return {
+    version: `${name} ${browser.version()}`,
+    goto: (url) => page.goto(url),
+    start: async (o) => {
+      page.evaluate((args) => window.moqPlayer.start(args).then(() => null, (e) => String(e)), o)
+        .then((error) => { if (error) consoleLines.push(`start: ${error}`); }, () => {});
+    },
+    stats: () => page.evaluate(() => window.moqPlayer.stats()),
+    close: () => browser.close(),
+  };
+}
+
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const srv = createNetServer().once('error', reject);
+    srv.listen(0, '127.0.0.1', () => { const { port } = srv.address(); srv.close(() => resolve(port)); });
+  });
+}
+
+// Minimal W3C WebDriver client for safaridriver. WebDriver has no console
+// events, so the page buffers its console and stats() drains it.
+async function launchWebDriver(name, driverBin, consoleLines) {
+  if (process.platform !== 'darwin') throw new Error(`BROWSER "${name}" needs macOS with Safari (platform is ${process.platform})`);
+  const port = await freePort();
+  const base = `http://127.0.0.1:${port}`;
+  const driver = spawn(driverBin, ['-p', String(port)], { stdio: ['ignore', 'ignore', 'pipe'] });
+  children.add(driver);
+  let driverError = '';
+  driver.stderr.setEncoding('utf8').on('data', (chunk) => { driverError += chunk; });
+  const spawned = new Promise((resolve) => {
+    driver.once('spawn', () => resolve(null));
+    driver.once('error', (error) => resolve(error));
+  });
+  driver.on('exit', () => children.delete(driver));
+  const kill = () => { if (driver.exitCode === null && driver.signalCode === null) driver.kill('SIGTERM'); };
+  const call = async (method, path, body) => {
+    const res = await fetch(`${base}${path}`, {
+      method, headers: { 'content-type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(`WebDriver ${method} ${path}: ${json.value?.error || res.status} ${json.value?.message || ''}`.trim());
+    return json.value;
+  };
+  let sessionPath = null;
+  try {
+    const spawnError = await spawned;
+    if (spawnError) throw new Error(`cannot run ${driverBin} (${spawnError.code || spawnError.message}); Safari mode needs macOS Safari`);
+    const deadline = Date.now() + 10000;
+    for (;;) {
+      const ready = await call('GET', '/status').then((v) => v?.ready !== false, () => false);
+      if (ready) break;
+      if (driver.exitCode !== null || Date.now() > deadline) {
+        throw new Error(`${driverBin} did not start: ${driverError.trim() || 'no /status response'}`);
+      }
+      await sleep(100);
+    }
+    const session = await call('POST', '/session', { capabilities: { alwaysMatch: { browserName: 'safari' } } })
+      .catch((error) => {
+        throw new Error(`${error.message}; run \`sudo safaridriver --enable\` and enable Safari > Develop > Allow Remote Automation`);
+      });
+    sessionPath = `/session/${session.sessionId}`;
+    await call('POST', `${sessionPath}/timeouts`, { script: 30000, pageLoad: 30000 });
+    const exec = (script, args = []) => call('POST', `${sessionPath}/execute/sync`, { script, args });
+    return {
+      version: `${name} ${session.capabilities?.browserVersion || 'unknown'}`,
+      goto: (url) => call('POST', `${sessionPath}/url`, { url }),
+      start: (o) => exec(`window.moqPlayer.start(arguments[0])
+          .catch((e) => console.error('start: ' + e)); return null;`, [o]),
+      stats: async () => {
+        const { stats, logs } = await exec(`return {stats: window.moqPlayer.stats(),
+            logs: window.moqPlayer.takeLogs()};`);
+        consoleLines.push(...logs);
+        return stats;
+      },
+      close: async () => {
+        await call('DELETE', sessionPath).catch(() => {});
+        kill();
+      },
+    };
+  } catch (error) {
+    if (sessionPath) await call('DELETE', sessionPath).catch(() => {});
+    kill();
+    throw error;
   }
 }
 
@@ -170,14 +265,12 @@ async function runMedia(relay, draft) {
     const origin = `http://127.0.0.1:${server.address().port}`;
 
     // Load the page first so browser startup does not eat into the publisher's run.
-    browser = await launchBrowser(browserName);
-    result.browserVersion = `${browserName} ${browser.version()}`;
-    const page = await browser.newPage();
-    page.on('console', (msg) => result.console.push(`${msg.type()}: ${msg.text()}`));
-    page.on('pageerror', (error) => result.console.push(`pageerror: ${error.message}`));
-    await page.goto(`${origin}/${verbose ? '?debug=1' : ''}`);
+    browser = await launchBrowser(browserName, result.console);
+    result.browserVersion = browser.version;
+    await browser.goto(`${origin}/${verbose ? '?debug=1' : ''}`);
 
-    publisher = startPublisher(relay, draft, namespace);
+    // The publisher may reach the relay by another name (safari.sh runs it in Docker).
+    publisher = startPublisher(process.env.PUBLISHER_RELAY_URL || relay, draft, namespace);
     const deadline = Date.now() + PUBLISHER_WAIT_MS;
     while (!publisher.output.includes(`namespace published namespace=${namespace}`)) {
       if (publisher.exited !== null) throw new Error(`publisher exited ${publisher.exited} before namespace acceptance`);
@@ -186,14 +279,14 @@ async function runMedia(relay, draft) {
     }
     log('publisher namespace accepted');
 
-    page.evaluate((o) => window.moqPlayer.start(o).then(() => null, (e) => String(e)), {
+    await browser.start({
       url: relay, namespace, draft, fingerprintUri: fingerprint ? `${origin}/cert.hex` : '',
-    }).then((error) => { if (error) result.console.push(`start: ${error}`); }, () => {});
+    });
 
     const playDeadline = Date.now() + PLAY_WINDOW_MS;
     while (Date.now() < playDeadline) {
       await sleep(250);
-      result.stats = await page.evaluate(() => window.moqPlayer.stats());
+      result.stats = await browser.stats();
       result.frames = result.stats.framesDecoded || 0;
       if (result.frames >= MIN_FRAMES) break;
       if (publisher.exited !== null) break;
@@ -248,6 +341,7 @@ async function main() {
   console.log('TAP version 14');
   console.log('# Shaka Player (browser) subscriber with moqxr publisher');
   console.log(`# Relay: ${opts.relay}`);
+  if (process.env.PUBLISHER_RELAY_URL) console.log(`# Publisher relay: ${process.env.PUBLISHER_RELAY_URL}`);
   console.log(`1..${selected.length}`);
   if (opts.test && !TESTS.includes(opts.test)) {
     console.log(`ok 1 - ${opts.test} # SKIP shaka-player client does not implement this test`);

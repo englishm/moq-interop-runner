@@ -5,6 +5,18 @@
 <link rel="icon" href="data:,">
 <title>Shaka Player MoQ interop adapter</title>
 <script>
+  // Buffer console output for drivers without console events (WebDriver/Safari);
+  // moqPlayer.takeLogs() drains it.
+  window.moqLogs = [];
+  for (const level of ['log', 'info', 'warn', 'error', 'debug']) {
+    const original = console[level].bind(console);
+    console[level] = (...args) => {
+      if (window.moqLogs.length < 2000) window.moqLogs.push(`${level}: ${args.map(String).join(' ')}`);
+      original(...args);
+    };
+  }
+  window.addEventListener('error', (e) => window.moqLogs.push(`pageerror: ${e.message}`));
+  window.addEventListener('unhandledrejection', (e) => window.moqLogs.push(`unhandledrejection: ${e.reason}`));
   // ?debug=1 loads Shaka's debug build so its log reaches the console.
   const debug = new URLSearchParams(location.search).has('debug');
   document.write(`<script src="/shaka/shaka-player.experimental${debug ? '.debug' : ''}.js"><\/script>`);
@@ -16,6 +28,7 @@
 // Player adapter contract used by client.mjs:
 //   moqPlayer.start({url, namespace, draft, fingerprintUri}) -> Promise
 //   moqPlayer.stats() -> {framesDecoded, negotiatedProtocol, error, playerVersion, media}
+//   moqPlayer.takeLogs() -> buffered console lines since the last call
 (() => {
   const video = document.getElementById('video');
   const state = {negotiatedProtocol: null, error: null};
@@ -54,6 +67,9 @@
         throw new Error(state.error);
       }
       video.play().catch((e) => { state.error = state.error || `play(): ${e}`; });
+    },
+    takeLogs() {
+      return window.moqLogs.splice(0);
     },
     stats() {
       const quality = video.getVideoPlaybackQuality ? video.getVideoPlaybackQuality() : null;

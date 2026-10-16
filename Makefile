@@ -14,7 +14,7 @@
 
 SHELL := /bin/bash
 
-.PHONY: test test-verbose test-single test-external clean mlog-clean certs \
+.PHONY: test test-verbose test-single test-external test-safari clean mlog-clean certs \
         interop-all interop-docker interop-remote interop-relay interop-client interop-list \
         relay-start relay-stop logs logs-relay logs-client \
         build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report help _ensure-certs \
@@ -131,6 +131,19 @@ test-external:
 		$(if $(MOQ_CLIENT_VERSION),-e MOQ_CLIENT_VERSION=$(MOQ_CLIENT_VERSION)) \
 		-e TLS_DISABLE_VERIFY=$(TLS_DISABLE_VERIFY) \
 		$(CLIENT_IMAGE)
+
+# Run the Shaka Player client in the host's Safari (macOS). Defaults to a
+# local relay at https://localhost:4443; the makefile's RELAY_URL and
+# TLS_DISABLE_VERIFY defaults are only passed when set explicitly.
+test-safari: _ensure-certs
+	@$(if $(filter command line environment,$(RELAY_URL_ORIGIN)),RELAY_URL=$(RELAY_URL)) \
+	$(if $(filter command line environment,$(origin TLS_DISABLE_VERIFY)),TLS_DISABLE_VERIFY=$(TLS_DISABLE_VERIFY)) \
+	$(if $(PUBLISHER_RELAY_URL),PUBLISHER_RELAY_URL=$(PUBLISHER_RELAY_URL)) \
+	$(if $(PUBLISHER_NETWORK),PUBLISHER_NETWORK=$(PUBLISHER_NETWORK)) \
+	$(if $(MOQ_CLIENT_VERSION),MOQ_CLIENT_VERSION=$(MOQ_CLIENT_VERSION)) \
+	$(if $(TESTCASE),TESTCASE=$(TESTCASE)) \
+	$(if $(VERBOSE),VERBOSE=$(VERBOSE)) \
+		./builds/shaka-player/safari.sh
 
 # Start relay only (for manual testing)
 relay-start: _ensure-certs
@@ -294,6 +307,7 @@ help:
 	@echo "  test-verbose          Run tests with verbose output"
 	@echo "  test-single           Run single test: make test-single TESTCASE=setup-only"
 	@echo "  test-external         Test external relay: make test-external RELAY_URL=https://..."
+	@echo "  test-safari           Shaka Player in host Safari (macOS): make test-safari RELAY_URL=https://..."
 	@echo ""
 	@echo "Building Images:"
 	@echo "  build-adapters        Build all adapter images"
