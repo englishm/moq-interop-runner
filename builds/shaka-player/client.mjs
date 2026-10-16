@@ -143,6 +143,8 @@ function startPublisher(relay, draft, namespace) {
   ];
   // moqxr defaults to "cmaf" packaging; MOQXR_PACKAGING=locmaf selects LOCMAF 0.3.
   if (process.env.MOQXR_PACKAGING) args.push('--packaging', process.env.MOQXR_PACKAGING);
+  // Extra publisher flags, e.g. MOQXR_ARGS=--webtransport-allow-missing-reset-stream-at.
+  if (process.env.MOQXR_ARGS) args.push(...process.env.MOQXR_ARGS.trim().split(/\s+/));
   if (relay.startsWith('https://')) args.push('--transport', 'webtransport');
   if (insecure) args.push('--insecure');
   const bin = process.env.MOQXR_BIN || join(APP, 'openmoq-publisher');

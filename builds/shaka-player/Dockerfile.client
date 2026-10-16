@@ -4,12 +4,16 @@
 # arm64; select the browser with --build-arg BROWSER=chrome|chromium|firefox.
 ARG MOQXR_REF=v0.4.4
 
-# Overridable with `--build-context moqxr-src=<dir>` (build.sh --moqxr-local).
-FROM debian:bookworm AS moqxr-src
+FROM debian:bookworm AS moqxr-clone
 ARG MOQXR_REF
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 RUN git clone --depth 1 --branch "$MOQXR_REF" https://github.com/openmoq/moqxr.git /moqxr
+
+# The moqxr tree at the stage root, so `--build-context moqxr-src=<checkout>`
+# (build.sh --moqxr-local) can replace it.
+FROM scratch AS moqxr-src
+COPY --from=moqxr-clone /moqxr /
 
 FROM debian:bookworm AS builder
 # moqxr tracks picoquic/picotls master; pin the heads it was verified against.
@@ -24,7 +28,7 @@ RUN git init -q /src/picoquic && cd /src/picoquic \
     && git init -q /src/picotls && cd /src/picotls \
     && git fetch -q --depth 1 https://github.com/h2o/picotls.git "$PICOTLS_COMMIT" \
     && git checkout -q FETCH_HEAD && git submodule update -q --init --recursive --depth 1
-COPY --from=moqxr-src /moqxr /src/moqxr
+COPY --from=moqxr-src / /src/moqxr
 RUN cmake -S /src/moqxr -B /build -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DOPENMOQ_BUILD_TESTS=OFF \
