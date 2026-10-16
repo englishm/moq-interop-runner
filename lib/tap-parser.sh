@@ -95,6 +95,16 @@ _parse_tap() {
     rm -f "$tmpfile"
 }
 
+# Print the description of each failing top-level TAP test in a log file, one
+# per line ("not ok 3 - announce-only" -> "announce-only"). TODO tests are
+# expected to fail and are not listed.
+tap_failed_tests() {
+    local file="$1"
+    [ -f "$file" ] || return 0
+    _strip_docker_prefix < "$file" | grep '^not ok' | grep -vi ' # TODO' |
+        sed 's/^not ok\( [0-9][0-9]*\)\{0,1\}\( - \)\{0,1\}//' || true
+}
+
 # Parse legacy checkmark format (fallback).
 # Uses relaxed matching (no ^ anchor) to handle docker-compose prefixed output.
 _parse_legacy() {
