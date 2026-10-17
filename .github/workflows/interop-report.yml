@@ -13,6 +13,10 @@ on:
         description: 'Validate the report/publish path without pushing to gh-pages (artifact + summary only)'
         type: boolean
         default: false
+      skip_publish:
+        description: 'Run the sharded tests and merge the results, but do not push to gh-pages (artifact + summary only)'
+        type: boolean
+        default: false
   pull_request:
     # Self-validation for changes to the report/publish machinery (like this
     # one). Path-scoped to reporter/workflow files so it runs on harness PRs
@@ -36,35 +40,51 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  test-and-publish:
-    # Publishes for effect: nightly schedule, or a maintainer dispatch that is
-    # NOT a dry-run. Never on pull_request.
+  # The nightly runs one test job per relay in parallel, then merges and
+  # publishes. Publishes for effect: nightly schedule, or a maintainer dispatch
+  # that is NOT a dry-run. Never on pull_request.
+  plan:
     if: >-
       github.repository == 'englishm/moq-interop-runner' &&
       github.event_name != 'pull_request' &&
       !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
     runs-on: ubuntu-latest
-    timeout-minutes: 120
-    permissions:
-      contents: write  # publishes to gh-pages
+    timeout-minutes: 5
+    outputs:
+      relays: ${{ steps.relays.outputs.relays }}
     steps:
-      - name: Checkout main
+      - uses: actions/checkout@v4
+
+      - name: List relays
+        id: relays
+        run: |
+          echo "relays=$(jq -c '[.implementations | to_entries[] | select(.value.roles.relay) | .key]' implementations.json)" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        relay: ${{ fromJSON(needs.plan.outputs.relays) }}
+    steps:
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           path: main
 
-      - name: Checkout gh-pages
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages-site
-
       - name: Pull pre-built images from GHCR
         if: "!inputs.build_from_source"
         working-directory: main
+        env:
+          RELAY: ${{ matrix.relay }}
         run: |
-          echo "Pulling pre-built source-build images from GHCR..."
-          jq -r '.implementations[].roles[].docker.image // empty' implementations.json \
+          # Every client image, plus this shard's relay image.
+          jq -r --arg relay "$RELAY" '
+            [.implementations[].roles.client.docker.image?,
+             .implementations[$relay].roles.relay.docker.image?]
+            | .[] | select(. != null)' implementations.json \
             | grep '^ghcr.io/' \
             | sort -u \
             | while read -r image; do
@@ -92,7 +112,22 @@ jobs:
       - name: Build adapters
         working-directory: main
         continue-on-error: true  # Adapter builds may fail (e.g., disk space) — run what we can
-        run: make build-adapters
+        env:
+          RELAY: ${{ matrix.relay }}
+        run: |
+          # Client adapters, plus this shard's relay adapter.
+          jq -r --arg relay "$RELAY" '
+            .implementations | to_entries[] | .key as $impl | .value.roles | to_entries[]
+            | select(.key == "client" or ($impl == $relay and .key == "relay"))
+            | .value.docker.build? // empty
+            | select(.dockerfile | startswith("adapters/"))
+            | "\($impl)|\(.dockerfile)|\(.context)"' implementations.json \
+            | while IFS='|' read -r impl dockerfile context; do
+                image=$(jq -r --arg impl "$impl" --arg df "$dockerfile" '
+                  .implementations[$impl].roles[] | select(.docker.build.dockerfile? == $df) | .docker.image' implementations.json | head -1)
+                echo "Building adapter: $image"
+                docker build -t "$image" -f "$dockerfile" "$context"
+              done
 
       - name: Generate TLS certificates
         working-directory: main
@@ -101,24 +136,94 @@ jobs:
       - name: Run interop tests
         working-directory: main
         continue-on-error: true  # Some tests may fail — publish results regardless
-        run: make interop-all
+        run: ./run-interop-tests.sh --relay "${{ matrix.relay }}"
 
-      - name: Publish results
+      - name: Upload shard results
+        uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.relay }}
+          path: |
+            main/results
+            main/mlog
+          if-no-files-found: warn
+          retention-days: 7
+
+  publish:
+    needs: [plan, test]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write  # publishes to gh-pages
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          path: main
+
+      - name: Checkout gh-pages
+        if: "!inputs.skip_publish"
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-site
+
+      - name: Download shard results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*
+          path: shards
+
+      - name: Merge shard results
+        id: merge
         run: |
-          NEW_RESULT=$(ls -td main/results/*/ 2>/dev/null | head -1)
-          if [ -z "$NEW_RESULT" ]; then
-            echo "No results produced — skipping publish"
+          # A shard's results dir is wherever its summary.json landed: an
+          # artifact is rooted at the deepest directory its files share.
+          mapfile -t shard_dirs < <(find shards -name summary.json -printf '%h\n' | sort)
+          if [ ${#shard_dirs[@]} -eq 0 ]; then
+            echo "No shard results — nothing to publish"
             exit 0
           fi
+          # Name the merged run after the earliest shard, like a single run.
+          TIMESTAMP=$(for d in "${shard_dirs[@]}"; do basename "$d"; done | sort | head -1)
+          main/merge-results.sh "main/results/$TIMESTAMP" "${shard_dirs[@]}"
+          for relay_dir in shards/shard-*; do
+            relay="${relay_dir#shards/shard-}"
+            if [ -d "$relay_dir/mlog" ] && [ "$(ls -A "$relay_dir/mlog" 2>/dev/null)" ]; then
+              mkdir -p "main/mlog/$relay"
+              cp -r "$relay_dir/mlog/"* "main/mlog/$relay/"
+            fi
+          done
+          echo "timestamp=$TIMESTAMP" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Interop run $TIMESTAMP"
+            echo ""
+            echo "| Shards | Runs | Pass | Fail | Skip |"
+            echo "|---|---|---|---|---|"
+            jq -r --arg n "${#shard_dirs[@]}" '"| \($n) | \(.runs | length) | \([.runs[] | select(.status == "pass")] | length) | \([.runs[] | select(.status == "fail" or .status == "timeout")] | length) | \([.runs[] | select(.status == "skip")] | length) |"' "main/results/$TIMESTAMP/summary.json"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-          TIMESTAMP=$(basename "$NEW_RESULT")
+      - name: Upload merged results
+        if: inputs.skip_publish && steps.merge.outputs.timestamp != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: merged-results
+          path: main/results/${{ steps.merge.outputs.timestamp }}
+          retention-days: 7
+
+      - name: Publish results
+        if: "!inputs.skip_publish && steps.merge.outputs.timestamp != ''"
+        env:
+          TIMESTAMP: ${{ steps.merge.outputs.timestamp }}
+        run: |
+          NEW_RESULT="main/results/$TIMESTAMP"
           DEST="gh-pages-site/results/$TIMESTAMP"
 
           mkdir -p "$DEST"
           cp -r "$NEW_RESULT/"* "$DEST/"
 
           # Copy mlogs into results if they exist (produced by Docker-based tests)
-          if [ -d main/mlog ] && [ "$(ls -A main/mlog/client 2>/dev/null)" ]; then
+          if [ -d main/mlog ] && [ "$(ls -A main/mlog 2>/dev/null)" ]; then
             mkdir -p "$DEST/mlog"
             cp -r main/mlog/* "$DEST/mlog/"
           fi
