@@ -191,7 +191,7 @@ function score(run) {
 }
 function endpointLabel(run) {
   const base = `${run.source === "remote" ? "remote" : "docker"} · ${TLABEL[run.transport] || run.transport}`;
-  return run.basis === "pinned" ? `${base} · ${PIN_TEXT[run.confined]}` : base;
+  return run.confined ? `${base} · ${PIN_TEXT[run.confined]}` : base;
 }
 function versionText(run) {
   if (run.basis === "pinned") {
@@ -209,11 +209,11 @@ function versionText(run) {
 }
 function pill(run) {
   const s = score(run);
-  const pin = run.basis === "pinned" ? `${PIN_TEXT[run.confined]} · ` : "";
+  const pin = run.confined ? `${PIN_TEXT[run.confined]} · ` : "";
   const title = `${endpointLabel(run)} · ${pin}${s.text}${s.skip ? ` (+${s.skip} skipped)` : ""} · ${versionText(run)}`;
   const state = run.basis === "pinned" ? (run.pin_check === "verified" ? "" : run.pin_check) : (run.basis === "predicted" ? "predicted" : "");
   return h("span", { class: `pill ${s.cls} ${state}`, title },
-    run.basis === "pinned" ? h("span", { class: "g", "aria-hidden": "true" }, PIN_GLYPH[run.confined]) : null,
+    run.confined ? h("span", { class: "g", "aria-hidden": "true" }, PIN_GLYPH[run.confined]) : null,
     h("span", { class: "t" }, run.transport === "quic" ? "Q" : "W"), s.text);
 }
 function legend(pinned) {
@@ -224,7 +224,7 @@ function legend(pinned) {
     sample("pass", "", "Q", "8/8", PIN_GLYPH.both), "both pinned",
     sample("pass", "", "Q", "8/8", PIN_GLYPH.client), "client pinned",
     sample("pass", "", "Q", "8/8", PIN_GLYPH.relay), "relay pinned",
-    sample("pass", "", "Q", "8/8", PIN_GLYPH.none), "neither can be pinned",
+    sample("pass", "", "Q", "8/8", PIN_GLYPH.none), "neither can be pinned: run once, placed by the version it reported (italic if none)",
     sample("pass", "unreported", "Q", "8/8"), "client didn't report its version (italic)",
     sample("fail", "mismatch", "Q", "0/8"), "client reported another version");
   else items.push(sample("pass", "predicted", "W", "6/6"), "draft predicted, not reported (italic)");

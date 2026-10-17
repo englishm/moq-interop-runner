@@ -7,7 +7,9 @@
 # confine.args rendered with ${MOQT_DRAFT} (draft-NN) and ${MOQT_DRAFT_NUM} (NN).
 # The relay's env/args confinement is applied only when the client can't be
 # confined, so a confined client meets a relay offering its full registered set.
-# Pairs are never dropped; each run records which sides were confined.
+# Pairs are never dropped; each run records which sides were confined. A pair
+# where neither side can be confined runs once, unpinned, as mode "unconfined":
+# its draft is whatever it negotiates, and it carries no pinned_draft.
 #
 # Usage:
 #   ./run-interop-pinned.sh [--draft N]... [--relay NAME] [--client NAME] [--dry-run]
@@ -97,6 +99,7 @@ if [ "$DRY_RUN" != true ]; then
 fi
 
 TOTAL=0; PASSED=0; FAILED=0; SKIPPED=0
+declare -A UNCONFINED_DONE=()
 echo "Drafts: ${DRAFTS[*]}"
 for d in "${DRAFTS[@]}"; do
     for relay in "${RELAYS[@]}"; do
@@ -115,11 +118,17 @@ for d in "${DRAFTS[@]}"; do
             esac
             cimg=$(jq -r .image <<< "$cside"); rimg=$(jq -r .image <<< "$rside")
             url=$(relay_url "$relay")
+            mode="d$d"; pinned="$d"
+            if [ "$confined" = none ]; then
+                [ -n "${UNCONFINED_DONE[$client|$relay|$cimg|$rimg]:-}" ] && continue
+                UNCONFINED_DONE[$client|$relay|$cimg|$rimg]=1
+                mode="unconfined"; pinned="null"
+            fi
             echo "draft-$d  $client -> $relay  confined=$confined  ($cimg | $rimg)"
             [ "$DRY_RUN" = true ] && continue
 
             TOTAL=$((TOTAL + 1))
-            log="$RESULTS_DIR/${client}_to_${relay}_d${d}.log"
+            log="$RESULTS_DIR/${client}_to_${relay}_${mode}.log"
             status=pass; exit_code=0; skip_reason=""
             for img in "$cimg" "$rimg"; do
                 if ! docker image inspect "$img" >/dev/null 2>&1; then
@@ -129,7 +138,7 @@ for d in "${DRAFTS[@]}"; do
             if [ "$status" = skip ]; then
                 SKIPPED=$((SKIPPED + 1)); echo "  SKIP ($skip_reason)"
             else
-                override="$RESULTS_DIR/.override-${client}_to_${relay}_d${d}.yml"
+                override="$RESULTS_DIR/.override-${client}_to_${relay}_${mode}.yml"
                 # Only a registration's own env/args go in; JSON is valid compose YAML.
                 jq -n --argjson c "$cside" --argjson r "$rside" '
                     def svc($s): (if ($s.env | length) > 0 then {environment: $s.env} else {} end)
@@ -146,14 +155,16 @@ for d in "${DRAFTS[@]}"; do
                 rm -f "$override"
             fi
             tmp=$(mktemp "$SUMMARY_FILE.XXXXXX")
-            jq --arg client "$client" --arg relay "$relay" --argjson d "$d" --arg confined "$confined" \
+            jq --arg client "$client" --arg relay "$relay" --argjson d "$d" --argjson pinned "$pinned" \
+               --arg mode "$mode" --arg confined "$confined" \
                --arg cmethod "$(jq -r .method <<< "$cside")" --arg rmethod "$(jq -r .method <<< "$rside")" \
                --arg cimg "$cimg" --arg rimg "$rimg" --arg url "$url" --arg status "$status" \
                --argjson exit_code "$exit_code" --arg skip_reason "$skip_reason" '
-                .runs += [{client: $client, relay: $relay, mode: "d\($d)", version: "draft-\($d)",
-                           pinned_draft: $d, confined: $confined, client_confine: $cmethod, relay_confine: $rmethod,
+                .runs += [{client: $client, relay: $relay, mode: $mode, version: "draft-\($d)",
+                           confined: $confined, client_confine: $cmethod, relay_confine: $rmethod,
                            client_image: $cimg, relay_image: $rimg,
                            target: $url, status: $status, exit_code: $exit_code}
+                          + (if $pinned != null then {pinned_draft: $pinned} else {} end)
                           + (if $skip_reason != "" then {skip_reason: $skip_reason} else {} end)]' \
                "$SUMMARY_FILE" > "$tmp" && mv "$tmp" "$SUMMARY_FILE"
         done

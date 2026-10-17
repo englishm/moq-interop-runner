@@ -155,12 +155,15 @@ def make_run(r, results_dir, log_base, registry, aliases):
             "pin_check": ("mismatch" if other or (negotiated and negotiated != [pinned])
                           else "verified" if negotiated else "unreported"),
         })
-    elif negotiated:
-        run.update({"draft": negotiated[0], "basis": "negotiated"})
-    elif other:
-        run.update({"draft": other[0], "basis": "negotiated"})
     else:
-        run.update({"draft": predicted, "basis": "predicted"})
+        if "confined" in r:
+            run["confined"] = r["confined"]
+        if negotiated:
+            run.update({"draft": negotiated[0], "basis": "negotiated"})
+        elif other:
+            run.update({"draft": other[0], "basis": "negotiated"})
+        else:
+            run.update({"draft": predicted, "basis": "predicted"})
     return run
 
 
