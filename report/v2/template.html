@@ -75,17 +75,21 @@ h1 { font-size: var(--step-1); font-weight: 700; margin: 0; letter-spacing: -0.0
 .run { font: 400 var(--step--1) var(--font-mono); color: var(--muted); }
 nav.views { display: flex; gap: 0.25rem; margin-left: auto; flex-wrap: wrap; }
 button { font: inherit; color: inherit; }
-.tab, .seg {
+.tab {
   border: 1px solid var(--line); background: var(--surface); border-radius: 6px;
   padding: 0.3rem 0.7rem; cursor: pointer; font-size: var(--step--1); font-weight: 500;
 }
-.tab[aria-selected="true"], .seg[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
-.tab:focus-visible, .seg:focus-visible, .cellbtn:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tab[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.tab:focus-visible, .cellbtn:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 main .wrap { padding-block: 1.25rem 3rem; display: grid; gap: 1.25rem; }
 .intro { color: var(--muted); max-width: 70ch; margin: 0; font-size: var(--step--1); }
 .toolbar { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
 .toolbar .label { font-size: var(--step--1); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 0.25rem; }
-.seg .n { font-family: var(--font-mono); color: var(--muted); margin-left: 0.35rem; }
+select {
+  font: 500 var(--step--1) var(--font-mono); color: var(--fg); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: 0.3rem 0.5rem;
+}
+select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .facts { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: var(--step--1); color: var(--muted); }
 .facts b { color: var(--fg); font: 600 var(--step-0) var(--font-mono); font-variant-numeric: tabular-nums; margin-right: 0.3rem; }
 .scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
@@ -106,7 +110,6 @@ table.matrix td.empty { color: var(--line); text-align: center; }
 .pill.fail { background: var(--fail-bg); color: var(--fail); }
 .pill.partial { background: var(--partial-bg); color: var(--partial); }
 .pill.skip, .pill.none { background: var(--skip-bg); color: var(--skip); }
-.pill.remote { border-style: dashed; border-color: currentColor; }
 .pill.predicted { font-style: italic; opacity: 0.7; }
 .legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: var(--step--1); color: var(--muted); align-items: center; }
 .panel { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 1rem; display: grid; gap: 0.75rem; min-width: 0; }
@@ -153,7 +156,13 @@ h3 { margin: 0; font-size: var(--step-0); text-transform: uppercase; letter-spac
 const DATA = /*__DATA__*/null;
 const view = document.getElementById("view");
 const TLABEL = { quic: "QUIC", webtransport: "WT" };
-const state = { view: "draft", draft: DATA.drafts[0] ?? null, impl: null, open: null };
+// Docker runs are the controlled results; public endpoints are kept apart.
+const DOCKER = DATA.runs.filter(r => r.source === "docker");
+const REMOTE = DATA.runs.filter(r => r.source === "remote");
+const draftsOf = runs => [...new Set(runs.map(r => r.draft).filter(d => d != null))].sort((a, b) => b - a);
+const DOCKER_DRAFTS = draftsOf(DOCKER);
+const REMOTE_DRAFTS = draftsOf(REMOTE);
+const state = { view: "draft", draft: DOCKER_DRAFTS[0] ?? null, impl: null, open: null };
 
 function h(tag, attrs, ...kids) {
   const el = document.createElement(tag);
@@ -191,7 +200,7 @@ function versionText(run) {
 function pill(run) {
   const s = score(run);
   const title = `${endpointLabel(run)} · ${s.text}${s.skip ? ` (+${s.skip} skipped)` : ""} · ${versionText(run)}`;
-  return h("span", { class: `pill ${s.cls} ${run.source === "remote" ? "remote" : ""} ${run.basis === "predicted" ? "predicted" : ""}`, title },
+  return h("span", { class: `pill ${s.cls} ${run.basis === "predicted" ? "predicted" : ""}`, title },
     h("span", { class: "t" }, run.transport === "quic" ? "Q" : "W"), s.text);
 }
 function legend() {
@@ -199,7 +208,6 @@ function legend() {
   return h("div", { class: "legend" },
     sample("pass", "", "Q", "8/8"), "native QUIC",
     sample("pass", "", "W", "6/6"), "WebTransport",
-    sample("partial", "remote", "Q", "5/7"), "public endpoint (dashed)",
     sample("pass", "predicted", "W", "6/6"), "draft predicted, not reported (italic)",
     h("span", {}, "Counts are passed / (passed + failed); skips in the tooltip."));
 }
@@ -246,9 +254,9 @@ function sortRuns(runs) {
 
 function renderDraft() {
   const d = state.draft;
-  const at = DATA.runs.filter(r => r.draft === d);
-  const segs = DATA.drafts.map(x => h("button", { class: "seg", id: `draft-${x}`, "aria-pressed": x === d ? "true" : "false",
-    onclick: () => { state.draft = x; state.pick = null; render(); } }, `draft-${x}`, h("span", { class: "n" }, DATA.runs.filter(r => r.draft === x).length)));
+  const at = DOCKER.filter(r => r.draft === d);
+  const select = h("select", { id: "draft-select", onchange: e => { state.draft = +e.target.value; state.pick = null; render(); } },
+    DOCKER_DRAFTS.map(x => h("option", { value: x, selected: x === d }, `draft-${x} · ${DOCKER.filter(r => r.draft === x).length} runs`)));
   const clients = [...new Set(at.map(r => r.client))].sort();
   const relays = [...new Set(at.map(r => r.relay))].sort();
   const cells = byKey(at, r => `${r.client}|${r.relay}`);
@@ -257,8 +265,8 @@ function renderDraft() {
   const negotiated = at.filter(r => r.basis === "negotiated").length;
   const drill = state.pick && state.pick.draft === d ? state.pick : null;
   view.replaceChildren(
-    h("p", { class: "intro" }, "Each run sits at the MoQT draft its client reported negotiating. Clients that report nothing are placed at the runner's prediction, shown in italics. One pill per endpoint: docker relays and public endpoints, native QUIC and WebTransport."),
-    h("div", { class: "toolbar", role: "group", "aria-label": "Draft" }, h("span", { class: "label" }, "Draft"), segs),
+    h("p", { class: "intro" }, "Docker runs only: the relay runs in a container beside the client, so every result here comes from a controlled run. Each run sits at the MoQT draft its client reported negotiating; clients that report nothing are placed at the runner's prediction, shown in italics. Public endpoints are under Open relays."),
+    h("div", { class: "toolbar" }, h("label", { class: "label", for: "draft-select" }, "Draft"), select),
     h("div", { class: "facts" },
       h("span", {}, h("b", {}, at.length), "runs"),
       h("span", {}, h("b", {}, cells.size), "client–relay pairs"),
@@ -272,15 +280,15 @@ function renderDraft() {
 }
 
 function renderImpl() {
-  const names = Object.keys(DATA.implementations).filter(k => DATA.runs.some(r => r.client === k || r.relay === k)).sort();
+  const names = Object.keys(DATA.implementations).filter(k => DOCKER.some(r => r.client === k || r.relay === k)).sort();
   if (!state.impl || !names.includes(state.impl)) state.impl = names[0];
   const k = state.impl, meta = DATA.implementations[k];
   const chips = names.map(n => h("button", { class: "chip", "aria-pressed": n === k ? "true" : "false",
     onclick: () => { state.impl = n; state.pick = null; render(); } }, n,
     h("span", { class: "r" }, DATA.implementations[n].roles.filter(x => x !== "publisher").join(" + "))));
-  const drafts = DATA.drafts;
+  const drafts = DOCKER_DRAFTS;
   const side = (role) => {
-    const runs = DATA.runs.filter(r => r[role] === k);
+    const runs = DOCKER.filter(r => r[role] === k);
     if (!runs.length) return null;
     const other = role === "client" ? "relay" : "client";
     const peers = [...new Set(runs.map(r => r[other]))].sort();
@@ -294,7 +302,7 @@ function renderImpl() {
   };
   const drill = state.pick && (state.pick.title[0] === k || state.pick.title[1] === k) ? state.pick : null;
   view.replaceChildren(
-    h("p", { class: "intro" }, "Pick an implementation to see every pairing it took part in, by draft, as client and as relay."),
+    h("p", { class: "intro" }, "Pick an implementation to see every docker pairing it took part in, by draft, as client and as relay."),
     h("div", { class: "chips", role: "group", "aria-label": "Implementation" }, chips),
     h("div", { class: "facts" },
       meta.organization ? h("span", {}, h("b", {}, meta.organization)) : null,
@@ -306,10 +314,9 @@ function renderImpl() {
 }
 
 function renderOpen() {
-  const remote = DATA.runs.filter(r => r.source === "remote");
-  const eps = byKey(remote, r => `${r.relay}|${r.transport}|${r.target}`);
+  const eps = byKey(REMOTE, r => `${r.relay}|${r.transport}|${r.target}`);
   const keys = [...eps.keys()].sort();
-  const drafts = DATA.drafts;
+  const drafts = REMOTE_DRAFTS;
   const rows = keys.map(key => {
     const [relay, transport, target] = key.split("|");
     const runs = eps.get(key);
@@ -340,7 +347,7 @@ function renderOpen() {
           h("td", {}, r.log ? h("a", { href: r.log, target: "_blank", rel: "noopener" }, "log") : "–")))))));
   }
   view.replaceChildren(
-    h("p", { class: "intro" }, "Public relay endpoints registered with the runner, and how every client fared against each, by the draft the run reached."),
+    h("p", { class: "intro" }, "Public relay endpoints registered with the runner, tested separately from the docker runs. Results depend on the live deployment and the network path, so they are not counted under By draft or By implementation."),
     h("div", { class: "scroller" }, h("table", { class: "matrix" },
       h("thead", {}, h("tr", {}, h("th", { class: "corner" }, "endpoint"), h("th", {}, "clients all-pass"), drafts.map(d => h("th", {}, `draft-${d}`)))),
       h("tbody", {}, rows))),
@@ -361,7 +368,7 @@ for (const t of document.querySelectorAll(".tab")) t.addEventListener("click", (
 const initial = (location.hash || "").slice(1);
 if (["draft", "impl", "open"].includes(initial)) state.view = initial;
 document.getElementById("runinfo").textContent =
-  `run ${DATA.run.id} · ${DATA.runs.length} runs · ${DATA.run.timestamp || ""}`.trim();
+  `run ${DATA.run.id} · ${DOCKER.length} docker runs · ${REMOTE.length} open-relay runs`;
 render();
 </script>
 <!--/body-->
