@@ -1,0 +1,228 @@
+rm -rf mlog/
+mkdir -p mlog/relay mlog/client
+Running interop tests...
+  Relay:  ghcr.io/endel/quic-zig-moq-relay:latest
+  Client: ghcr.io/gmarzot/aiomoqt:0.12.0rc1
+  URL:    https://relay:4443
+time="2026-10-17T19:42:05Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-17T19:42:05Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-17T19:42:05Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-17T19:42:05Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+time="2026-10-17T19:42:05Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+ Container moq-interop-runner-test-client-1  Recreate
+ Container moq-interop-runner-test-client-1  Recreated
+Attaching to relay-1, test-client-1
+relay-1        | 
+relay-1        | === MoQ Relay (draft-17/18, WebTransport + QUIC) ===
+relay-1        | Certificate SHA-256: c6a43ff02510c3479e483331adab112b7b7f91d48fc83993e042c08445e1da69
+relay-1        | 
+relay-1        | Listening on https://0.0.0.0:4443
+relay-1        | Video demo: https://127.0.0.1:4443/moq_video.html
+relay-1        | Clock demo: https://127.0.0.1:4443/moq.html
+relay-1        | 
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] setup-only: SERVER_SETUP received with compatible version
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/cf94/interop/announce-only/"
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/cf94/interop/publish-namespace-done/"
+relay-1        | [relay] namespace "moq-test/cf94/interop/publish-namespace-done/" withdrawn by client 0
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="nonexistent/namespace/" track="test-track"
+relay-1        | [relay] REQUEST_ERROR → client: code=16 no such namespace
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] subscribe-error: Error received (expected): code=16
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="nonexistent/rendezvous/" track="test-track"
+relay-1        | [relay] rendezvous timeout → client 0
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] rendezvous-timeout: REQUEST_ERROR TIMEOUT received
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/cf94/interop/announce-subscribe/"
+relay-1        | [relay] client 1 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] SUBSCRIBE client=1 ns="moq-test/cf94/interop/announce-subscribe/" track="track-cf94"
+relay-1        | [relay] SUBSCRIBE → publisher client 0 ns="moq-test/cf94/interop/announce-subscribe/" track="track-cf94"
+relay-1        | [relay] SUBSCRIBE_OK ← publisher client 0 alias=0
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test/cf94/interop/subscribe-before-announce/" track="track-cf94"
+relay-1        | [relay] REQUEST_ERROR → client: code=16 no such namespace
+relay-1        | [relay] client 1 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=1 ns="moq-test/cf94/interop/subscribe-before-announce/"
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=16
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-interop/data-subgroup-basic/f8551695fe29e9984667f0feb00e8981/"
+relay-1        | [relay] client 1 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] SUBSCRIBE client=1 ns="moq-interop/data-subgroup-basic/f8551695fe29e9984667f0feb00e8981/" track="track"
+relay-1        | [relay] SUBSCRIBE → publisher client 0 ns="moq-interop/data-subgroup-basic/f8551695fe29e9984667f0feb00e8981/" track="track"
+relay-1        | [relay] SUBSCRIBE_OK ← publisher client 0 alias=0
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (202 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (202 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=2)
+relay-1        | [relay] cached group 2 for track 0 (202 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 1 status=2 streams=3
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] data-subgroup-basic: 15 objects received; Stream Count upstream 3, downstream 3
+test-client-1  | TAP version 14
+test-client-1  | # date: 2026-10-17T19:42:12Z
+test-client-1  | # ended: 2026-10-17T19:42:14Z
+test-client-1  | # target: https://relay:4443
+test-client-1  | # version: aiomoqt/0.12.0rc1
+test-client-1  | 1..8
+test-client-1  | ok 1 - setup-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 112
+test-client-1  |   implementation_version: "0.12.0rc1"
+test-client-1  |   sessions:
+test-client-1  |     client:
+test-client-1  |       transport: "webtransport-h3"
+test-client-1  |       moqt_version: "moqt-18"
+test-client-1  |       alpn: "h3"
+test-client-1  |       webtransport_protocol: "moqt-18"
+test-client-1  |       quic_initial_destination_connection_id: "6fffd96745e7e261"
+test-client-1  |   message: "SERVER_SETUP received with compatible version"
+test-client-1  |   ...
+test-client-1  | ok 2 - announce-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 104
+test-client-1  |   implementation_version: "0.12.0rc1"
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: "webtransport-h3"
+test-client-1  |       moqt_version: "moqt-18"
+test-client-1  |       alpn: "h3"
+test-client-1  |       webtransport_protocol: "moqt-18"
+test-client-1  |       quic_initial_destination_connection_id: "f6b3313a27f6e494"
+test-client-1  |   message: "PUBLISH_NAMESPACE_OK received"
+test-client-1  |   ...
+test-client-1  | ok 3 - publish-namespace-done
+test-client-1  |   ---
+test-client-1  |   duration_ms: 203
+test-client-1  |   implementation_version: "0.12.0rc1"
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: "webtransport-h3"
+test-client-1  |       moqt_version: "moqt-18"
+test-client-1  |       alpn: "h3"
+test-client-1  |       webtransport_protocol: "moqt-18"
+test-client-1  |       quic_initial_destination_connection_id: "c6cfd56eaf16a50a"
+test-client-1  |   message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+test-client-1  |   ...
+test-client-1  | ok 4 - subscribe-error
+test-client-1  |   ---
+test-client-1  |   duration_ms: 4
+test-client-1  |   implementation_version: "0.12.0rc1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "webtransport-h3"
+test-client-1  |       moqt_version: "moqt-18"
+test-client-1  |       alpn: "h3"
+test-client-1  |       webtransport_protocol: "moqt-18"
+test-client-1  |       quic_initial_destination_connection_id: "59160afbd443a29d"
+test-client-1  |   message: "Error received (expected): code=16"
+test-client-1  |   expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+test-client-1  |   ...
+test-client-1  | ok 5 - rendezvous-timeout
+test-client-1  |   ---
+test-client-1  |   duration_ms: 606
+test-client-1  |   implementation_version: "0.12.0rc1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "webtransport-h3"
+test-client-1  |       moqt_version: "moqt-18"
+test-client-1  |       alpn: "h3"
+test-client-1  |       webtransport_protocol: "moqt-18"
+test-client-1  |       quic_initial_destination_connection_id: "e6b7e026d570d949"
+test-client-1  |   message: "REQUEST_ERROR TIMEOUT received"
+test-client-1  |   expected: "REQUEST_ERROR TIMEOUT"
+test-client-1  |   ...
+test-client-1  | ok 6 - announce-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 206
+test-client-1  |   implementation_version: "0.12.0rc1"
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: "webtransport-h3"
+test-client-1  |       moqt_version: "moqt-18"
+test-client-1  |       alpn: "h3"
+test-client-1  |       webtransport_protocol: "moqt-18"
+test-client-1  |       quic_initial_destination_connection_id: "61d438608845372e"
+test-client-1  |     subscriber:
+test-client-1  |       transport: "webtransport-h3"
+test-client-1  |       moqt_version: "moqt-18"
+test-client-1  |       alpn: "h3"
+test-client-1  |       webtransport_protocol: "moqt-18"
+test-client-1  |       quic_initial_destination_connection_id: "692dbc77ea2f8d12"
+test-client-1  |   message: "SUBSCRIBE_OK received — relay routed subscription"
+test-client-1  |   ...
+test-client-1  | ok 7 - subscribe-before-announce
+test-client-1  |   ---
+test-client-1  |   duration_ms: 708
+test-client-1  |   implementation_version: "0.12.0rc1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "webtransport-h3"
+test-client-1  |       moqt_version: "moqt-18"
+test-client-1  |       alpn: "h3"
+test-client-1  |       webtransport_protocol: "moqt-18"
+test-client-1  |       quic_initial_destination_connection_id: "a1041f3c8e7d866c"
+test-client-1  |     publisher:
+test-client-1  |       transport: "webtransport-h3"
+test-client-1  |       moqt_version: "moqt-18"
+test-client-1  |       alpn: "h3"
+test-client-1  |       webtransport_protocol: "moqt-18"
+test-client-1  |       quic_initial_destination_connection_id: "89c94eaee56850b3"
+test-client-1  |   message: "Error received (valid: relay didn't buffer): code=16"
+test-client-1  |   ...
+test-client-1  | ok 8 - data-subgroup-basic
+test-client-1  |   ---
+test-client-1  |   duration_ms: 237
+test-client-1  |   implementation_version: "0.12.0rc1"
+test-client-1  |   test_spec_revision: 1
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: "webtransport-h3"
+test-client-1  |       moqt_version: "moqt-18"
+test-client-1  |       alpn: "h3"
+test-client-1  |       webtransport_protocol: "moqt-18"
+test-client-1  |       quic_initial_destination_connection_id: "e0f53d3efe9183eb"
+test-client-1  |     subscriber:
+test-client-1  |       transport: "webtransport-h3"
+test-client-1  |       moqt_version: "moqt-18"
+test-client-1  |       alpn: "h3"
+test-client-1  |       webtransport_protocol: "moqt-18"
+test-client-1  |       quic_initial_destination_connection_id: "95f7a688b6a93897"
+test-client-1  |   message: "15 objects received; Stream Count upstream 3, downstream 3"
+test-client-1  |   ...
+[Ktest-client-1 exited with code 0
+Aborting on container exit...
+ Container moq-interop-runner-test-client-1  Stopping
+ Container moq-interop-runner-test-client-1  Stopped
+ Container moq-interop-runner-relay-1  Stopping
+ Container moq-interop-runner-relay-1  Stopped
+
+Test results in mlog/
