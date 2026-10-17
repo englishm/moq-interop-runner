@@ -36,12 +36,12 @@
         "draft-20",
         "draft-22"
       ],
-      "notes": "aiomoqt interop relay (draft-14/16/18/20/22): SETUP, PUBLISH_NAMESPACE, PUBLISH, SUBSCRIBE and FETCH, forwarding objects; RENDEZVOUS_TIMEOUT on draft-18 and later. One UDP port serves raw QUIC and WebTransport; the docker entry tests WebTransport.",
+      "notes": "aiomoqt interop relay (draft-14/16/18/20/22): SETUP, PUBLISH_NAMESPACE, PUBLISH, SUBSCRIBE and FETCH, forwarding objects; RENDEZVOUS_TIMEOUT on draft-18 and later. One UDP port serves raw QUIC and WebTransport, chosen by ALPN; the docker entry is tested over raw QUIC, the open relay over both.",
       "roles": {
         "relay": {
           "docker": {
             "image": "aiomoqt-interop-relay:latest",
-            "url": "https://relay:4443",
+            "url": "moqt://relay:4443",
             "build": {
               "dockerfile": "adapters/aiomoqt/Dockerfile.relay",
               "context": "adapters/aiomoqt"
@@ -61,33 +61,6 @@
               "notes": "Same relay as the moqt:// entry, over WebTransport."
             }
           ]
-        }
-      }
-    },
-    "aiomoqt-relay-quic": {
-      "name": "aiomoqt (relay, raw QUIC)",
-      "organization": "MarzResearch",
-      "repository": "https://github.com/gmarzot/aiomoqt",
-      "draft_versions": [
-        "draft-14",
-        "draft-16",
-        "draft-18",
-        "draft-20",
-        "draft-22"
-      ],
-      "notes": "The aiomoqt-relay image tested over raw QUIC (moqt://).",
-      "roles": {
-        "relay": {
-          "docker": {
-            "image": "aiomoqt-interop-relay-quic:latest",
-            "url": "moqt://relay:4443",
-            "build": {
-              "dockerfile": "adapters/aiomoqt/Dockerfile.relay",
-              "context": "adapters/aiomoqt"
-            },
-            "upstream_image": "ghcr.io/gmarzot/aiomoqt:latest",
-            "notes": "Same adapter as aiomoqt-relay under its own tag: the runner resolves a docker relay's URL by image name, so a shared tag would test WebTransport twice."
-          }
         }
       }
     },
