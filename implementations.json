@@ -18,6 +18,11 @@
       "notes": "Python asyncio implementation of MoQT. Supports draft-14, draft-16, draft-18, draft-20 and draft-22. Without DRAFT the client probes SETUP newest first (22 -> 20 -> 18 -> 16 -> 14) and pins the first draft that completes; DRAFT pins one draft or sets the probe order. Runs the data-plane data-subgroup-basic scenario and rendezvous-timeout (draft-18 and later; SKIP below).",
       "roles": {
         "client": {
+          "confine": {
+            "env": {
+              "DRAFT": "${MOQT_DRAFT_NUM}"
+            }
+          },
           "docker": {
             "image": "ghcr.io/gmarzot/aiomoqt:0.12.0rc1",
             "notes": "Pre-built on GHCR from the upstream repo (see Dockerfile at the repo root). Pinned to the 0.12.0rc1 pre-release until 0.12.0; :latest tracks stable releases."
@@ -36,12 +41,21 @@
         "draft-20",
         "draft-22"
       ],
-      "notes": "aiomoqt interop relay (draft-14/16/18/20/22): SETUP, PUBLISH_NAMESPACE, PUBLISH, SUBSCRIBE and FETCH, forwarding objects; RENDEZVOUS_TIMEOUT on draft-18 and later. One UDP port serves raw QUIC and WebTransport; the docker entry tests WebTransport.",
+      "notes": "aiomoqt interop relay (draft-14/16/18/20/22): SETUP, PUBLISH_NAMESPACE, PUBLISH, SUBSCRIBE and FETCH, forwarding objects; RENDEZVOUS_TIMEOUT on draft-18 and later. One UDP port serves raw QUIC and WebTransport, chosen by ALPN; the docker entry is tested over raw QUIC, the open relay over both.",
       "roles": {
         "relay": {
+          "confine": {
+            "env": {
+              "DRAFT": "${MOQT_DRAFT_NUM}"
+            }
+          },
           "docker": {
             "image": "aiomoqt-interop-relay:latest",
-            "url": "https://relay:4443",
+            "url": "moqt://relay:4443",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ],
             "build": {
               "dockerfile": "adapters/aiomoqt/Dockerfile.relay",
               "context": "adapters/aiomoqt"
@@ -61,33 +75,6 @@
               "notes": "Same relay as the moqt:// entry, over WebTransport."
             }
           ]
-        }
-      }
-    },
-    "aiomoqt-relay-quic": {
-      "name": "aiomoqt (relay, raw QUIC)",
-      "organization": "MarzResearch",
-      "repository": "https://github.com/gmarzot/aiomoqt",
-      "draft_versions": [
-        "draft-14",
-        "draft-16",
-        "draft-18",
-        "draft-20",
-        "draft-22"
-      ],
-      "notes": "The aiomoqt-relay image tested over raw QUIC (moqt://).",
-      "roles": {
-        "relay": {
-          "docker": {
-            "image": "aiomoqt-interop-relay-quic:latest",
-            "url": "moqt://relay:4443",
-            "build": {
-              "dockerfile": "adapters/aiomoqt/Dockerfile.relay",
-              "context": "adapters/aiomoqt"
-            },
-            "upstream_image": "ghcr.io/gmarzot/aiomoqt:0.12.0rc1",
-            "notes": "Same adapter as aiomoqt-relay under its own tag: the runner resolves a docker relay's URL by image name, so a shared tag would test WebTransport twice."
-          }
         }
       }
     },
@@ -119,6 +106,10 @@
           ],
           "docker": {
             "image": "ghcr.io/englishm/moq-interop-runner-imquic-moq-relay:latest",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ],
             "notes": "Build from source: ./builds/imquic/build.sh --target relay (published to GHCR via build-images.yml)"
           }
         },
@@ -196,6 +187,10 @@
         "relay": {
           "docker": {
             "image": "moq-dev-rs-interop:latest",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ],
             "build": {
               "dockerfile": "adapters/moq-dev-rs/Dockerfile.relay",
               "context": "adapters/moq-dev-rs"
@@ -217,6 +212,11 @@
           ]
         },
         "client": {
+          "confine": {
+            "env": {
+              "MOQ_CLIENT_VERSION": "moq-transport-${MOQT_DRAFT_NUM}"
+            }
+          },
           "docker": {
             "image": "ghcr.io/englishm/moq-interop-runner-moq-dev-rs-client:latest",
             "notes": "Pre-built on GHCR. To build from source: ./builds/moq-dev-rs/build.sh && docker tag moq-dev-rs-client:latest ghcr.io/englishm/moq-interop-runner-moq-dev-rs-client:latest"
@@ -236,6 +236,10 @@
         "relay": {
           "docker": {
             "image": "ghcr.io/englishm/moq-interop-runner-moq-go-relay:latest",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ],
             "build": {
               "dockerfile": ".sources/moq-go/cmd/relay/Dockerfile",
               "context": "builds/moq-go/.sources/moq-go"
@@ -267,6 +271,10 @@
         "relay": {
           "docker": {
             "image": "ghcr.io/englishm/moq-interop-runner-moq-relay-ietf:latest",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ],
             "notes": "Pre-built on GHCR. To build from source (main branch, draft-16): ./builds/moq-rs/build.sh && docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf:latest"
           }
         },
@@ -290,6 +298,10 @@
         "relay": {
           "docker": {
             "image": "ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-14:latest",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ],
             "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs/build.sh --repo https://github.com/cloudflare/moq-rs --ref draft-ietf-moq-transport-14 --target relay && docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-14:latest"
           },
           "remote": [
@@ -324,6 +336,10 @@
         "relay": {
           "docker": {
             "image": "ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-18:latest",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ],
             "notes": "Pre-built on GHCR. To build from source: ./builds/moq-rs-draft-18/build.sh --target relay && docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-18:latest"
           },
           "remote": [
@@ -509,8 +525,17 @@
       "notes": "C++ relay built on moxygen. Supports multiple draft versions via version negotiation.",
       "roles": {
         "relay": {
+          "confine": {
+            "env": {
+              "MOQX_MOQT_VERSIONS": "[${MOQT_DRAFT_NUM}]"
+            }
+          },
           "docker": {
             "image": "moqx-interop:latest",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ],
             "build": {
               "dockerfile": "adapters/moqx/Dockerfile.relay",
               "context": "adapters/moqx"
@@ -532,6 +557,11 @@
           ]
         },
         "client": {
+          "confine": {
+            "env": {
+              "MOQT_VERSIONS": "${MOQT_DRAFT_NUM}"
+            }
+          },
           "docker": {
             "image": "ghcr.io/openmoq/moqx-interop-client:latest",
             "notes": "Pre-built on GHCR. moqx is built on moxygen; if the client binary shares moxygen's MoQInteropClient, it may also be missing moqt-18 from its ALPN list and thus unable to negotiate draft-18 against draft-18-only relays. Verify and remove this note once confirmed or fixed."
@@ -589,6 +619,10 @@
         "relay": {
           "docker": {
             "image": "moxygen-interop:latest",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ],
             "build": {
               "dockerfile": "adapters/moxygen/Dockerfile.relay",
               "context": "adapters/moxygen"
@@ -612,6 +646,11 @@
           ]
         },
         "client": {
+          "confine": {
+            "env": {
+              "MOQT_VERSIONS": "${MOQT_DRAFT_NUM}"
+            }
+          },
           "docker": {
             "image": "ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64",
             "notes": "Pre-built on GHCR. Draft-18 ALPN negotiation is not yet working in this image: kInteropAlpns in MoQInteropClient.cpp was missing moqt-18 at build time. Fix tracked in facebookexperimental/moxygen (branch add-moqt-18-interop-alpn). Remove this note once a new image is built from the patched source."
@@ -768,6 +807,11 @@
       "notes": "C11 sans-I/O implementation (libmoq). Interop client built on the moq_endpoint_t service tier: raw QUIC (moqt://) and WebTransport (https://) with draft-16/18 version negotiation.",
       "roles": {
         "client": {
+          "confine": {
+            "env": {
+              "MOQT_DRAFT": "${MOQT_DRAFT_NUM}"
+            }
+          },
           "docker": {
             "image": "ghcr.io/openmoq/moq5-interop-client:latest",
             "notes": "Pre-built on GHCR (published by openmoq/moq5 CI; pinned :<git-sha> tags too). To build from source: ./builds/moq5/build.sh && docker tag moq5-client-interop:latest ghcr.io/openmoq/moq5-interop-client:latest"
@@ -815,13 +859,23 @@
       "notes": "QUIC, HTTP/3, WebTransport and MoQ from scratch in Zig. The relay is WebTransport; the client speaks both transports and selects its draft with --draft.",
       "roles": {
         "client": {
+          "confine": {
+            "args": [
+              "--draft",
+              "${MOQT_DRAFT_NUM}"
+            ]
+          },
           "docker": {
             "image": "ghcr.io/endel/quic-zig-moq-client:latest"
           }
         },
         "relay": {
           "docker": {
-            "image": "ghcr.io/endel/quic-zig-moq-relay:latest"
+            "image": "ghcr.io/endel/quic-zig-moq-relay:latest",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ]
           }
         }
       }
