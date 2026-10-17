@@ -8,6 +8,8 @@ For the design rationale behind this approach, see [Decision 002: Version Select
 
 The runner cannot control MoQT version negotiation — implementations negotiate on the wire. In practice, two implementations that share at least one draft version are expected to negotiate the newest one both support (a prediction, not a guarantee — see [Decision 002](decisions/002-version-selection-strategy.md) for caveats). The runner uses this prediction for labeling and classification, not as a directive.
 
+The report places a run at the version its client reported negotiating, when the log has one: TAP YAML `sessions.*.moqt_version` ([TAP YAML Metadata](TAP-YAML-METADATA.md)), or the legacy `negotiated_version: draft-NN`. `summary.json` records these as `negotiated_versions`. Runs whose client reports nothing keep the prediction, shown in italics; a negotiated version that differs from the prediction is underlined.
+
 ## Inputs
 
 - **`current_target`** from `implementations.json` (e.g., `"draft-14"`), overridable with `--target-version`
