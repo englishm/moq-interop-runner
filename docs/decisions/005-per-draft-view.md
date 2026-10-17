@@ -31,12 +31,12 @@ Add a per-draft view, generated from the same results directory as the report
   catalog through `report/v2/aliases.json`.
 - **One pill per endpoint.** A cell lists every run of the pair (docker or
   public endpoint, native QUIC or WebTransport) with its own pass count.
-- **Three views:** by draft (client × relay matrix), by implementation (its
-  pairings by draft, as client and as relay), and open relays (each public
-  endpoint against every client). Any cell opens the test-by-endpoint table
-  with links to the logs.
-- **Self-contained output.** `index.html` embeds its data; `data.json` holds
-  the same model for other consumers.
+- **Two pages, each a client × relay matrix with a draft dropdown:**
+  `index.html` for docker runs, the results, and `open-relays.html` for public
+  endpoints, whose results also depend on the live deployment and network
+  path. Any cell opens the test-by-endpoint table with links to the logs.
+- **Self-contained output.** Each page embeds its own runs; `data.json` holds
+  the whole model for other consumers.
 
 `v2-preview.yml` renders the newest published nightly on each PR that touches
 `report/v2/` and links the preview from the PR. It runs no tests.

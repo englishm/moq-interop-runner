@@ -7,7 +7,8 @@ Usage:
                         [--pinned-log-base URL] [--fragment]
 
 Reads RESULTS_DIR/summary.json and the per-run TAP logs, and writes
-DIR/index.html (self-contained) and DIR/data.json. An unpinned run is placed at
+DIR/index.html (docker matrix), DIR/open-relays.html (public endpoints), both
+self-contained, and DIR/data.json. An unpinned run is placed at
 the MoQT draft its client reported negotiating (TAP YAML sessions.*.moqt_version,
 or the legacy negotiated_version: draft-NN / negotiated: moq-transport-NN), else
 at the runner's prediction, marked as predicted. With --pinned, docker runs come
@@ -231,12 +232,22 @@ def build_model(results_dir, config_path, log_base, pinned_dir=None, pinned_log_
     }
 
 
-def render(model, fragment):
+PAGES = {
+    # page: (file, title, run source)
+    "docker": ("index.html", "MoQT Interop by Draft", "docker"),
+    "open": ("open-relays.html", "MoQT Open Relays", "remote"),
+}
+
+
+def render(model, page_key, fragment):
+    _, title, source = PAGES[page_key]
     with open(os.path.join(HERE, "template.html"), encoding="utf-8") as f:
         page = f.read()
-    data = json.dumps(model, separators=(",", ":")).replace("</", "<\\/")
+    subset = dict(model, runs=[r for r in model["runs"] if r["source"] == source])
+    data = json.dumps(subset, separators=(",", ":")).replace("</", "<\\/")
     page = page.replace("/*__DATA__*/null", data)
-    page = page.replace("__RUN_ID__", html.escape(model["run"]["id"]))
+    page = page.replace('/*__PAGE__*/"docker"', json.dumps(page_key))
+    page = page.replace("<title>MoQT Interop by Draft</title>", f"<title>{html.escape(title)}</title>")
     if fragment:
         head = page[page.index("<!--head-->") + len("<!--head-->"):page.index("<!--/head-->")]
         body = page[page.index("<!--body-->") + len("<!--body-->"):page.index("<!--/body-->")]
@@ -262,8 +273,9 @@ def main():
     model = build_model(args.results_dir, args.config, log_base, args.pinned, pinned_log_base)
     with open(os.path.join(out, "data.json"), "w") as f:
         json.dump(model, f, indent=1)
-    with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
-        f.write(render(model, args.fragment))
+    for key, (name, _, _) in PAGES.items():
+        with open(os.path.join(out, name), "w", encoding="utf-8") as f:
+            f.write(render(model, key, args.fragment))
     n_tests = sum(len(r["tests"]) for r in model["runs"])
     pinned = sum(1 for r in model["runs"] if r["basis"] == "pinned")
     print(f"v2: {len(model['runs'])} runs ({pinned} pinned), {n_tests} test results "
