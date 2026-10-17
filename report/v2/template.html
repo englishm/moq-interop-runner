@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--head-->
+<title>MoQT Interop by Draft</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a bench readout. Sticky run header with the view switch, one dense
+   matrix per view, and a drill-down that opens under the matrix. */
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --sunken: #eceff4;
+  --fg: #18202b;
+  --muted: #5b6474;
+  --line: #d8dde5;
+  --accent: #2c56c9;
+  --accent-soft: #e4ebfb;
+  --pass: #1d7f47;
+  --pass-bg: #e2f3e9;
+  --fail: #b8352b;
+  --fail-bg: #fbe7e4;
+  --partial: #9a6412;
+  --partial-bg: #fbf0dc;
+  --skip: #7a8394;
+  --skip-bg: #eef0f3;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --step--1: 0.78rem;
+  --step-0: 0.9rem;
+  --step-1: 1.05rem;
+  --step-2: 1.4rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1116; --surface: #151a21; --sunken: #1b2129; --fg: #e4e8ee; --muted: #97a1b2;
+    --line: #2a313c; --accent: #86a4ff; --accent-soft: #1e2a47;
+    --pass: #4cc47e; --pass-bg: #12301f; --fail: #f07468; --fail-bg: #3a1714;
+    --partial: #e3aa47; --partial-bg: #3a2a10; --skip: #7d8798; --skip-bg: #1f252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1116; --surface: #151a21; --sunken: #1b2129; --fg: #e4e8ee; --muted: #97a1b2;
+  --line: #2a313c; --accent: #86a4ff; --accent-soft: #1e2a47;
+  --pass: #4cc47e; --pass-bg: #12301f; --fail: #f07468; --fail-bg: #3a1714;
+  --partial: #e3aa47; --partial-bg: #3a2a10; --skip: #7d8798; --skip-bg: #1f252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 400 var(--step-0)/1.45 var(--font-sans);
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 10; background: var(--surface);
+}
+.wrap {
+  max-width: 1280px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+header.bar .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.25rem; padding-block: 0.7rem; }
+h1 { font-size: var(--step-1); font-weight: 700; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.run { font: 400 var(--step--1) var(--font-mono); color: var(--muted); }
+nav.views { display: flex; gap: 0.25rem; margin-left: auto; flex-wrap: wrap; }
+button { font: inherit; color: inherit; }
+.tab, .seg {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 6px;
+  padding: 0.3rem 0.7rem; cursor: pointer; font-size: var(--step--1); font-weight: 500;
+}
+.tab[aria-selected="true"], .seg[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.tab:focus-visible, .seg:focus-visible, .cellbtn:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+main .wrap { padding-block: 1.25rem 3rem; display: grid; gap: 1.25rem; }
+.intro { color: var(--muted); max-width: 70ch; margin: 0; font-size: var(--step--1); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.toolbar .label { font-size: var(--step--1); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 0.25rem; }
+.seg .n { font-family: var(--font-mono); color: var(--muted); margin-left: 0.35rem; }
+.facts { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-size: var(--step--1); color: var(--muted); }
+.facts b { color: var(--fg); font: 600 var(--step-0) var(--font-mono); font-variant-numeric: tabular-nums; margin-right: 0.3rem; }
+.scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+table.matrix th, table.matrix td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 0.35rem 0.45rem; vertical-align: top; }
+table.matrix thead th { position: sticky; top: 0; background: var(--sunken); font: 500 var(--step--1) var(--font-mono); white-space: nowrap; text-align: left; }
+table.matrix tbody th { text-align: left; font: 500 var(--step--1) var(--font-mono); white-space: nowrap; background: var(--surface); position: sticky; left: 0; }
+table.matrix td.empty { color: var(--line); text-align: center; }
+.corner { color: var(--muted); font-family: var(--font-sans) !important; font-weight: 400 !important; }
+.cellbtn { display: flex; flex-wrap: wrap; gap: 3px; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.cellbtn[aria-expanded="true"] { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.pill {
+  display: inline-flex; align-items: baseline; gap: 0.3em; border-radius: 4px; padding: 0.05rem 0.35rem;
+  font: 500 0.72rem var(--font-mono); border: 1px solid transparent; white-space: nowrap;
+}
+.pill .t { font-weight: 600; }
+.pill.pass { background: var(--pass-bg); color: var(--pass); }
+.pill.fail { background: var(--fail-bg); color: var(--fail); }
+.pill.partial { background: var(--partial-bg); color: var(--partial); }
+.pill.skip, .pill.none { background: var(--skip-bg); color: var(--skip); }
+.pill.remote { border-style: dashed; border-color: currentColor; }
+.pill.predicted { font-style: italic; opacity: 0.7; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: var(--step--1); color: var(--muted); align-items: center; }
+.panel { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 1rem; display: grid; gap: 0.75rem; min-width: 0; }
+.panel h2 { margin: 0; font-size: var(--step-1); text-wrap: balance; }
+.panel h2 code { font-family: var(--font-mono); font-size: 0.95em; }
+table.tests { font-size: var(--step--1); }
+table.tests th, table.tests td { border-bottom: 1px solid var(--line); padding: 0.3rem 0.55rem; text-align: left; vertical-align: top; }
+table.tests thead th { font-weight: 500; background: var(--sunken); white-space: nowrap; }
+table.tests td.id, table.tests th.id { font-family: var(--font-mono); white-space: nowrap; }
+.mark { font: 600 var(--step--1) var(--font-mono); }
+.mark.pass { color: var(--pass); } .mark.fail { color: var(--fail); } .mark.skip { color: var(--skip); }
+.sub { display: block; color: var(--muted); font-weight: 400; font-family: var(--font-mono); font-size: 0.72rem; }
+.msg { color: var(--muted); max-width: 48ch; }
+a { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 0.2rem 0.65rem; cursor: pointer; font: 500 var(--step--1) var(--font-mono); }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.chip .r { color: var(--muted); font-family: var(--font-sans); font-weight: 400; margin-left: 0.35rem; }
+.grid2 { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); }
+.grid2 > * { min-width: 0; }
+h3 { margin: 0; font-size: var(--step-0); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+.note { font-size: var(--step--1); color: var(--muted); margin: 0; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+<!--/head-->
+</head>
+<body>
+<!--body-->
+<header class="bar">
+  <div class="wrap">
+    <h1>MoQT Interop by Draft</h1>
+    <span class="run" id="runinfo">run __RUN_ID__</span>
+    <nav class="views" role="tablist" aria-label="Views">
+      <button class="tab" role="tab" id="tab-draft" data-view="draft" aria-selected="true">By draft</button>
+      <button class="tab" role="tab" id="tab-impl" data-view="impl" aria-selected="false">By implementation</button>
+      <button class="tab" role="tab" id="tab-open" data-view="open" aria-selected="false">Open relays</button>
+    </nav>
+  </div>
+</header>
+<main>
+  <div class="wrap" id="view"></div>
+</main>
+<script>
+const DATA = /*__DATA__*/null;
+const view = document.getElementById("view");
+const TLABEL = { quic: "QUIC", webtransport: "WT" };
+const state = { view: "draft", draft: DATA.drafts[0] ?? null, impl: null, open: null };
+
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid instanceof Node ? kid : String(kid));
+  return el;
+}
+function score(run) {
+  const pass = run.tests.filter(t => t.status === "pass").length;
+  const fail = run.tests.filter(t => t.status === "fail").length;
+  const skip = run.tests.filter(t => t.status === "skip").length;
+  let cls;
+  if (run.status === "skip") cls = "skip";
+  else if (!run.tests.length) cls = run.status === "pass" ? "pass" : "fail";
+  else if (!fail) cls = "pass";
+  else if (!pass) cls = "fail";
+  else cls = "partial";
+  return { pass, fail, skip, cls, text: run.status === "skip" ? "skip" : (run.tests.length ? `${pass}/${pass + fail}` : run.status) };
+}
+function endpointLabel(run) {
+  return `${run.source === "remote" ? "remote" : "docker"} · ${TLABEL[run.transport] || run.transport}`;
+}
+function versionText(run) {
+  if (run.negotiated.length) {
+    const v = run.negotiated.map(d => "moqt-" + d).join(", ");
+    return run.predicted && !run.negotiated.includes(run.predicted) ? `${v} (predicted draft-${run.predicted})` : v;
+  }
+  return run.predicted ? `predicted draft-${run.predicted}` : "unknown";
+}
+function pill(run) {
+  const s = score(run);
+  const title = `${endpointLabel(run)} · ${s.text}${s.skip ? ` (+${s.skip} skipped)` : ""} · ${versionText(run)}`;
+  return h("span", { class: `pill ${s.cls} ${run.source === "remote" ? "remote" : ""} ${run.basis === "predicted" ? "predicted" : ""}`, title },
+    h("span", { class: "t" }, run.transport === "quic" ? "Q" : "W"), s.text);
+}
+function legend() {
+  const sample = (cls, extra, t, txt) => h("span", { class: `pill ${cls} ${extra}` }, h("span", { class: "t" }, t), txt);
+  return h("div", { class: "legend" },
+    sample("pass", "", "Q", "8/8"), "native QUIC",
+    sample("pass", "", "W", "6/6"), "WebTransport",
+    sample("partial", "remote", "Q", "5/7"), "public endpoint (dashed)",
+    sample("pass", "predicted", "W", "6/6"), "draft predicted, not reported (italic)",
+    h("span", {}, "Counts are passed / (passed + failed); skips in the tooltip."));
+}
+function byKey(list, key) {
+  const m = new Map();
+  for (const x of list) { const k = key(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }
+  return m;
+}
+function drillPanel(title, runs, note) {
+  const ids = DATA.test_ids.filter(id => runs.some(r => r.tests.some(t => t.id === id)));
+  const head = h("tr", {}, h("th", { class: "id" }, "test"),
+    runs.map(r => h("th", {}, endpointLabel(r),
+      h("span", { class: "sub" }, versionText(r)),
+      h("span", { class: "sub" }, r.log ? h("a", { href: r.log, target: "_blank", rel: "noopener" }, "log") : (r.skip_reason || "no log")))));
+  const rows = ids.map(id => h("tr", {}, h("td", { class: "id" }, id),
+    runs.map(r => {
+      const t = r.tests.find(x => x.id === id);
+      if (!t) return h("td", { class: "mark skip" }, "—");
+      const sym = t.status === "pass" ? "ok" : t.status === "fail" ? "not ok" : "skip";
+      const ver = t.negotiated.length ? ` · moqt-${t.negotiated.join("/")}` : "";
+      return h("td", { title: (t.raw_id ? `${t.raw_id} → ${id}. ` : "") + (t.message || "") },
+        h("span", { class: `mark ${t.status}` }, sym), h("span", { class: "sub" }, (t.message ? t.message.slice(0, 80) : "") + ver));
+    })));
+  const empty = !ids.length ? h("p", { class: "note" }, "No TAP results in these logs (the client failed before reporting, or the run was skipped).") : null;
+  return h("section", { class: "panel", id: "drill", "aria-live": "polite" },
+    h("h2", {}, title), note ? h("p", { class: "note" }, note) : null,
+    empty || h("div", { class: "scroller" }, h("table", { class: "tests" }, h("thead", {}, head), h("tbody", {}, rows))));
+}
+function matrix(rowsKeys, colKeys, cellRuns, onPick, picked, corner) {
+  const thead = h("thead", {}, h("tr", {}, h("th", { class: "corner" }, corner), colKeys.map(c => h("th", { scope: "col" }, c))));
+  const tbody = h("tbody", {}, rowsKeys.map(r => h("tr", {}, h("th", { scope: "row" }, r),
+    colKeys.map(c => {
+      const runs = cellRuns(r, c);
+      if (!runs.length) return h("td", { class: "empty" }, "·");
+      const key = `${r}|${c}`;
+      return h("td", {}, h("button", { class: "cellbtn", "aria-expanded": picked === key ? "true" : "false",
+        "aria-label": `${r} with ${c}`, onclick: () => onPick(key, r, c, runs) }, runs.map(pill)));
+    }))));
+  return h("div", { class: "scroller" }, h("table", { class: "matrix" }, thead, tbody));
+}
+function sortRuns(runs) {
+  return runs.slice().sort((a, b) => (a.source > b.source) - (a.source < b.source) || (a.transport > b.transport) - (a.transport < b.transport));
+}
+
+function renderDraft() {
+  const d = state.draft;
+  const at = DATA.runs.filter(r => r.draft === d);
+  const segs = DATA.drafts.map(x => h("button", { class: "seg", id: `draft-${x}`, "aria-pressed": x === d ? "true" : "false",
+    onclick: () => { state.draft = x; state.pick = null; render(); } }, `draft-${x}`, h("span", { class: "n" }, DATA.runs.filter(r => r.draft === x).length)));
+  const clients = [...new Set(at.map(r => r.client))].sort();
+  const relays = [...new Set(at.map(r => r.relay))].sort();
+  const cells = byKey(at, r => `${r.client}|${r.relay}`);
+  const tests = at.flatMap(r => r.tests);
+  const passed = tests.filter(t => t.status === "pass").length;
+  const negotiated = at.filter(r => r.basis === "negotiated").length;
+  const drill = state.pick && state.pick.draft === d ? state.pick : null;
+  view.replaceChildren(
+    h("p", { class: "intro" }, "Each run sits at the MoQT draft its client reported negotiating. Clients that report nothing are placed at the runner's prediction, shown in italics. One pill per endpoint: docker relays and public endpoints, native QUIC and WebTransport."),
+    h("div", { class: "toolbar", role: "group", "aria-label": "Draft" }, h("span", { class: "label" }, "Draft"), segs),
+    h("div", { class: "facts" },
+      h("span", {}, h("b", {}, at.length), "runs"),
+      h("span", {}, h("b", {}, cells.size), "client–relay pairs"),
+      h("span", {}, h("b", {}, tests.length ? Math.round(100 * passed / tests.length) + "%" : "–"), "of test results pass"),
+      h("span", {}, h("b", {}, at.length ? Math.round(100 * negotiated / at.length) + "%" : "–"), "placed by reported version")),
+    legend(),
+    matrix(clients, relays, (c, r) => sortRuns(cells.get(`${c}|${r}`) || []),
+      (key, c, r, runs) => { state.pick = { key, draft: d, title: [c, r], runs }; render(); document.getElementById("drill")?.scrollIntoView({ block: "nearest" }); },
+      drill?.key, "client ↓  relay →"),
+    drill ? drillPanel(h("span", {}, h("code", {}, drill.title[0]), " → ", h("code", {}, drill.title[1]), ` at draft-${d}`), drill.runs) : null);
+}
+
+function renderImpl() {
+  const names = Object.keys(DATA.implementations).filter(k => DATA.runs.some(r => r.client === k || r.relay === k)).sort();
+  if (!state.impl || !names.includes(state.impl)) state.impl = names[0];
+  const k = state.impl, meta = DATA.implementations[k];
+  const chips = names.map(n => h("button", { class: "chip", "aria-pressed": n === k ? "true" : "false",
+    onclick: () => { state.impl = n; state.pick = null; render(); } }, n,
+    h("span", { class: "r" }, DATA.implementations[n].roles.filter(x => x !== "publisher").join(" + "))));
+  const drafts = DATA.drafts;
+  const side = (role) => {
+    const runs = DATA.runs.filter(r => r[role] === k);
+    if (!runs.length) return null;
+    const other = role === "client" ? "relay" : "client";
+    const peers = [...new Set(runs.map(r => r[other]))].sort();
+    const cells = byKey(runs, r => `${r[other]}|draft-${r.draft}`);
+    return h("section", { class: "panel" },
+      h("h3", {}, role === "client" ? `${k} as client` : `${k} as relay`),
+      matrix(peers, drafts.map(d => `draft-${d}`), (p, d) => sortRuns(cells.get(`${p}|${d}`) || []),
+        (key, p, d, rs) => { state.pick = { key: role + key, title: role === "client" ? [k, p] : [p, k], draftLabel: d, runs: rs }; render(); document.getElementById("drill")?.scrollIntoView({ block: "nearest" }); },
+        state.pick && state.pick.key.startsWith(role) ? state.pick.key.slice(role.length) : null,
+        role === "client" ? "relay ↓" : "client ↓"));
+  };
+  const drill = state.pick && (state.pick.title[0] === k || state.pick.title[1] === k) ? state.pick : null;
+  view.replaceChildren(
+    h("p", { class: "intro" }, "Pick an implementation to see every pairing it took part in, by draft, as client and as relay."),
+    h("div", { class: "chips", role: "group", "aria-label": "Implementation" }, chips),
+    h("div", { class: "facts" },
+      meta.organization ? h("span", {}, h("b", {}, meta.organization)) : null,
+      h("span", {}, "registered drafts ", h("b", {}, meta.drafts.map(d => d).join(" · ") || "–")),
+      meta.repository ? h("a", { href: meta.repository, target: "_blank", rel: "noopener" }, "repository") : null),
+    legend(),
+    h("div", { class: "grid2" }, side("client"), side("relay")),
+    drill ? drillPanel(h("span", {}, h("code", {}, drill.title[0]), " → ", h("code", {}, drill.title[1]), ` at ${drill.draftLabel}`), drill.runs) : null);
+}
+
+function renderOpen() {
+  const remote = DATA.runs.filter(r => r.source === "remote");
+  const eps = byKey(remote, r => `${r.relay}|${r.transport}|${r.target}`);
+  const keys = [...eps.keys()].sort();
+  const drafts = DATA.drafts;
+  const rows = keys.map(key => {
+    const [relay, transport, target] = key.split("|");
+    const runs = eps.get(key);
+    const clients = byKey(runs, r => r.client);
+    const full = [...clients.values()].filter(rs => rs.every(r => { const s = score(r); return s.cls === "pass"; })).length;
+    return h("tr", {},
+      h("th", { scope: "row" }, relay, h("span", { class: "sub" }, `${TLABEL[transport] || transport} · ${target}`)),
+      h("td", { class: "id" }, `${full}/${clients.size}`),
+      drafts.map(d => {
+        const at = runs.filter(r => r.draft === d);
+        if (!at.length) return h("td", { class: "empty" }, "·");
+        const okc = at.filter(r => score(r).cls === "pass").length;
+        return h("td", {}, h("button", { class: "cellbtn", "aria-expanded": state.open === `${key}|${d}` ? "true" : "false",
+          onclick: () => { state.open = `${key}|${d}`; render(); document.getElementById("drill")?.scrollIntoView({ block: "nearest" }); } },
+          h("span", { class: `pill ${okc === at.length ? "pass" : okc ? "partial" : "fail"}` }, `${okc}/${at.length} clients`)));
+      }));
+  });
+  let drill = null;
+  if (state.open) {
+    const parts = state.open.split("|"), d = +parts[3];
+    const runs = (eps.get(parts.slice(0, 3).join("|")) || []).filter(r => r.draft === d).sort((a, b) => a.client.localeCompare(b.client));
+    drill = h("section", { class: "panel", id: "drill" },
+      h("h2", {}, h("code", {}, parts[0]), ` ${TLABEL[parts[1]] || parts[1]} at draft-${d}`),
+      h("p", { class: "note" }, parts[2]),
+      h("div", { class: "scroller" }, h("table", { class: "tests" },
+        h("thead", {}, h("tr", {}, h("th", {}, "client"), h("th", {}, "result"), h("th", {}, "version"), h("th", {}, "log"))),
+        h("tbody", {}, runs.map(r => h("tr", {}, h("td", { class: "id" }, r.client), h("td", {}, pill(r)), h("td", { class: "id" }, versionText(r)),
+          h("td", {}, r.log ? h("a", { href: r.log, target: "_blank", rel: "noopener" }, "log") : "–")))))));
+  }
+  view.replaceChildren(
+    h("p", { class: "intro" }, "Public relay endpoints registered with the runner, and how every client fared against each, by the draft the run reached."),
+    h("div", { class: "scroller" }, h("table", { class: "matrix" },
+      h("thead", {}, h("tr", {}, h("th", { class: "corner" }, "endpoint"), h("th", {}, "clients all-pass"), drafts.map(d => h("th", {}, `draft-${d}`)))),
+      h("tbody", {}, rows))),
+    drill);
+}
+
+function render() {
+  for (const t of document.querySelectorAll(".tab")) t.setAttribute("aria-selected", t.dataset.view === state.view ? "true" : "false");
+  if (state.view === "draft") renderDraft();
+  else if (state.view === "impl") renderImpl();
+  else renderOpen();
+}
+for (const t of document.querySelectorAll(".tab")) t.addEventListener("click", () => {
+  state.view = t.dataset.view; state.pick = null; state.open = null;
+  try { history.replaceState(null, "", "#" + state.view); } catch (e) {}
+  render();
+});
+const initial = (location.hash || "").slice(1);
+if (["draft", "impl", "open"].includes(initial)) state.view = initial;
+document.getElementById("runinfo").textContent =
+  `run ${DATA.run.id} · ${DATA.runs.length} runs · ${DATA.run.timestamp || ""}`.trim();
+render();
+</script>
+<!--/body-->
+</body>
+</html>

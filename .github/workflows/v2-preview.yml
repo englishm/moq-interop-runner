@@ -1,0 +1,138 @@
+name: Per-draft view preview
+
+# Renders the per-draft view (report/v2) from the newest published nightly
+# results. Same-repo PRs publish it to gh-pages previews/pr-<N>/ and keep one
+# link comment up to date; fork PRs get an artifact. Runs no tests.
+
+on:
+  pull_request:
+    paths:
+      - 'report/v2/**'
+      - '.github/workflows/v2-preview.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 0'  # weekly: prune stale previews
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write       # previews/ on gh-pages (same-repo PRs only)
+      pull-requests: write  # preview link comment
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: main
+
+      - name: Find the newest published run
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          dir=$(gh api "repos/${{ github.repository }}/contents/results?ref=gh-pages" \
+                  --jq '[.[] | select(.type == "dir") | .name] | sort | last')
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+          echo "Rendering results/$dir"
+
+      - name: Checkout published results
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-site
+          sparse-checkout: |
+            results/${{ steps.latest.outputs.dir }}
+            previews
+
+      - name: Render
+        id: render
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            slug="pr-${{ github.event.pull_request.number }}"
+          else
+            slug="per-draft-view"
+          fi
+          out="gh-pages-site/previews/$slug"
+          python3 main/report/v2/generate.py "gh-pages-site/results/${{ steps.latest.outputs.dir }}" \
+            --out "$out" --config main/implementations.json \
+            --log-base "../../results/${{ steps.latest.outputs.dir }}"
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+
+      - name: Upload preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: per-draft-view
+          path: gh-pages-site/previews/${{ steps.render.outputs.slug }}
+          retention-days: 14
+
+      - name: Publish to gh-pages previews/
+        id: publish
+        if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+        working-directory: gh-pages-site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "previews/${{ steps.render.outputs.slug }}"
+          if git diff --cached --quiet; then
+            echo "No preview change."
+          else
+            git commit -m "Per-draft view preview: ${{ steps.render.outputs.slug }} (results ${{ steps.latest.outputs.dir }})"
+            git push origin gh-pages
+          fi
+          url="https://$(echo '${{ github.repository_owner }}' | tr 'A-Z' 'a-z').github.io/$(echo '${{ github.repository }}' | cut -d/ -f2)/previews/${{ steps.render.outputs.slug }}/"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Per-draft view (results ${{ steps.latest.outputs.dir }}): $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment the preview link
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mark="<!-- vpm-preview-link -->"
+          body="$mark"$'\n'"**Per-draft view** of the latest nightly (\`results/${{ steps.latest.outputs.dir }}\`): ${{ steps.publish.outputs.url }}"
+          id=$(gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" \
+                 --jq "map(select(.body | contains(\"$mark\"))) | .[0].id // empty")
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$id" -f body="$body" >/dev/null
+          else
+            gh api -X POST "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" -f body="$body" >/dev/null
+          fi
+
+  prune:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-site
+          sparse-checkout: previews
+          fetch-depth: 0  # last-touched times come from history
+          filter: blob:none
+      - name: Remove previews untouched for 14 days
+        working-directory: gh-pages-site
+        run: |
+          [ -d previews ] || { echo "No previews."; exit 0; }
+          cutoff=$(date -u -d '14 days ago' +%s)
+          for d in previews/*/; do
+            last=$(git log -1 --format=%ct -- "$d")
+            [ -n "$last" ] && [ "$last" -lt "$cutoff" ] && git rm -rq "$d" && echo "pruned $d"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --cached --quiet; then
+            git commit -m "Prune stale previews"
+            git push origin gh-pages
+          fi
