@@ -124,13 +124,6 @@ table.tests td.id, table.tests th.id { font-family: var(--font-mono); white-spac
 .sub { display: block; color: var(--muted); font-weight: 400; font-family: var(--font-mono); font-size: 0.72rem; }
 .msg { color: var(--muted); max-width: 48ch; }
 a { color: var(--accent); }
-.chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 0.2rem 0.65rem; cursor: pointer; font: 500 var(--step--1) var(--font-mono); }
-.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
-.chip .r { color: var(--muted); font-family: var(--font-sans); font-weight: 400; margin-left: 0.35rem; }
-.grid2 { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); }
-.grid2 > * { min-width: 0; }
-h3 { margin: 0; font-size: var(--step-0); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
 .note { font-size: var(--step--1); color: var(--muted); margin: 0; }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
@@ -144,7 +137,6 @@ h3 { margin: 0; font-size: var(--step-0); text-transform: uppercase; letter-spac
     <span class="run" id="runinfo">run __RUN_ID__</span>
     <nav class="views" role="tablist" aria-label="Views">
       <button class="tab" role="tab" id="tab-draft" data-view="draft" aria-selected="true">By draft</button>
-      <button class="tab" role="tab" id="tab-impl" data-view="impl" aria-selected="false">By implementation</button>
       <button class="tab" role="tab" id="tab-open" data-view="open" aria-selected="false">Open relays</button>
     </nav>
   </div>
@@ -162,7 +154,7 @@ const REMOTE = DATA.runs.filter(r => r.source === "remote");
 const draftsOf = runs => [...new Set(runs.map(r => r.draft).filter(d => d != null))].sort((a, b) => b - a);
 const DOCKER_DRAFTS = draftsOf(DOCKER);
 const REMOTE_DRAFTS = draftsOf(REMOTE);
-const state = { view: "draft", draft: DOCKER_DRAFTS[0] ?? null, impl: null, open: null };
+const state = { view: "draft", draft: DOCKER_DRAFTS[0] ?? null, openDraft: REMOTE_DRAFTS[0] ?? null, pick: null };
 
 function h(tag, attrs, ...kids) {
   const el = document.createElement(tag);
@@ -252,21 +244,21 @@ function sortRuns(runs) {
   return runs.slice().sort((a, b) => (a.source > b.source) - (a.source < b.source) || (a.transport > b.transport) - (a.transport < b.transport));
 }
 
-function renderDraft() {
-  const d = state.draft;
-  const at = DOCKER.filter(r => r.draft === d);
-  const select = h("select", { id: "draft-select", onchange: e => { state.draft = +e.target.value; state.pick = null; render(); } },
-    DOCKER_DRAFTS.map(x => h("option", { value: x, selected: x === d }, `draft-${x} · ${DOCKER.filter(r => r.draft === x).length} runs`)));
+function matrixPage(runsAll, drafts, key, intro, cornerLabel) {
+  const d = state[key];
+  const at = runsAll.filter(r => r.draft === d);
+  const select = h("select", { id: `${key}-select`, onchange: e => { state[key] = +e.target.value; state.pick = null; render(); } },
+    drafts.map(x => h("option", { value: x, selected: x === d }, `draft-${x} · ${runsAll.filter(r => r.draft === x).length} runs`)));
   const clients = [...new Set(at.map(r => r.client))].sort();
   const relays = [...new Set(at.map(r => r.relay))].sort();
   const cells = byKey(at, r => `${r.client}|${r.relay}`);
   const tests = at.flatMap(r => r.tests);
   const passed = tests.filter(t => t.status === "pass").length;
   const negotiated = at.filter(r => r.basis === "negotiated").length;
-  const drill = state.pick && state.pick.draft === d ? state.pick : null;
+  const drill = state.pick && state.pick.view === state.view && state.pick.draft === d ? state.pick : null;
   view.replaceChildren(
-    h("p", { class: "intro" }, "Docker runs only: the relay runs in a container beside the client, so every result here comes from a controlled run. Each run sits at the MoQT draft its client reported negotiating; clients that report nothing are placed at the runner's prediction, shown in italics. Public endpoints are under Open relays."),
-    h("div", { class: "toolbar" }, h("label", { class: "label", for: "draft-select" }, "Draft"), select),
+    h("p", { class: "intro" }, intro),
+    h("div", { class: "toolbar" }, h("label", { class: "label", for: `${key}-select` }, "Draft"), select),
     h("div", { class: "facts" },
       h("span", {}, h("b", {}, at.length), "runs"),
       h("span", {}, h("b", {}, cells.size), "client–relay pairs"),
@@ -274,99 +266,35 @@ function renderDraft() {
       h("span", {}, h("b", {}, at.length ? Math.round(100 * negotiated / at.length) + "%" : "–"), "placed by reported version")),
     legend(),
     matrix(clients, relays, (c, r) => sortRuns(cells.get(`${c}|${r}`) || []),
-      (key, c, r, runs) => { state.pick = { key, draft: d, title: [c, r], runs }; render(); document.getElementById("drill")?.scrollIntoView({ block: "nearest" }); },
-      drill?.key, "client ↓  relay →"),
+      (k, c, r, runs) => { state.pick = { key: k, view: state.view, draft: d, title: [c, r], runs }; render(); document.getElementById("drill")?.scrollIntoView({ block: "nearest" }); },
+      drill?.key, cornerLabel),
     drill ? drillPanel(h("span", {}, h("code", {}, drill.title[0]), " → ", h("code", {}, drill.title[1]), ` at draft-${d}`), drill.runs) : null);
 }
 
-function renderImpl() {
-  const names = Object.keys(DATA.implementations).filter(k => DOCKER.some(r => r.client === k || r.relay === k)).sort();
-  if (!state.impl || !names.includes(state.impl)) state.impl = names[0];
-  const k = state.impl, meta = DATA.implementations[k];
-  const chips = names.map(n => h("button", { class: "chip", "aria-pressed": n === k ? "true" : "false",
-    onclick: () => { state.impl = n; state.pick = null; render(); } }, n,
-    h("span", { class: "r" }, DATA.implementations[n].roles.filter(x => x !== "publisher").join(" + "))));
-  const drafts = DOCKER_DRAFTS;
-  const side = (role) => {
-    const runs = DOCKER.filter(r => r[role] === k);
-    if (!runs.length) return null;
-    const other = role === "client" ? "relay" : "client";
-    const peers = [...new Set(runs.map(r => r[other]))].sort();
-    const cells = byKey(runs, r => `${r[other]}|draft-${r.draft}`);
-    return h("section", { class: "panel" },
-      h("h3", {}, role === "client" ? `${k} as client` : `${k} as relay`),
-      matrix(peers, drafts.map(d => `draft-${d}`), (p, d) => sortRuns(cells.get(`${p}|${d}`) || []),
-        (key, p, d, rs) => { state.pick = { key: role + key, title: role === "client" ? [k, p] : [p, k], draftLabel: d, runs: rs }; render(); document.getElementById("drill")?.scrollIntoView({ block: "nearest" }); },
-        state.pick && state.pick.key.startsWith(role) ? state.pick.key.slice(role.length) : null,
-        role === "client" ? "relay ↓" : "client ↓"));
-  };
-  const drill = state.pick && (state.pick.title[0] === k || state.pick.title[1] === k) ? state.pick : null;
-  view.replaceChildren(
-    h("p", { class: "intro" }, "Pick an implementation to see every docker pairing it took part in, by draft, as client and as relay."),
-    h("div", { class: "chips", role: "group", "aria-label": "Implementation" }, chips),
-    h("div", { class: "facts" },
-      meta.organization ? h("span", {}, h("b", {}, meta.organization)) : null,
-      h("span", {}, "registered drafts ", h("b", {}, meta.drafts.map(d => d).join(" · ") || "–")),
-      meta.repository ? h("a", { href: meta.repository, target: "_blank", rel: "noopener" }, "repository") : null),
-    legend(),
-    h("div", { class: "grid2" }, side("client"), side("relay")),
-    drill ? drillPanel(h("span", {}, h("code", {}, drill.title[0]), " → ", h("code", {}, drill.title[1]), ` at ${drill.draftLabel}`), drill.runs) : null);
+function renderDraft() {
+  matrixPage(DOCKER, DOCKER_DRAFTS, "draft",
+    "Docker runs only: the relay runs in a container beside the client, so every result here comes from a controlled run. Each run sits at the MoQT draft its client reported negotiating; clients that report nothing are placed at the runner's prediction, shown in italics. Public endpoints are under Open relays.",
+    "client ↓  relay →");
 }
 
 function renderOpen() {
-  const eps = byKey(REMOTE, r => `${r.relay}|${r.transport}|${r.target}`);
-  const keys = [...eps.keys()].sort();
-  const drafts = REMOTE_DRAFTS;
-  const rows = keys.map(key => {
-    const [relay, transport, target] = key.split("|");
-    const runs = eps.get(key);
-    const clients = byKey(runs, r => r.client);
-    const full = [...clients.values()].filter(rs => rs.every(r => { const s = score(r); return s.cls === "pass"; })).length;
-    return h("tr", {},
-      h("th", { scope: "row" }, relay, h("span", { class: "sub" }, `${TLABEL[transport] || transport} · ${target}`)),
-      h("td", { class: "id" }, `${full}/${clients.size}`),
-      drafts.map(d => {
-        const at = runs.filter(r => r.draft === d);
-        if (!at.length) return h("td", { class: "empty" }, "·");
-        const okc = at.filter(r => score(r).cls === "pass").length;
-        return h("td", {}, h("button", { class: "cellbtn", "aria-expanded": state.open === `${key}|${d}` ? "true" : "false",
-          onclick: () => { state.open = `${key}|${d}`; render(); document.getElementById("drill")?.scrollIntoView({ block: "nearest" }); } },
-          h("span", { class: `pill ${okc === at.length ? "pass" : okc ? "partial" : "fail"}` }, `${okc}/${at.length} clients`)));
-      }));
-  });
-  let drill = null;
-  if (state.open) {
-    const parts = state.open.split("|"), d = +parts[3];
-    const runs = (eps.get(parts.slice(0, 3).join("|")) || []).filter(r => r.draft === d).sort((a, b) => a.client.localeCompare(b.client));
-    drill = h("section", { class: "panel", id: "drill" },
-      h("h2", {}, h("code", {}, parts[0]), ` ${TLABEL[parts[1]] || parts[1]} at draft-${d}`),
-      h("p", { class: "note" }, parts[2]),
-      h("div", { class: "scroller" }, h("table", { class: "tests" },
-        h("thead", {}, h("tr", {}, h("th", {}, "client"), h("th", {}, "result"), h("th", {}, "version"), h("th", {}, "log"))),
-        h("tbody", {}, runs.map(r => h("tr", {}, h("td", { class: "id" }, r.client), h("td", {}, pill(r)), h("td", { class: "id" }, versionText(r)),
-          h("td", {}, r.log ? h("a", { href: r.log, target: "_blank", rel: "noopener" }, "log") : "–")))))));
-  }
-  view.replaceChildren(
-    h("p", { class: "intro" }, "Public relay endpoints registered with the runner, tested separately from the docker runs. Results depend on the live deployment and the network path, so they are not counted under By draft or By implementation."),
-    h("div", { class: "scroller" }, h("table", { class: "matrix" },
-      h("thead", {}, h("tr", {}, h("th", { class: "corner" }, "endpoint"), h("th", {}, "clients all-pass"), drafts.map(d => h("th", {}, `draft-${d}`)))),
-      h("tbody", {}, rows))),
-    drill);
+  matrixPage(REMOTE, REMOTE_DRAFTS, "openDraft",
+    "Public relay endpoints, tested separately from the docker runs: results depend on the live deployment and the network path. Each cell shows the relay's native QUIC and H3/WebTransport endpoints side by side.",
+    "client ↓  open relay →");
 }
 
 function render() {
   for (const t of document.querySelectorAll(".tab")) t.setAttribute("aria-selected", t.dataset.view === state.view ? "true" : "false");
   if (state.view === "draft") renderDraft();
-  else if (state.view === "impl") renderImpl();
   else renderOpen();
 }
 for (const t of document.querySelectorAll(".tab")) t.addEventListener("click", () => {
-  state.view = t.dataset.view; state.pick = null; state.open = null;
+  state.view = t.dataset.view; state.pick = null;
   try { history.replaceState(null, "", "#" + state.view); } catch (e) {}
   render();
 });
 const initial = (location.hash || "").slice(1);
-if (["draft", "impl", "open"].includes(initial)) state.view = initial;
+if (["draft", "open"].includes(initial)) state.view = initial;
 document.getElementById("runinfo").textContent =
   `run ${DATA.run.id} · ${DOCKER.length} docker runs · ${REMOTE.length} open-relay runs`;
 render();
