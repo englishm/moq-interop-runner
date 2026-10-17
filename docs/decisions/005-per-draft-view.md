@@ -48,11 +48,30 @@ Add a per-draft view, generated from the same results directory as the report
   `sessions.*.moqt_version` is the way to move them.
 - It does not add coverage. A pair still negotiates one draft per run.
 
+## Confined Per-Draft Runs
+
+A pair that shares several drafts negotiates one per run, so the nightly shows
+it at one draft only. `run-interop-pinned.sh` runs every docker client × relay
+pair once per even draft both sides register, confining each side where its
+registration says how:
+
+- **`confine.images`:** a separate image per draft;
+- **a single registered draft:** the image is already confined;
+- **`confine.env` / `confine.args`:** rendered with `${MOQT_DRAFT}` (`draft-NN`)
+  and `${MOQT_DRAFT_NUM}` (`NN`) into a compose override for that run.
+
+A side with none of these runs as registered. Pairs are never dropped: each
+run records `confined` (`both`, `client`, `relay` or `none`), and a pinned relay
+leaves an unconfinable client one draft to negotiate. The client's reported
+version checks each run: **verified** when it matches the pinned draft,
+**mismatch** when it doesn't, **unreported** when the client reports nothing.
+
+The docker matrix uses these runs when present; open relays still come from
+the nightly. The preview workflow runs them per relay on the `vpm-real` label
+or a `run_pinned` dispatch and stores them for later renders.
+
 ## Next Steps
 
-- **Per-draft runs.** Constrain one side of a pair to a single draft (a pinned
-  image, or a flag such as `DRAFT`) so pairs that share several drafts are
-  tested at each of them, sharded by draft like the nightly is sharded by relay.
 - **More suites.** A suites registry (pinned version, adapter image, ID
   namespace, topology) so existing suites run unmodified: the moq-test
   conformance suite (76 cases), and publisher conformance from

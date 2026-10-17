@@ -96,6 +96,37 @@
           "items": {
             "$ref": "#/definitions/remote_endpoint"
           }
+        },
+        "confine": {
+          "$ref": "#/definitions/confine_config"
+        }
+      },
+      "additionalProperties": false
+    },
+    "confine_config": {
+      "type": "object",
+      "description": "How to confine this role's docker image to one draft for a per-draft run (run-interop-pinned.sh). Values may use ${MOQT_DRAFT} (draft-NN) and ${MOQT_DRAFT_NUM} (NN). A role registered for a single draft needs no confine block.",
+      "properties": {
+        "env": {
+          "type": "object",
+          "description": "Environment variables to set, e.g. {\"DRAFT\": \"${MOQT_DRAFT_NUM}\"}",
+          "additionalProperties": { "type": "string" }
+        },
+        "args": {
+          "type": "array",
+          "description": "Arguments passed to the image's entrypoint, e.g. [\"--draft\", \"${MOQT_DRAFT_NUM}\"]",
+          "items": { "type": "string" }
+        },
+        "images": {
+          "type": "object",
+          "description": "A separate image per draft, keyed draft-NN",
+          "propertyNames": { "pattern": "^draft-[0-9]+$" },
+          "additionalProperties": { "type": "string" }
+        },
+        "drafts": {
+          "type": "array",
+          "description": "Drafts this role can be confined to, when fewer than draft_versions",
+          "items": { "type": "string", "pattern": "^draft-[0-9]+$" }
         }
       },
       "additionalProperties": false

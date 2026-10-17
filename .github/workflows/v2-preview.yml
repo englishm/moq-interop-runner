@@ -1,15 +1,25 @@
 name: Per-draft view preview
 
-# Renders the per-draft view (report/v2) from the newest published nightly
-# results. Same-repo PRs publish it to gh-pages previews/pr-<N>/ and keep one
-# link comment up to date; fork PRs get an artifact. Runs no tests.
+# Renders the per-draft view (report/v2): open relays from the newest published
+# nightly, docker pairs from confined per-draft runs (run-interop-pinned.sh).
+# The confined runs execute only on the vpm-real label or a run_pinned dispatch;
+# other renders reuse the stored ones in previews/<slug>/pinned/. Same-repo PRs
+# publish to gh-pages previews/<slug>/ with one link comment; forks get an artifact.
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - 'report/v2/**'
+      - 'run-interop-pinned.sh'
+      - 'implementations.json'
       - '.github/workflows/v2-preview.yml'
   workflow_dispatch:
+    inputs:
+      run_pinned:
+        description: 'Run the confined per-draft docker runs before rendering'
+        type: boolean
+        default: false
   schedule:
     - cron: '0 3 * * 0'  # weekly: prune stale previews
 
@@ -21,8 +31,73 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  pinned-plan:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.run_pinned) ||
+      (github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'vpm-real')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      relays: ${{ steps.relays.outputs.relays }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: List docker relays
+        id: relays
+        run: |
+          echo "relays=$(jq -c '[.implementations | to_entries[] | select(.value.roles.relay.docker.image?) | .key]' implementations.json)" >> "$GITHUB_OUTPUT"
+
+  pinned:
+    needs: pinned-plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        relay: ${{ fromJSON(needs.pinned-plan.outputs.relays) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pull images
+        env:
+          RELAY: ${{ matrix.relay }}
+        run: |
+          # Every client image and per-draft client image, plus this relay's.
+          jq -r --arg relay "$RELAY" '
+            [.implementations[].roles.client | select(.) | .docker.image?, (.confine.images? // {} | .[])]
+            + [.implementations[$relay].roles.relay | .docker.image?, (.confine.images? // {} | .[])]
+            | .[] | select(. != null)' implementations.json \
+            | grep '^ghcr.io/' | sort -u \
+            | while read -r image; do docker pull -q "$image" || echo "WARNING: failed to pull $image"; done
+
+      - name: Build this relay's adapter
+        continue-on-error: true
+        env:
+          RELAY: ${{ matrix.relay }}
+        run: |
+          jq -r --arg relay "$RELAY" '.implementations[$relay].roles.relay.docker
+            | select(.build.dockerfile? // "" | startswith("adapters/"))
+            | "\(.image)|\(.build.dockerfile)|\(.build.context)"' implementations.json \
+            | while IFS='|' read -r image dockerfile context; do
+                docker build -t "$image" -f "$dockerfile" "$context"
+              done
+
+      - name: Generate TLS certificates
+        run: ./generate-certs.sh ./certs
+
+      - name: Run confined per-draft pairs
+        run: ./run-interop-pinned.sh --relay "${{ matrix.relay }}"
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinned-${{ matrix.relay }}
+          path: results
+          retention-days: 14
+
   render:
-    if: github.event_name != 'schedule'
+    needs: pinned
+    if: always() && github.event_name != 'schedule' && needs.pinned.result != 'cancelled'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -53,6 +128,13 @@ jobs:
             results/${{ steps.latest.outputs.dir }}
             previews
 
+      - name: Download confined runs
+        if: needs.pinned.result == 'success' || needs.pinned.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pinned-*
+          path: pinned-shards
+
       - name: Render
         id: render
         run: |
@@ -62,9 +144,20 @@ jobs:
             slug="per-draft-view"
           fi
           out="gh-pages-site/previews/$slug"
-          rm -rf "$out"  # replace the whole preview, dropping files a render no longer writes
+          mkdir -p "$out"
+          # Replace the rendered files; keep stored confined runs unless new ones arrived.
+          find "$out" -mindepth 1 -maxdepth 1 ! -name pinned -exec rm -rf {} +
+          if [ -d pinned-shards ]; then
+            rm -rf "$out/pinned" && mkdir -p "$out/pinned"
+            mapfile -t shards < <(find pinned-shards -name summary.json -printf '%h\n' | sort)
+            for d in "${shards[@]}"; do find "$d" -maxdepth 1 -name '*.log' -exec cp {} "$out/pinned/" \; ; done
+            jq -s '{runs: [.[].runs[]], pinned: true, drafts: ([.[].drafts[]] | unique | reverse),
+                    timestamp: (map(.timestamp) | min)}' "${shards[@]/%//summary.json}" > "$out/pinned/summary.json"
+          fi
+          pinned_args=()
+          [ -f "$out/pinned/summary.json" ] && pinned_args=(--pinned "$out/pinned")
           python3 main/report/v2/generate.py "gh-pages-site/results/${{ steps.latest.outputs.dir }}" \
-            --out "$out" --config main/implementations.json \
+            "${pinned_args[@]}" --out "$out" --config main/implementations.json \
             --log-base "../../results/${{ steps.latest.outputs.dir }}"
           echo "slug=$slug" >> "$GITHUB_OUTPUT"
 

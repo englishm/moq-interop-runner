@@ -110,7 +110,9 @@ table.matrix td.empty { color: var(--line); text-align: center; }
 .pill.fail { background: var(--fail-bg); color: var(--fail); }
 .pill.partial { background: var(--partial-bg); color: var(--partial); }
 .pill.skip, .pill.none { background: var(--skip-bg); color: var(--skip); }
-.pill.predicted { font-style: italic; opacity: 0.7; }
+.pill.predicted, .pill.unreported { font-style: italic; opacity: 0.7; }
+.pill.mismatch { outline: 2px solid var(--fail); outline-offset: -1px; }
+.pill .g { font-size: 0.85em; }
 .legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: var(--step--1); color: var(--muted); align-items: center; }
 .panel { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 1rem; display: grid; gap: 0.75rem; min-width: 0; }
 .panel h2 { margin: 0; font-size: var(--step-1); text-wrap: balance; }
@@ -151,7 +153,15 @@ const TLABEL = { quic: "QUIC", webtransport: "WT" };
 // Docker runs are the controlled results; public endpoints are kept apart.
 const DOCKER = DATA.runs.filter(r => r.source === "docker");
 const REMOTE = DATA.runs.filter(r => r.source === "remote");
-const draftsOf = runs => [...new Set(runs.map(r => r.draft).filter(d => d != null))].sort((a, b) => b - a);
+// Drafts newest first, then other protocols (e.g. moq-lite) by name.
+const draftsOf = runs => [...new Set(runs.map(r => r.draft).filter(d => d != null))]
+  .sort((a, b) => (typeof a === "number" && typeof b === "number") ? b - a
+    : typeof a === "number" ? -1 : typeof b === "number" ? 1 : String(a).localeCompare(String(b)));
+const draftLabel = d => typeof d === "number" ? `draft-${d}` : d;
+const parseDraft = v => /^\d+$/.test(v) ? +v : v;
+const PINNED = DATA.runs.some(r => r.basis === "pinned");
+const PIN_GLYPH = { both: "●", client: "◐", relay: "◑", none: "○" };
+const PIN_TEXT = { both: "client and relay pinned", client: "client pinned", relay: "relay pinned", none: "neither side can be pinned" };
 const DOCKER_DRAFTS = draftsOf(DOCKER);
 const REMOTE_DRAFTS = draftsOf(REMOTE);
 const state = { view: "draft", draft: DOCKER_DRAFTS[0] ?? null, openDraft: REMOTE_DRAFTS[0] ?? null, pick: null };
@@ -180,9 +190,17 @@ function score(run) {
   return { pass, fail, skip, cls, text: run.status === "skip" ? "skip" : (run.tests.length ? `${pass}/${pass + fail}` : run.status) };
 }
 function endpointLabel(run) {
-  return `${run.source === "remote" ? "remote" : "docker"} · ${TLABEL[run.transport] || run.transport}`;
+  const base = `${run.source === "remote" ? "remote" : "docker"} · ${TLABEL[run.transport] || run.transport}`;
+  return run.basis === "pinned" ? `${base} · ${PIN_TEXT[run.confined]}` : base;
 }
 function versionText(run) {
+  if (run.basis === "pinned") {
+    const got = run.negotiated.map(d => "moqt-" + d).concat(run.other_protocols || []).join(", ");
+    return run.pin_check === "verified" ? `pinned draft-${run.draft} · reported ${got}`
+      : run.pin_check === "mismatch" ? `pinned draft-${run.draft} · reported ${got} (confinement failed)`
+      : `pinned draft-${run.draft} · not reported`;
+  }
+  if (run.other_protocols && run.other_protocols.length && !run.negotiated.length) return run.other_protocols.join(", ");
   if (run.negotiated.length) {
     const v = run.negotiated.map(d => "moqt-" + d).join(", ");
     return run.predicted && !run.negotiated.includes(run.predicted) ? `${v} (predicted draft-${run.predicted})` : v;
@@ -191,17 +209,27 @@ function versionText(run) {
 }
 function pill(run) {
   const s = score(run);
-  const title = `${endpointLabel(run)} · ${s.text}${s.skip ? ` (+${s.skip} skipped)` : ""} · ${versionText(run)}`;
-  return h("span", { class: `pill ${s.cls} ${run.basis === "predicted" ? "predicted" : ""}`, title },
+  const pin = run.basis === "pinned" ? `${PIN_TEXT[run.confined]} · ` : "";
+  const title = `${endpointLabel(run)} · ${pin}${s.text}${s.skip ? ` (+${s.skip} skipped)` : ""} · ${versionText(run)}`;
+  const state = run.basis === "pinned" ? (run.pin_check === "verified" ? "" : run.pin_check) : (run.basis === "predicted" ? "predicted" : "");
+  return h("span", { class: `pill ${s.cls} ${state}`, title },
+    run.basis === "pinned" ? h("span", { class: "g", "aria-hidden": "true" }, PIN_GLYPH[run.confined]) : null,
     h("span", { class: "t" }, run.transport === "quic" ? "Q" : "W"), s.text);
 }
-function legend() {
-  const sample = (cls, extra, t, txt) => h("span", { class: `pill ${cls} ${extra}` }, h("span", { class: "t" }, t), txt);
-  return h("div", { class: "legend" },
-    sample("pass", "", "Q", "8/8"), "native QUIC",
-    sample("pass", "", "W", "6/6"), "WebTransport",
-    sample("pass", "predicted", "W", "6/6"), "draft predicted, not reported (italic)",
-    h("span", {}, "Counts are passed / (passed + failed); skips in the tooltip."));
+function legend(pinned) {
+  const sample = (cls, extra, t, txt, g) => h("span", { class: `pill ${cls} ${extra}` },
+    g ? h("span", { class: "g" }, g) : null, h("span", { class: "t" }, t), txt);
+  const items = [sample("pass", "", "Q", "8/8"), "native QUIC", sample("pass", "", "W", "6/6"), "WebTransport"];
+  if (pinned) items.push(
+    sample("pass", "", "Q", "8/8", PIN_GLYPH.both), "both pinned",
+    sample("pass", "", "Q", "8/8", PIN_GLYPH.client), "client pinned",
+    sample("pass", "", "Q", "8/8", PIN_GLYPH.relay), "relay pinned",
+    sample("pass", "", "Q", "8/8", PIN_GLYPH.none), "neither can be pinned",
+    sample("pass", "unreported", "Q", "8/8"), "client didn't report its version (italic)",
+    sample("fail", "mismatch", "Q", "0/8"), "client reported another version");
+  else items.push(sample("pass", "predicted", "W", "6/6"), "draft predicted, not reported (italic)");
+  items.push(h("span", {}, "Counts are passed / (passed + failed); skips in the tooltip."));
+  return h("div", { class: "legend" }, items);
 }
 function byKey(list, key) {
   const m = new Map();
@@ -247,8 +275,8 @@ function sortRuns(runs) {
 function matrixPage(runsAll, drafts, key, intro, cornerLabel) {
   const d = state[key];
   const at = runsAll.filter(r => r.draft === d);
-  const select = h("select", { id: `${key}-select`, onchange: e => { state[key] = +e.target.value; state.pick = null; render(); } },
-    drafts.map(x => h("option", { value: x, selected: x === d }, `draft-${x} · ${runsAll.filter(r => r.draft === x).length} runs`)));
+  const select = h("select", { id: `${key}-select`, onchange: e => { state[key] = parseDraft(e.target.value); state.pick = null; render(); } },
+    drafts.map(x => h("option", { value: x, selected: x === d }, `${draftLabel(x)} · ${runsAll.filter(r => r.draft === x).length} runs`)));
   const clients = [...new Set(at.map(r => r.client))].sort();
   const relays = [...new Set(at.map(r => r.relay))].sort();
   const cells = byKey(at, r => `${r.client}|${r.relay}`);
@@ -263,17 +291,20 @@ function matrixPage(runsAll, drafts, key, intro, cornerLabel) {
       h("span", {}, h("b", {}, at.length), "runs"),
       h("span", {}, h("b", {}, cells.size), "client–relay pairs"),
       h("span", {}, h("b", {}, tests.length ? Math.round(100 * passed / tests.length) + "%" : "–"), "of test results pass"),
-      h("span", {}, h("b", {}, at.length ? Math.round(100 * negotiated / at.length) + "%" : "–"), "placed by reported version")),
-    legend(),
+      runsAll.some(r => r.basis === "pinned")
+        ? h("span", {}, h("b", {}, at.length ? Math.round(100 * at.filter(r => r.pin_check === "verified").length / at.length) + "%" : "–"), "verified by the client's report")
+        : h("span", {}, h("b", {}, at.length ? Math.round(100 * negotiated / at.length) + "%" : "–"), "placed by reported version")),
+    legend(runsAll.some(r => r.basis === "pinned")),
     matrix(clients, relays, (c, r) => sortRuns(cells.get(`${c}|${r}`) || []),
       (k, c, r, runs) => { state.pick = { key: k, view: state.view, draft: d, title: [c, r], runs }; render(); document.getElementById("drill")?.scrollIntoView({ block: "nearest" }); },
       drill?.key, cornerLabel),
-    drill ? drillPanel(h("span", {}, h("code", {}, drill.title[0]), " → ", h("code", {}, drill.title[1]), ` at draft-${d}`), drill.runs) : null);
+    drill ? drillPanel(h("span", {}, h("code", {}, drill.title[0]), " → ", h("code", {}, drill.title[1]), ` at ${draftLabel(d)}`), drill.runs) : null);
 }
 
 function renderDraft() {
-  matrixPage(DOCKER, DOCKER_DRAFTS, "draft",
-    "Docker runs only: the relay runs in a container beside the client, so every result here comes from a controlled run. Each run sits at the MoQT draft its client reported negotiating; clients that report nothing are placed at the runner's prediction, shown in italics. Public endpoints are under Open relays.",
+  matrixPage(DOCKER, DOCKER_DRAFTS, "draft", PINNED
+    ? "Docker runs only, each pair run once per draft both sides register. Each side is pinned to the draft where its registration says how; a side that can't be pinned runs as registered and the pill shows it. The client's own report of the version it negotiated confirms each run. Public endpoints are under Open relays."
+    : "Docker runs only: the relay runs in a container beside the client, so every result here comes from a controlled run. Each run sits at the MoQT draft its client reported negotiating; clients that report nothing are placed at the runner's prediction, shown in italics. Public endpoints are under Open relays.",
     "client ↓  relay →");
 }
 
@@ -296,7 +327,8 @@ for (const t of document.querySelectorAll(".tab")) t.addEventListener("click", (
 const initial = (location.hash || "").slice(1);
 if (["draft", "open"].includes(initial)) state.view = initial;
 document.getElementById("runinfo").textContent =
-  `run ${DATA.run.id} · ${DOCKER.length} docker runs · ${REMOTE.length} open-relay runs`;
+  (DATA.pinned ? `pinned ${DATA.pinned.id} · ${DOCKER.length} docker runs · ` : `run ${DATA.run.id} · ${DOCKER.length} docker runs · `)
+  + `${REMOTE.length} open-relay runs (${DATA.run.id})`;
 render();
 </script>
 <!--/body-->

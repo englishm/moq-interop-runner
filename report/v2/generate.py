@@ -2,15 +2,19 @@
 """Render the per-draft interop view from a run-interop-tests.sh results dir.
 
 Usage:
-  report/v2/generate.py RESULTS_DIR [--out DIR] [--config implementations.json]
-                        [--log-base URL] [--fragment]
+  report/v2/generate.py RESULTS_DIR [--pinned PINNED_DIR] [--out DIR]
+                        [--config implementations.json] [--log-base URL]
+                        [--pinned-log-base URL] [--fragment]
 
 Reads RESULTS_DIR/summary.json and the per-run TAP logs, and writes
-DIR/index.html (self-contained) and DIR/data.json. Each run is placed at the
-MoQT draft its client reported negotiating (TAP YAML sessions.*.moqt_version, or
-the legacy negotiated_version: draft-NN), else at the runner's prediction,
-marked as predicted. --log-base prefixes log links (default: the results dir,
-relative to DIR). --fragment omits the document wrapper (<html>, <head>, <body>).
+DIR/index.html (self-contained) and DIR/data.json. An unpinned run is placed at
+the MoQT draft its client reported negotiating (TAP YAML sessions.*.moqt_version,
+or the legacy negotiated_version: draft-NN / negotiated: moq-transport-NN), else
+at the runner's prediction, marked as predicted. With --pinned, docker runs come
+from run-interop-pinned.sh results: each sits at its pinned draft and is checked
+against the version its client reported. Open-relay runs always come from
+RESULTS_DIR. --log-base / --pinned-log-base prefix log links (default: each
+results dir relative to DIR). --fragment omits the <html>, <head> and <body>.
 """
 
 import argparse
@@ -30,6 +34,8 @@ TEST_RE = re.compile(
     r"(?:\s+#\s*(SKIP|TODO)\b\s*(.*))?$", re.IGNORECASE)
 MOQT_VERSION_RE = re.compile(r"^\s*moqt_version:\s*\"?moqt-(\d+)\"?\s*$")
 LEGACY_VERSION_RE = re.compile(r"^\s*negotiated_version:\s*\"?draft-(\d+)\"?\s*$")
+MOQ_DEV_VERSION_RE = re.compile(r"^\s*negotiated:\s*\"?moq-transport-(\d+)\"?\s*$")
+OTHER_PROTOCOL_RE = re.compile(r"^\s*negotiated:\s*\"?(moq-lite-[0-9a-z]+)\"?\s*$")
 MESSAGE_RE = re.compile(r"^\s*(?:message|error):\s*(.*)$")
 
 
@@ -50,8 +56,8 @@ def client_lines(path):
 
 
 def parse_log(path, aliases):
-    """Return (tests, negotiated_drafts) from one run's TAP output."""
-    tests, negotiated = [], set()
+    """Return (tests, negotiated_drafts, other_protocols) from one run's TAP output."""
+    tests, negotiated, other = [], set(), set()
     current, in_yaml = None, False
     for line in client_lines(path):
         stripped = line.strip()
@@ -61,7 +67,10 @@ def parse_log(path, aliases):
             if stripped == "...":
                 in_yaml = False
                 continue
-            for rx in (MOQT_VERSION_RE, LEGACY_VERSION_RE):
+            m = OTHER_PROTOCOL_RE.match(line)
+            if m:
+                other.add(m.group(1))
+            for rx in (MOQT_VERSION_RE, LEGACY_VERSION_RE, MOQ_DEV_VERSION_RE):
                 m = rx.match(line)
                 if m:
                     d = int(m.group(1))
@@ -95,7 +104,7 @@ def parse_log(path, aliases):
         if directive == "SKIP" and m.group(4):
             current["message"] = m.group(4).strip()[:300]
         tests.append(current)
-    return tests, sorted(negotiated, reverse=True)
+    return tests, sorted(negotiated, reverse=True), sorted(other)
 
 
 def draft_num(version):
@@ -103,18 +112,65 @@ def draft_num(version):
     return int(m.group(1)) if m else None
 
 
-def run_transport(mode, relay, config):
+def run_transport(mode, relay, config, target=""):
     if mode.startswith("remote-") or mode.startswith("docker-"):
         t = mode.split("-", 1)[1]
         return t.replace("-skip", "")
-    url = (config.get(relay, {}).get("roles", {}).get("relay", {})
-           .get("docker", {}).get("url") or "https://relay:4443")
+    url = target if "://" in target else (
+        config.get(relay, {}).get("roles", {}).get("relay", {})
+        .get("docker", {}).get("url") or "https://relay:4443")
     return "quic" if url.startswith("moqt://") else "webtransport"
 
 
-def build_model(results_dir, config_path, log_base):
+def make_run(r, results_dir, log_base, registry, aliases):
+    mode = r.get("mode", "")
+    log = f"{r['client']}_to_{r['relay']}_{mode}.log"
+    tests, negotiated, other = [], [], []
+    if r.get("status") != "skip":
+        tests, negotiated, other = parse_log(os.path.join(results_dir, log), aliases)
+    predicted = draft_num(r.get("version"))
+    pinned = r.get("pinned_draft")
+    run = {
+        "client": r["client"],
+        "relay": r["relay"],
+        "mode": mode,
+        "source": "remote" if mode.startswith("remote") else "docker",
+        "transport": run_transport(mode, r["relay"], registry, r.get("target", "")),
+        "target": r.get("target", ""),
+        "status": r.get("status", ""),
+        "predicted": predicted,
+        "negotiated": negotiated,
+        "other_protocols": other,
+        "log": (log_base.rstrip("/") + "/" + log) if r.get("status") != "skip" else "",
+        "skip_reason": r.get("skip_reason", ""),
+        "tests": tests,
+    }
+    if pinned is not None:
+        run.update({
+            "draft": pinned,
+            "basis": "pinned",
+            "confined": r.get("confined", "none"),
+            "client_confine": r.get("client_confine", ""),
+            "relay_confine": r.get("relay_confine", ""),
+            "pin_check": ("mismatch" if other or (negotiated and negotiated != [pinned])
+                          else "verified" if negotiated else "unreported"),
+        })
+    elif negotiated:
+        run.update({"draft": negotiated[0], "basis": "negotiated"})
+    elif other:
+        run.update({"draft": other[0], "basis": "negotiated"})
+    else:
+        run.update({"draft": predicted, "basis": "predicted"})
+    return run
+
+
+def load_summary(results_dir):
     with open(os.path.join(results_dir, "summary.json")) as f:
-        summary = json.load(f)
+        return json.load(f)
+
+
+def build_model(results_dir, config_path, log_base, pinned_dir=None, pinned_log_base=None):
+    summary = load_summary(results_dir)
     with open(config_path) as f:
         registry = json.load(f)["implementations"]
     with open(os.path.join(HERE, "aliases.json")) as f:
@@ -124,29 +180,14 @@ def build_model(results_dir, config_path, log_base):
 
     runs = []
     for r in summary.get("runs", []):
-        mode = r.get("mode", "")
-        log = f"{r['client']}_to_{r['relay']}_{mode}.log"
-        tests, negotiated = ([], [])
-        if r.get("status") != "skip":
-            tests, negotiated = parse_log(os.path.join(results_dir, log), aliases)
-        predicted = draft_num(r.get("version"))
-        draft = negotiated[0] if negotiated else predicted
-        runs.append({
-            "client": r["client"],
-            "relay": r["relay"],
-            "mode": mode,
-            "source": "remote" if mode.startswith("remote") else "docker",
-            "transport": run_transport(mode, r["relay"], registry),
-            "target": r.get("target", ""),
-            "status": r.get("status", ""),
-            "predicted": predicted,
-            "negotiated": negotiated,
-            "draft": draft,
-            "basis": "negotiated" if negotiated else "predicted",
-            "log": (log_base.rstrip("/") + "/" + log) if r.get("status") != "skip" else "",
-            "skip_reason": r.get("skip_reason", ""),
-            "tests": tests,
-        })
+        if pinned_dir and not r.get("mode", "").startswith("remote"):
+            continue  # docker runs come from the pinned results
+        runs.append(make_run(r, results_dir, log_base, registry, aliases))
+    pinned_summary = None
+    if pinned_dir:
+        pinned_summary = load_summary(pinned_dir)
+        for r in pinned_summary.get("runs", []):
+            runs.append(make_run(r, pinned_dir, pinned_log_base, registry, aliases))
 
     seen = []
     for run in runs:
@@ -169,7 +210,6 @@ def build_model(results_dir, config_path, log_base):
                          "status": e.get("status", "active")} for e in relay.get("remote", []) or []],
         }
 
-    drafts = sorted({run["draft"] for run in runs if run["draft"] is not None}, reverse=True)
     return {
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "run": {
@@ -177,7 +217,11 @@ def build_model(results_dir, config_path, log_base):
             "timestamp": summary.get("timestamp", ""),
             "target_version": summary.get("target_version", ""),
         },
-        "drafts": drafts,
+        "pinned": ({
+            "id": os.path.basename(os.path.normpath(pinned_dir)),
+            "timestamp": pinned_summary.get("timestamp", ""),
+            "drafts": pinned_summary.get("drafts", []),
+        } if pinned_dir else None),
         "test_ids": test_ids,
         "implementations": impls,
         "runs": runs,
@@ -203,20 +247,24 @@ def main():
     ap.add_argument("--out", default=None, help="output dir (default: RESULTS_DIR/v2)")
     ap.add_argument("--config", default=os.path.join(HERE, "..", "..", "implementations.json"))
     ap.add_argument("--log-base", default=None, help="URL prefix for log links")
+    ap.add_argument("--pinned", default=None, help="run-interop-pinned.sh results dir for docker runs")
+    ap.add_argument("--pinned-log-base", default=None, help="URL prefix for pinned log links")
     ap.add_argument("--fragment", action="store_true", help="omit <html>/<head>/<body>")
     args = ap.parse_args()
 
     out = args.out or os.path.join(args.results_dir, "v2")
     os.makedirs(out, exist_ok=True)
     log_base = args.log_base or os.path.relpath(args.results_dir, out)
-    model = build_model(args.results_dir, args.config, log_base)
+    pinned_log_base = args.pinned_log_base or (os.path.relpath(args.pinned, out) if args.pinned else None)
+    model = build_model(args.results_dir, args.config, log_base, args.pinned, pinned_log_base)
     with open(os.path.join(out, "data.json"), "w") as f:
         json.dump(model, f, indent=1)
     with open(os.path.join(out, "index.html"), "w", encoding="utf-8") as f:
         f.write(render(model, args.fragment))
     n_tests = sum(len(r["tests"]) for r in model["runs"])
-    print(f"v2: {len(model['runs'])} runs, {n_tests} test results, drafts "
-          f"{model['drafts']} -> {out}/index.html", file=sys.stderr)
+    pinned = sum(1 for r in model["runs"] if r["basis"] == "pinned")
+    print(f"v2: {len(model['runs'])} runs ({pinned} pinned), {n_tests} test results "
+          f"-> {out}/index.html", file=sys.stderr)
 
 
 if __name__ == "__main__":
