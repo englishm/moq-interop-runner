@@ -14,7 +14,7 @@
 
 SHELL := /bin/bash
 
-.PHONY: test test-verbose test-single test-external clean mlog-clean certs \
+.PHONY: test test-verbose test-single test-external test-safari clean mlog-clean certs \
         interop-all interop-docker interop-remote interop-relay interop-client interop-list \
         relay-start relay-stop logs logs-relay logs-client \
         build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report help _ensure-certs \
@@ -38,6 +38,9 @@ TLS_DISABLE_VERIFY ?= false
 # Optional extra args for `docker run` in test-external.
 # Example: EXTRA_DOCKER_RUN_ARGS="--add-host local.nokiaresearch.com:host-gateway"
 EXTRA_DOCKER_RUN_ARGS ?=
+# Optional client container memory ceiling (compose default: 256M).
+# Set from roles.client.docker.memory_limit by run-interop-tests.sh.
+CLIENT_MEMORY_LIMIT ?=
 
 # Track whether RELAY_URL was set by user (command line or environment)
 RELAY_URL_ORIGIN := $(origin RELAY_URL)
@@ -88,7 +91,7 @@ test: _ensure-certs mlog-clean
 	echo "  Relay:  $(RELAY_IMAGE)"; \
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
-	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
+	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) $(if $(CLIENT_MEMORY_LIMIT),CLIENT_MEMORY_LIMIT=$(CLIENT_MEMORY_LIMIT)) \
 		docker compose -f docker-compose.test.yml up --abort-on-container-exit
 	@echo ""
 	@echo "Test results in mlog/"
@@ -99,7 +102,7 @@ test-verbose: _ensure-certs mlog-clean
 	echo "  Relay:  $(RELAY_IMAGE)"; \
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
-	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) VERBOSE=1 \
+	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) $(if $(CLIENT_MEMORY_LIMIT),CLIENT_MEMORY_LIMIT=$(CLIENT_MEMORY_LIMIT)) VERBOSE=1 \
 		docker compose -f docker-compose.test.yml up --abort-on-container-exit
 
 # Run a specific test
@@ -109,7 +112,7 @@ test-single:
 	echo "  Relay:  $(RELAY_IMAGE)"; \
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
-	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
+	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) $(if $(CLIENT_MEMORY_LIMIT),CLIENT_MEMORY_LIMIT=$(CLIENT_MEMORY_LIMIT)) \
 		docker compose -f docker-compose.test.yml run --rm \
 		-e TESTCASE=$(TESTCASE) \
 		test-client
@@ -122,11 +125,25 @@ test-external:
 	docker run --rm \
 		$(EXTRA_DOCKER_RUN_ARGS) \
 		--network host \
+		$(if $(CLIENT_MEMORY_LIMIT),--memory $(CLIENT_MEMORY_LIMIT)) \
 		-e RELAY_URL=$(RELAY_URL) \
 		$(if $(TESTCASE),-e TESTCASE=$(TESTCASE)) \
 		$(if $(MOQ_CLIENT_VERSION),-e MOQ_CLIENT_VERSION=$(MOQ_CLIENT_VERSION)) \
 		-e TLS_DISABLE_VERIFY=$(TLS_DISABLE_VERIFY) \
 		$(CLIENT_IMAGE)
+
+# Run the Shaka Player client in the host's Safari (macOS). Defaults to a
+# local relay at https://localhost:4443; the makefile's RELAY_URL and
+# TLS_DISABLE_VERIFY defaults are only passed when set explicitly.
+test-safari: _ensure-certs
+	@$(if $(filter command line environment,$(RELAY_URL_ORIGIN)),RELAY_URL=$(RELAY_URL)) \
+	$(if $(filter command line environment,$(origin TLS_DISABLE_VERIFY)),TLS_DISABLE_VERIFY=$(TLS_DISABLE_VERIFY)) \
+	$(if $(PUBLISHER_RELAY_URL),PUBLISHER_RELAY_URL=$(PUBLISHER_RELAY_URL)) \
+	$(if $(PUBLISHER_NETWORK),PUBLISHER_NETWORK=$(PUBLISHER_NETWORK)) \
+	$(if $(MOQ_CLIENT_VERSION),MOQ_CLIENT_VERSION=$(MOQ_CLIENT_VERSION)) \
+	$(if $(TESTCASE),TESTCASE=$(TESTCASE)) \
+	$(if $(VERBOSE),VERBOSE=$(VERBOSE)) \
+		./builds/shaka-player/safari.sh
 
 # Start relay only (for manual testing)
 relay-start: _ensure-certs
@@ -290,6 +307,7 @@ help:
 	@echo "  test-verbose          Run tests with verbose output"
 	@echo "  test-single           Run single test: make test-single TESTCASE=setup-only"
 	@echo "  test-external         Test external relay: make test-external RELAY_URL=https://..."
+	@echo "  test-safari           Shaka Player in host Safari (macOS): make test-safari RELAY_URL=https://..."
 	@echo ""
 	@echo "Building Images:"
 	@echo "  build-adapters        Build all adapter images"
@@ -317,6 +335,7 @@ help:
 	@echo "Image Configuration:"
 	@echo "  RELAY_IMAGE           Relay Docker image (default: moq-relay-ietf:latest)"
 	@echo "  CLIENT_IMAGE          Test client Docker image (default: moq-test-client:latest)"
+	@echo "  CLIENT_MEMORY_LIMIT   Test client memory ceiling (default: 256M in compose)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make interop-remote                              # Test all public relays"
