@@ -135,7 +135,7 @@ def make_run(r, results_dir, log_base, registry, aliases):
         "relay": r["relay"],
         "mode": mode,
         "source": "remote" if mode.startswith("remote") else "docker",
-        "transport": run_transport(mode, r["relay"], registry, r.get("target", "")),
+        "transport": r.get("transport") or run_transport(mode, r["relay"], registry, r.get("target", "")),
         "target": r.get("target", ""),
         "status": r.get("status", ""),
         "predicted": predicted,

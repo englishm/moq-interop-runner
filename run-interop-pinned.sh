@@ -14,7 +14,7 @@
 # Usage:
 #   ./run-interop-pinned.sh [--draft N]... [--relay NAME] [--client NAME] [--dry-run]
 #
-# Results: results/pinned-<timestamp>/ with <client>_to_<relay>_d<N>.log and a
+# Results: results/pinned-<timestamp>/ with <client>_to_<relay>_d<N>-<transport>.log and a
 # summary.json whose runs carry pinned_draft and confined (both|client|relay|none).
 
 set -uo pipefail
@@ -76,8 +76,13 @@ side_config() {
         end' "$CONFIG_FILE"
 }
 
-relay_url() {
-    jq -r --arg impl "$1" '.implementations[$impl].roles.relay.docker.url // "https://relay:4443"' "$CONFIG_FILE"
+# transport|url per docker endpoint: docker.endpoints, else docker.url (or the
+# Makefile default), its transport taken from the scheme.
+relay_endpoints() {
+    jq -r --arg impl "$1" '.implementations[$impl].roles.relay.docker as $d |
+        if ($d.endpoints // [] | length) > 0 then $d.endpoints[] | "\(.transport)|\(.url)"
+        else ($d.url // "https://relay:4443") as $u
+            | "\(if ($u | startswith("moqt://")) then "quic" else "webtransport" end)|\($u)" end' "$CONFIG_FILE"
 }
 
 run_with_timeout() {
@@ -117,56 +122,57 @@ for d in "${DRAFTS[@]}"; do
                 falsetrue) confined=relay ;; *) confined=none ;;
             esac
             cimg=$(jq -r .image <<< "$cside"); rimg=$(jq -r .image <<< "$rside")
-            url=$(relay_url "$relay")
-            mode="d$d"; pinned="$d"
-            if [ "$confined" = none ]; then
-                [ -n "${UNCONFINED_DONE[$client|$relay|$cimg|$rimg]:-}" ] && continue
-                UNCONFINED_DONE[$client|$relay|$cimg|$rimg]=1
-                mode="unconfined"; pinned="null"
-            fi
-            echo "draft-$d  $client -> $relay  confined=$confined  ($cimg | $rimg)"
-            [ "$DRY_RUN" = true ] && continue
+            while IFS='|' read -r transport url; do
+                mode="d$d-$transport"; pinned="$d"
+                if [ "$confined" = none ]; then
+                    [ -n "${UNCONFINED_DONE[$client|$relay|$cimg|$rimg|$transport]:-}" ] && continue
+                    UNCONFINED_DONE[$client|$relay|$cimg|$rimg|$transport]=1
+                    mode="unconfined-$transport"; pinned="null"
+                fi
+                echo "draft-$d  $client -> $relay  confined=$confined  $transport  ($cimg | $rimg)"
+                [ "$DRY_RUN" = true ] && continue
 
-            TOTAL=$((TOTAL + 1))
-            log="$RESULTS_DIR/${client}_to_${relay}_${mode}.log"
-            status=pass; exit_code=0; skip_reason=""
-            for img in "$cimg" "$rimg"; do
-                if ! docker image inspect "$img" >/dev/null 2>&1; then
-                    status=skip; skip_reason="image unavailable: $img"
-                fi
-            done
-            if [ "$status" = skip ]; then
-                SKIPPED=$((SKIPPED + 1)); echo "  SKIP ($skip_reason)"
-            else
-                override="$RESULTS_DIR/.override-${client}_to_${relay}_${mode}.yml"
-                # Only a registration's own env/args go in; JSON is valid compose YAML.
-                jq -n --argjson c "$cside" --argjson r "$rside" '
-                    def svc($s): (if ($s.env | length) > 0 then {environment: $s.env} else {} end)
-                        + (if ($s.args | length) > 0 then {command: $s.args} else {} end);
-                    {services: ({"test-client": svc($c), relay: svc($r)} | with_entries(select(.value != {})))}' > "$override"
-                if run_with_timeout "${TEST_TIMEOUT:-120}" make test RELAY_IMAGE="$rimg" CLIENT_IMAGE="$cimg" \
-                        RELAY_URL="$url" COMPOSE_OVERRIDE="$override" > "$log" 2>&1; then
-                    PASSED=$((PASSED + 1)); echo "  PASS"
+                TOTAL=$((TOTAL + 1))
+                log="$RESULTS_DIR/${client}_to_${relay}_${mode}.log"
+                status=pass; exit_code=0; skip_reason=""
+                for img in "$cimg" "$rimg"; do
+                    if ! docker image inspect "$img" >/dev/null 2>&1; then
+                        status=skip; skip_reason="image unavailable: $img"
+                    fi
+                done
+                if [ "$status" = skip ]; then
+                    SKIPPED=$((SKIPPED + 1)); echo "  SKIP ($skip_reason)"
                 else
-                    exit_code=$?
-                    status=$([ "$exit_code" -eq 124 ] && echo timeout || echo fail)
-                    FAILED=$((FAILED + 1)); echo "  ${status^^} (exit $exit_code)"
+                    override="$RESULTS_DIR/.override-${client}_to_${relay}_${mode}.yml"
+                    # Only a registration's own env/args go in; JSON is valid compose YAML.
+                    jq -n --argjson c "$cside" --argjson r "$rside" '
+                        def svc($s): (if ($s.env | length) > 0 then {environment: $s.env} else {} end)
+                            + (if ($s.args | length) > 0 then {command: $s.args} else {} end);
+                        {services: ({"test-client": svc($c), relay: svc($r)} | with_entries(select(.value != {})))}' > "$override"
+                    if run_with_timeout "${TEST_TIMEOUT:-120}" make test RELAY_IMAGE="$rimg" CLIENT_IMAGE="$cimg" \
+                            RELAY_URL="$url" COMPOSE_OVERRIDE="$override" > "$log" 2>&1 < /dev/null; then
+                        PASSED=$((PASSED + 1)); echo "  PASS"
+                    else
+                        exit_code=$?
+                        status=$([ "$exit_code" -eq 124 ] && echo timeout || echo fail)
+                        FAILED=$((FAILED + 1)); echo "  ${status^^} (exit $exit_code)"
+                    fi
+                    rm -f "$override"
                 fi
-                rm -f "$override"
-            fi
-            tmp=$(mktemp "$SUMMARY_FILE.XXXXXX")
-            jq --arg client "$client" --arg relay "$relay" --argjson d "$d" --argjson pinned "$pinned" \
-               --arg mode "$mode" --arg confined "$confined" \
-               --arg cmethod "$(jq -r .method <<< "$cside")" --arg rmethod "$(jq -r .method <<< "$rside")" \
-               --arg cimg "$cimg" --arg rimg "$rimg" --arg url "$url" --arg status "$status" \
-               --argjson exit_code "$exit_code" --arg skip_reason "$skip_reason" '
-                .runs += [{client: $client, relay: $relay, mode: $mode, version: "draft-\($d)",
-                           confined: $confined, client_confine: $cmethod, relay_confine: $rmethod,
-                           client_image: $cimg, relay_image: $rimg,
-                           target: $url, status: $status, exit_code: $exit_code}
-                          + (if $pinned != null then {pinned_draft: $pinned} else {} end)
-                          + (if $skip_reason != "" then {skip_reason: $skip_reason} else {} end)]' \
-               "$SUMMARY_FILE" > "$tmp" && mv "$tmp" "$SUMMARY_FILE"
+                tmp=$(mktemp "$SUMMARY_FILE.XXXXXX")
+                jq --arg client "$client" --arg relay "$relay" --argjson d "$d" --argjson pinned "$pinned" \
+                   --arg mode "$mode" --arg transport "$transport" --arg confined "$confined" \
+                   --arg cmethod "$(jq -r .method <<< "$cside")" --arg rmethod "$(jq -r .method <<< "$rside")" \
+                   --arg cimg "$cimg" --arg rimg "$rimg" --arg url "$url" --arg status "$status" \
+                   --argjson exit_code "$exit_code" --arg skip_reason "$skip_reason" '
+                    .runs += [{client: $client, relay: $relay, mode: $mode, transport: $transport, version: "draft-\($d)",
+                               confined: $confined, client_confine: $cmethod, relay_confine: $rmethod,
+                               client_image: $cimg, relay_image: $rimg,
+                               target: $url, status: $status, exit_code: $exit_code}
+                              + (if $pinned != null then {pinned_draft: $pinned} else {} end)
+                              + (if $skip_reason != "" then {skip_reason: $skip_reason} else {} end)]' \
+                   "$SUMMARY_FILE" > "$tmp" && mv "$tmp" "$SUMMARY_FILE"
+            done < <(relay_endpoints "$relay")
         done
     done
 done
