@@ -2,11 +2,12 @@
 # run-interop-pinned.sh - Run docker client x relay pairs confined to one draft.
 #
 # For each draft D, every docker client and docker relay that both register
-# draft-D run once with each side confined to D where its registration allows:
-# a per-draft image (confine.images), a single registered draft, or confine.env /
+# draft-D run once. The client is confined to D where its registration allows: a
+# per-draft image (confine.images), a single registered draft, or confine.env /
 # confine.args rendered with ${MOQT_DRAFT} (draft-NN) and ${MOQT_DRAFT_NUM} (NN).
-# A side that can't be confined runs as registered; the run records which sides
-# were confined. Pairs are never dropped for lack of confinement.
+# The relay's env/args confinement is applied only when the client can't be
+# confined, so a confined client meets a relay offering its full registered set.
+# Pairs are never dropped; each run records which sides were confined.
 #
 # Usage:
 #   ./run-interop-pinned.sh [--draft N]... [--relay NAME] [--client NAME] [--dry-run]
@@ -104,6 +105,9 @@ for d in "${DRAFTS[@]}"; do
             supports "$client" "$d" || continue
             cside=$(side_config "$client" client "$d")
             rside=$(side_config "$relay" relay "$d")
+            if [ "$(jq -r .confined <<< "$cside")" = true ] && [ "$(jq -r .method <<< "$rside")" = env/args ]; then
+                rside=$(jq -c '.confined = false | .method = "none" | .env = {} | .args = []' <<< "$rside")
+            fi
             cpin=$(jq -r .confined <<< "$cside"); rpin=$(jq -r .confined <<< "$rside")
             case "$cpin$rpin" in
                 truetrue) confined=both ;; truefalse) confined=client ;;

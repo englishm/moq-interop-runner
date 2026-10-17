@@ -52,8 +52,10 @@ Add a per-draft view, generated from the same results directory as the report
 
 A pair that shares several drafts negotiates one per run, so the nightly shows
 it at one draft only. `run-interop-pinned.sh` runs every docker client × relay
-pair once per even draft both sides register, confining each side where its
-registration says how:
+pair once per even draft both sides register. It confines the **client** where
+its registration says how, so a pass shows the client held the draft while the
+relay offered its full set; it confines the relay instead only when the client
+can't be. A side is confined by:
 
 - **`confine.images`:** a separate image per draft;
 - **a single registered draft:** the image is already confined;
@@ -61,8 +63,9 @@ registration says how:
   and `${MOQT_DRAFT_NUM}` (`NN`) into a compose override for that run.
 
 A side with none of these runs as registered. Pairs are never dropped: each
-run records `confined` (`both`, `client`, `relay` or `none`), and a pinned relay
-leaves an unconfinable client one draft to negotiate. The client's reported
+run records `confined` (`both`, `client`, `relay` or `none`); `both` means the
+relay only exists for that draft. A pinned relay leaves an unconfinable client
+one draft to negotiate. The client's reported
 version checks each run: **verified** when it matches the pinned draft,
 **mismatch** when it doesn't, **unreported** when the client reports nothing.
 
