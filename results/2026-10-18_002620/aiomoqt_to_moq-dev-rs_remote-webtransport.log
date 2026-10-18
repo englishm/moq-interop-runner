@@ -1,0 +1,62 @@
+make[1]: Entering directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
+Running tests against https://cdn.moq.dev/anon...
+  Client: ghcr.io/gmarzot/aiomoqt:0.12.0rc1
+docker run --rm \
+	 \
+	--network host \
+	-e RELAY_URL=https://cdn.moq.dev/anon \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:0.12.0rc1
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+2026-10-18 01:34:46.966 ERROR: MOQT error: control task failed with exception: WT session closed
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+  [PASS] subscribe-error: Error received (expected): code=16
+  [FAIL] rendezvous-timeout: REQUEST_ERROR code=0x10, expected TIMEOUT
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+2026-10-18 01:34:47.811 ERROR: MOQT error: control task failed with exception: WT session closed
+  [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=16
+Traceback (most recent call last):
+  File "/app/aiomoqt/protocol.py", line 3162, in stream_write_drain
+    await quic.send_stream_data_drained(
+  File "/usr/local/lib/python3.12/site-packages/aiopquic/asyncio/webtransport.py", line 480, in send_stream_data_drained
+    self.send_stream_data(stream_id, data,
+  File "/usr/local/lib/python3.12/site-packages/aiopquic/asyncio/webtransport.py", line 301, in send_stream_data
+    raise WebTransportError(
+aiopquic.asyncio.webtransport.WebTransportError: WT stream 18 not available (never opened, closed, or reset)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1674, in <module>
+    cli()
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1670, in cli
+    main()
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1652, in main
+    asyncio.run(
+  File "/usr/local/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1521, in run_tests
+    result = await fn(host, port, path, use_quic, tls_disable_verify,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1202, in test_data_subgroup_basic
+    sent = await pub.send(pub_session)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1035, in send
+    await session.stream_write_drain(stream_id, buf.data)
+  File "/app/aiomoqt/protocol.py", line 3170, in stream_write_drain
+    raise asyncio.CancelledError() from e
+asyncio.exceptions.CancelledError
+make[1]: *** [Makefile:122: test-external] Error 1
+make[1]: Leaving directory '/home/runner/work/moq-interop-runner/moq-interop-runner/main'
