@@ -117,6 +117,24 @@ ok 3 - publish-namespace-done # SKIP not implemented
 
 The harness counts skipped tests separately from passes and failures.
 
+### Draft Confinement
+
+For per-draft runs (`run-interop-pinned.sh`), a registration says how to
+confine its image to one draft. The runner renders `${MOQT_DRAFT}`
+(`draft-18`) and `${MOQT_DRAFT_NUM}` (`18`) into whatever the image reads:
+
+```json
+"client": {
+  "docker": { "image": "example-client:latest" },
+  "confine": { "env": { "EXAMPLE_VERSIONS": "${MOQT_DRAFT_NUM}" } }
+}
+```
+
+`confine.args` passes arguments to the entrypoint instead, and
+`confine.images` names a separate image per draft. A role registered for a
+single draft needs nothing. Report the version you negotiated in
+`sessions.*.moqt_version` so the runner can verify the confinement.
+
 ### YAML Diagnostics
 
 YAML diagnostic blocks after test points are OPTIONAL but encouraged, especially

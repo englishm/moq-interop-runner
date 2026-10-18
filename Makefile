@@ -35,6 +35,9 @@ CLIENT_IMAGE ?= moq-test-client:latest
 # For test-external (direct URL, not docker-compose)
 RELAY_URL ?= https://relay:4443
 TLS_DISABLE_VERIFY ?= false
+# Optional compose file layered over docker-compose.test.yml by `make test`
+# (per-run env, entrypoint args; see run-interop-pinned.sh).
+COMPOSE_OVERRIDE ?=
 # Optional extra args for `docker run` in test-external.
 # Example: EXTRA_DOCKER_RUN_ARGS="--add-host local.nokiaresearch.com:host-gateway"
 EXTRA_DOCKER_RUN_ARGS ?=
@@ -89,7 +92,7 @@ test: _ensure-certs mlog-clean
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
 	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
-		docker compose -f docker-compose.test.yml up --abort-on-container-exit
+		docker compose -f docker-compose.test.yml $(if $(COMPOSE_OVERRIDE),-f $(COMPOSE_OVERRIDE)) up --abort-on-container-exit
 	@echo ""
 	@echo "Test results in mlog/"
 

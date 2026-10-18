@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--head-->
+<title>MoQT Interop by Draft</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a bench readout. Sticky run header with the view switch, one dense
+   matrix per view, and a drill-down that opens under the matrix. */
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --sunken: #eceff4;
+  --fg: #18202b;
+  --muted: #5b6474;
+  --line: #d8dde5;
+  --accent: #2c56c9;
+  --accent-soft: #e4ebfb;
+  --pass: #1d7f47;
+  --pass-bg: #e2f3e9;
+  --fail: #b8352b;
+  --fail-bg: #fbe7e4;
+  --partial: #9a6412;
+  --partial-bg: #fbf0dc;
+  --skip: #7a8394;
+  --skip-bg: #eef0f3;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --step--1: 0.78rem;
+  --step-0: 0.9rem;
+  --step-1: 1.05rem;
+  --step-2: 1.4rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1116; --surface: #151a21; --sunken: #1b2129; --fg: #e4e8ee; --muted: #97a1b2;
+    --line: #2a313c; --accent: #86a4ff; --accent-soft: #1e2a47;
+    --pass: #4cc47e; --pass-bg: #12301f; --fail: #f07468; --fail-bg: #3a1714;
+    --partial: #e3aa47; --partial-bg: #3a2a10; --skip: #7d8798; --skip-bg: #1f252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1116; --surface: #151a21; --sunken: #1b2129; --fg: #e4e8ee; --muted: #97a1b2;
+  --line: #2a313c; --accent: #86a4ff; --accent-soft: #1e2a47;
+  --pass: #4cc47e; --pass-bg: #12301f; --fail: #f07468; --fail-bg: #3a1714;
+  --partial: #e3aa47; --partial-bg: #3a2a10; --skip: #7d8798; --skip-bg: #1f252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 400 var(--step-0)/1.45 var(--font-sans);
+}
+.wrap {
+  max-width: 1400px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0.75rem 3rem; display: grid; gap: 0.75rem;
+}
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; }
+.bar label { font-size: var(--step--1); color: var(--muted); }
+.bar .other { margin-left: auto; font-size: var(--step--1); }
+select {
+  font: 500 var(--step--1) var(--font-mono); color: var(--fg); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: 0.25rem 0.45rem;
+}
+select:focus-visible, .cellbtn:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+table.matrix th, table.matrix td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 0.3rem 0.4rem; vertical-align: top; }
+table.matrix thead th { background: var(--sunken); font: 500 var(--step--1) var(--font-mono); white-space: nowrap; text-align: left; }
+table.matrix tbody th { text-align: left; font: 500 var(--step--1) var(--font-mono); white-space: nowrap; background: var(--surface); position: sticky; left: 0; }
+table.matrix td.empty { color: var(--line); text-align: center; }
+.corner { color: var(--muted); font-family: var(--font-sans) !important; font-weight: 400 !important; }
+.cellbtn { display: flex; flex-wrap: nowrap; gap: 3px; background: none; border: 0; padding: 0; cursor: pointer; }
+.cellbtn[aria-expanded="true"] { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.pill {
+  display: inline-flex; align-items: baseline; gap: 0.3em; border-radius: 4px; padding: 0.05rem 0.35rem;
+  font: 500 0.72rem var(--font-mono); white-space: nowrap;
+}
+.pill .t { font-weight: 600; }
+.pill .g { font-size: 0.85em; }
+.pill.pass { background: var(--pass-bg); color: var(--pass); }
+.pill.fail { background: var(--fail-bg); color: var(--fail); }
+.pill.partial { background: var(--partial-bg); color: var(--partial); }
+.pill.skip, .pill.none { background: var(--skip-bg); color: var(--skip); }
+.pill.predicted, .pill.unreported { font-style: italic; opacity: 0.7; }
+.pill.mismatch { outline: 2px solid var(--fail); outline-offset: -1px; }
+.panel { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 0.9rem; display: grid; gap: 0.6rem; min-width: 0; }
+.panel h2 { margin: 0; font-size: var(--step-1); text-wrap: balance; }
+.panel h2 code { font-family: var(--font-mono); font-size: 0.95em; }
+table.tests { font-size: var(--step--1); }
+table.tests th, table.tests td { border-bottom: 1px solid var(--line); padding: 0.3rem 0.55rem; text-align: left; vertical-align: top; }
+table.tests thead th { font-weight: 500; background: var(--sunken); white-space: nowrap; }
+table.tests td.id, table.tests th.id { font-family: var(--font-mono); white-space: nowrap; }
+.mark { font: 600 var(--step--1) var(--font-mono); }
+.mark.pass { color: var(--pass); } .mark.fail { color: var(--fail); } .mark.skip { color: var(--skip); }
+.sub { display: block; color: var(--muted); font-weight: 400; font-family: var(--font-mono); font-size: 0.72rem; }
+a { color: var(--accent); }
+details.key { font-size: var(--step--1); color: var(--muted); }
+details.key summary { cursor: pointer; width: fit-content; }
+details.key .legend { display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; align-items: center; margin-top: 0.5rem; }
+details.key p { margin: 0.5rem 0 0; max-width: 75ch; }
+.note { font-size: var(--step--1); color: var(--muted); margin: 0; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+<!--/head-->
+</head>
+<body>
+<!--body-->
+<main><div class="wrap" id="view"></div></main>
+<script>
+const DATA = /*__DATA__*/null;
+const PAGE = /*__PAGE__*/"docker";
+const view = document.getElementById("view");
+const TLABEL = { quic: "QUIC", webtransport: "WT" };
+const RUNS = DATA.runs.filter(r => r.source === (PAGE === "open" ? "remote" : "docker"));
+// Drafts newest first, then other protocols (e.g. moq-lite) by name.
+const draftsOf = runs => [...new Set(runs.map(r => r.draft).filter(d => d != null))]
+  .sort((a, b) => (typeof a === "number" && typeof b === "number") ? b - a
+    : typeof a === "number" ? -1 : typeof b === "number" ? 1 : String(a).localeCompare(String(b)));
+const DRAFTS = draftsOf(RUNS);
+const draftLabel = d => typeof d === "number" ? `draft-${d}` : d;
+const parseDraft = v => /^\d+$/.test(v) ? +v : v;
+const PINNED = RUNS.some(r => r.basis === "pinned");
+const PIN_GLYPH = { both: "●", client: "◐", relay: "◑", none: "○" };
+const PIN_TEXT = { both: "client and relay pinned", client: "client pinned", relay: "relay pinned", none: "neither side can be pinned" };
+const state = { draft: DRAFTS[0] ?? null, pick: null };
+
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid instanceof Node ? kid : String(kid));
+  return el;
+}
+function score(run) {
+  const pass = run.tests.filter(t => t.status === "pass").length;
+  const fail = run.tests.filter(t => t.status === "fail").length;
+  const skip = run.tests.filter(t => t.status === "skip").length;
+  let cls;
+  if (run.status === "skip") cls = "skip";
+  else if (!run.tests.length) cls = run.status === "pass" ? "pass" : "fail";
+  else if (!fail) cls = "pass";
+  else if (!pass) cls = "fail";
+  else cls = "partial";
+  return { pass, fail, skip, cls, text: run.status === "skip" ? "skip" : (run.tests.length ? `${pass}/${pass + fail}` : run.status) };
+}
+function endpointLabel(run) {
+  const base = `${run.source === "remote" ? "remote" : "docker"} · ${TLABEL[run.transport] || run.transport}`;
+  return run.confined ? `${base} · ${PIN_TEXT[run.confined]}` : base;
+}
+function versionText(run) {
+  if (run.basis === "pinned") {
+    const got = run.negotiated.map(d => "moqt-" + d).concat(run.other_protocols || []).join(", ");
+    return run.pin_check === "verified" ? `pinned draft-${run.draft} · reported ${got}`
+      : run.pin_check === "mismatch" ? `pinned draft-${run.draft} · reported ${got} (confinement failed)`
+      : `pinned draft-${run.draft} · not reported`;
+  }
+  if (run.other_protocols && run.other_protocols.length && !run.negotiated.length) return run.other_protocols.join(", ");
+  if (run.negotiated.length) {
+    const v = run.negotiated.map(d => "moqt-" + d).join(", ");
+    return run.predicted && !run.negotiated.includes(run.predicted) ? `${v} (predicted draft-${run.predicted})` : v;
+  }
+  return run.predicted ? `predicted draft-${run.predicted}` : "unknown";
+}
+function pill(run) {
+  const s = score(run);
+  const title = `${endpointLabel(run)} · ${s.text}${s.skip ? ` (+${s.skip} skipped)` : ""} · ${versionText(run)}`;
+  const st = run.basis === "pinned" ? (run.pin_check === "verified" ? "" : run.pin_check) : (run.basis === "predicted" ? "predicted" : "");
+  return h("span", { class: `pill ${s.cls} ${st}`, title },
+    run.confined ? h("span", { class: "g", "aria-hidden": "true" }, PIN_GLYPH[run.confined]) : null,
+    h("span", { class: "t" }, run.transport === "quic" ? "Q" : "W"), s.text);
+}
+function byKey(list, key) {
+  const m = new Map();
+  for (const x of list) { const k = key(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }
+  return m;
+}
+function sortRuns(runs) {
+  return runs.slice().sort((a, b) => (a.transport > b.transport) - (a.transport < b.transport));
+}
+function drillPanel(title, runs) {
+  const ids = DATA.test_ids.filter(id => runs.some(r => r.tests.some(t => t.id === id)));
+  const head = h("tr", {}, h("th", { class: "id" }, "test"),
+    runs.map(r => h("th", {}, endpointLabel(r),
+      h("span", { class: "sub" }, versionText(r)),
+      h("span", { class: "sub" }, r.log ? h("a", { href: r.log, target: "_blank", rel: "noopener" }, "log") : (r.skip_reason || "no log")))));
+  const rows = ids.map(id => h("tr", {}, h("td", { class: "id" }, id),
+    runs.map(r => {
+      const t = r.tests.find(x => x.id === id);
+      if (!t) return h("td", { class: "mark skip" }, "—");
+      const sym = t.status === "pass" ? "ok" : t.status === "fail" ? "not ok" : "skip";
+      const ver = t.negotiated.length ? ` · moqt-${t.negotiated.join("/")}` : "";
+      return h("td", { title: (t.raw_id ? `${t.raw_id} → ${id}. ` : "") + (t.message || "") },
+        h("span", { class: `mark ${t.status}` }, sym), h("span", { class: "sub" }, (t.message ? t.message.slice(0, 80) : "") + ver));
+    })));
+  const empty = !ids.length ? h("p", { class: "note" }, "No TAP results in these logs (the client failed before reporting, or the run was skipped).") : null;
+  return h("section", { class: "panel", id: "drill", "aria-live": "polite" }, h("h2", {}, title),
+    empty || h("div", { class: "scroller" }, h("table", { class: "tests" }, h("thead", {}, head), h("tbody", {}, rows))));
+}
+function key() {
+  const sample = (cls, extra, t, txt, g) => h("span", { class: `pill ${cls} ${extra}` },
+    g ? h("span", { class: "g" }, g) : null, h("span", { class: "t" }, t), txt);
+  const items = [sample("pass", "", "Q", "8/8"), "native QUIC", sample("pass", "", "W", "6/6"), "WebTransport",
+    sample("partial", "", "Q", "5/7"), "some tests failed"];
+  if (PINNED) items.push(
+    sample("pass", "", "Q", "8/8", PIN_GLYPH.client), "client pinned",
+    sample("pass", "", "Q", "8/8", PIN_GLYPH.relay), "relay pinned",
+    sample("pass", "", "Q", "8/8", PIN_GLYPH.both), "relay exists for this draft only",
+    sample("pass", "", "Q", "8/8", PIN_GLYPH.none), "neither can be pinned",
+    sample("pass", "unreported", "Q", "8/8"), "client didn't report its version",
+    sample("fail", "mismatch", "Q", "0/8"), "client reported another version");
+  else items.push(sample("pass", "predicted", "W", "6/6"), "draft predicted, not reported");
+  const about = PAGE === "open"
+    ? "Public relay endpoints registered with the runner, from the nightly run. Results depend on the live deployment and the network path."
+    : PINNED
+      ? "Docker runs, each pair once per draft both sides register and once per relay endpoint. The client is pinned to the draft where its registration says how, the relay only when the client can't be; a pair neither side can pin runs once and sits at the version it reported. Counts are passed / (passed + failed)."
+      : "Docker runs, placed at the draft the client reported negotiating, or the runner's prediction in italics. Counts are passed / (passed + failed).";
+  const src = PAGE === "open" || !DATA.pinned ? `run ${DATA.run.id}` : `confined runs ${DATA.pinned.timestamp}`;
+  return h("details", { class: "key" }, h("summary", {}, "Key"),
+    h("div", { class: "legend" }, items), h("p", {}, about, " ", h("span", { class: "sub" }, src)));
+}
+function render() {
+  const d = state.draft;
+  const at = RUNS.filter(r => r.draft === d);
+  const select = h("select", { id: "draft-select", onchange: e => { state.draft = parseDraft(e.target.value); state.pick = null; render(); } },
+    DRAFTS.map(x => h("option", { value: x, selected: x === d }, draftLabel(x))));
+  const other = PAGE === "open"
+    ? h("a", { class: "other", href: "index.html" }, "Docker matrix")
+    : h("a", { class: "other", href: "open-relays.html" }, "Open relays");
+  const clients = [...new Set(at.map(r => r.client))].sort();
+  const relays = [...new Set(at.map(r => r.relay))].sort();
+  const cells = byKey(at, r => `${r.client}|${r.relay}`);
+  const thead = h("thead", {}, h("tr", {}, h("th", { class: "corner" }, PAGE === "open" ? "client ↓ open relay →" : "client ↓ relay →"),
+    relays.map(c => h("th", { scope: "col" }, c))));
+  const tbody = h("tbody", {}, clients.map(c => h("tr", {}, h("th", { scope: "row" }, c),
+    relays.map(r => {
+      const runs = sortRuns(cells.get(`${c}|${r}`) || []);
+      if (!runs.length) return h("td", { class: "empty" }, "·");
+      const k = `${c}|${r}`;
+      return h("td", {}, h("button", { class: "cellbtn", "aria-expanded": state.pick?.key === k ? "true" : "false",
+        "aria-label": `${c} with ${r}`,
+        onclick: () => { state.pick = { key: k, title: [c, r], runs }; render(); document.getElementById("drill")?.scrollIntoView({ block: "nearest" }); } },
+        runs.map(pill)));
+    }))));
+  view.replaceChildren(
+    h("div", { class: "bar" }, h("label", { for: "draft-select" }, "Draft"), select, other),
+    h("div", { class: "scroller" }, h("table", { class: "matrix" }, thead, tbody)),
+    state.pick ? drillPanel(h("span", {}, h("code", {}, state.pick.title[0]), " → ", h("code", {}, state.pick.title[1]), ` at ${draftLabel(d)}`), state.pick.runs) : null,
+    key());
+}
+render();
+</script>
+<!--/body-->
+</body>
+</html>

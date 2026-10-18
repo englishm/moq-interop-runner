@@ -127,6 +127,7 @@ existing detailed specifications with protocol references.
 | `docs/` | [Getting started](docs/GETTING-STARTED.md), test specs, interface docs |
 | `adapters/` | Thin Docker wrappers for implementations ([README](adapters/README.md)) |
 | `builds/` | Source-based Docker builds ([README](builds/README.md)) |
+| `report/v2/` | Per-draft view of a results run, an alternate to the main report ([ADR 005](docs/decisions/005-per-draft-view.md)) |
 
 ## Related Projects
 
