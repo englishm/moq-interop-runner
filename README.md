@@ -117,6 +117,10 @@ existing detailed specifications with protocol references.
 └─────────────────────┘            └─────────────────────┘
 ```
 
+Docker runs can also put a MoQT proxy between the client and the relay, to
+test the proxy against real clients and relays: see
+[Testing Through a Proxy](docs/PROXY-TESTING.md).
+
 ## Key Files
 
 | Path | Purpose |
@@ -126,6 +130,7 @@ existing detailed specifications with protocol references.
 | `Makefile` | All commands — run `make help` to see them |
 | `docs/` | [Getting started](docs/GETTING-STARTED.md), test specs, interface docs |
 | `adapters/` | Thin Docker wrappers for implementations ([README](adapters/README.md)) |
+| `proxies/` | Stand-in proxies for [testing through a proxy](docs/PROXY-TESTING.md) |
 | `builds/` | Source-based Docker builds ([README](builds/README.md)) |
 
 ## Related Projects

@@ -72,7 +72,8 @@
             "relay": { "$ref": "#/definitions/role_config" },
             "client": { "$ref": "#/definitions/role_config" },
             "publisher": { "$ref": "#/definitions/role_config" },
-            "subscriber": { "$ref": "#/definitions/role_config" }
+            "subscriber": { "$ref": "#/definitions/role_config" },
+            "proxy": { "$ref": "#/definitions/proxy_role_config" }
           },
           "additionalProperties": false
         },
@@ -100,6 +101,23 @@
       },
       "additionalProperties": false
     },
+    "proxy_role_config": {
+      "type": "object",
+      "description": "Configuration for running this implementation as a MoQT proxy between a client and a relay (see docs/PROXY-TESTING.md)",
+      "required": ["docker"],
+      "properties": {
+        "docker": {
+          "$ref": "#/definitions/docker_config"
+        },
+        "upstream_transports": {
+          "type": "array",
+          "description": "Transports the proxy can use to reach the relay. Omit if the proxy uses whatever transport the client used.",
+          "items": { "type": "string", "enum": ["quic", "webtransport"] },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
     "docker_config": {
       "type": "object",
       "description": "Docker image configuration",
@@ -113,6 +131,12 @@
           "type": "string",
           "pattern": "^(https://|moqt://)[a-zA-Z0-9][a-zA-Z0-9.-]*(:[0-9]+)?(/.*)?$",
           "description": "Optional relay URL to pass to clients for docker-compose tests (overrides default RELAY_URL)"
+        },
+        "transports": {
+          "type": "array",
+          "description": "Transports a relay image serves on its port. Optional; used to skip proxy runs that cannot reach the relay.",
+          "items": { "type": "string", "enum": ["quic", "webtransport"] },
+          "minItems": 1
         },
         "build": {
           "type": "object",

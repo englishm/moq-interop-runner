@@ -161,16 +161,91 @@ INDEXFOOT
 
 #############################################################################
 # Generate Detail Report (single run with matrix)
+#
+# Runs made through a proxy (summary entries with "proxy") get their own page,
+# report-via-<proxy>.html, so that they are not merged into the direct cells.
 #############################################################################
 generate_detail() {
     local RESULTS_DIR="$1"
     local SUMMARY_FILE="$RESULTS_DIR/summary.json"
-    local OUTPUT_FILE="$RESULTS_DIR/report.html"
 
     if [ ! -f "$SUMMARY_FILE" ]; then
         echo "Error: No summary.json in $RESULTS_DIR"
         return 1
     fi
+
+    local proxies
+    proxies=$(jq -r '[.runs[].proxy // empty] | unique | .[]' "$SUMMARY_FILE")
+    if [ -z "$proxies" ]; then
+        render_detail "$RESULTS_DIR" "$SUMMARY_FILE" "$RESULTS_DIR/report.html" "" ""
+        return
+    fi
+
+    local subset links="" proxy
+    subset=$(mktemp "${TMPDIR:-/tmp}/report-summary.XXXXXX")
+    for proxy in $proxies; do
+        links="${links:+$links &middot; }<a href=\"report-via-${proxy}.html\">via ${proxy}</a>"
+    done
+
+    jq '.runs |= map(select(.proxy == null))' "$SUMMARY_FILE" > "$subset"
+    render_detail "$RESULTS_DIR" "$subset" "$RESULTS_DIR/report.html" "" \
+        "        <p class=\"meta\">Proxied runs: $links</p>"
+
+    for proxy in $proxies; do
+        jq --arg p "$proxy" '.runs |= map(select(.proxy == $p))' "$SUMMARY_FILE" > "$subset"
+        render_detail "$RESULTS_DIR" "$subset" "$RESULTS_DIR/report-via-${proxy}.html" "$proxy" \
+            "$(proxy_attributable_html "$RESULTS_DIR" "$SUMMARY_FILE" "$proxy")"
+    done
+    rm -f "$subset"
+}
+
+# HTML table of the tests that fail through a proxy but not in the direct run
+# of the same pair on the same version: the proxy is the first suspect for these.
+proxy_attributable_html() {
+    local RESULTS_DIR="$1" SUMMARY_FILE="$2" proxy="$3"
+    local rows="" client relay version mode direct_log proxied_log tests
+
+    while IFS='|' read -r client relay version mode; do
+        [ -z "$client" ] && continue
+        direct_log="$RESULTS_DIR/${client}_to_${relay}_docker.log"
+        proxied_log="$RESULTS_DIR/${client}_to_${relay}_${mode}.log"
+        # Without TAP output from the direct run there is nothing to compare
+        parse_tap_file "$direct_log" && [ "$TAP_TOTAL" -gt 0 ] || continue
+
+        if parse_tap_file "$proxied_log" && [ "$TAP_TOTAL" -gt 0 ]; then
+            tests=$(grep -vxF -f <(tap_failed_tests "$direct_log") <(tap_failed_tests "$proxied_log") || true)
+            [ -z "$tests" ] && continue
+            tests=$(printf '%s\n' "$tests" | sed 's/&/\&amp;/g; s/</\&lt;/g' | paste -sd ',' - | sed 's/,/, /g')
+        else
+            tests="(no TAP output)"
+        fi
+        rows="$rows<tr><td>$client</td><td>$relay</td><td><code>$version</code></td><td>$tests</td><td><a href=\"${client}_to_${relay}_docker.log\">direct</a> &middot; <a href=\"${client}_to_${relay}_${mode}.log\">via $proxy</a></td></tr>"
+    done < <(jq -r --arg p "$proxy" '
+        [.runs[] | select(.proxy == null and .mode == "docker" and .status != "skip")] as $direct |
+        .runs[] | select(.proxy == $p and .status != "skip" and .status != "pass") |
+        select(. as $r | any($direct[]; .client == $r.client and .relay == $r.relay and .version == $r.version)) |
+        "\(.client)|\(.relay)|\(.version)|\(.mode)"' "$SUMMARY_FILE")
+
+    echo "        <p class=\"meta\"><a href=\"report.html\">Direct results</a></p>"
+    echo "        <h2>Fails via $proxy, not directly</h2>"
+    if [ -z "$rows" ]; then
+        echo "        <p class=\"meta\">None: every proxied run fails only where the direct run fails.</p>"
+    else
+        echo "        <table><thead><tr><th>Client</th><th>Relay</th><th>Version</th><th>Tests</th><th>Logs</th></tr></thead><tbody>"
+        echo "        $rows"
+        echo "        </tbody></table>"
+    fi
+}
+
+# Write one detail page for the runs in SUMMARY_FILE.
+#   PROXY       proxy the runs went through, or empty for direct runs
+#   EXTRA_HTML  inserted after the summary, before the matrix
+render_detail() {
+    local RESULTS_DIR="$1"
+    local SUMMARY_FILE="$2"
+    local OUTPUT_FILE="$3"
+    local PROXY="$4"
+    local EXTRA_HTML="${5:+$'\n'$5}"
 
     echo "Generating detail report: $OUTPUT_FILE"
 
@@ -321,10 +396,16 @@ generate_detail() {
 </head>
 <body>
     <div class="container">
-        <h1>MoQT Interop Test Results</h1>
 HEADER
 
+    local title="MoQT Interop Test Results" relay_heading="Relay"
+    if [ -n "$PROXY" ]; then
+        title="$title via $PROXY"
+        relay_heading="Relay (via $PROXY)"
+    fi
+
     cat >> "$OUTPUT_FILE" << EOF
+        <h1>$title</h1>
         <p class="meta"><a href="../index.html">&larr; All Runs</a> | Generated: $TIMESTAMP | Interop target: <code>$TARGET_VERSION</code></p>
 
         <div class="summary">
@@ -353,13 +434,13 @@ SKIPSTAT
             <span class="count at">$AT_TARGET</span> at target &middot;
             <span class="count ahead">$AHEAD</span> ahead &middot;
             <span class="count behind">$BEHIND</span> behind
-        </p>
+        </p>$EXTRA_HTML
 
         <h2>Interop Matrix</h2>
         <table class="matrix">
             <thead>
                 <tr>
-                    <th>Client ↓ / Relay →</th>
+                    <th>Client ↓ / $relay_heading →</th>
 EOF
 
     # Matrix header row (relay names)

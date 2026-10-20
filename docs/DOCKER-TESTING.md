@@ -205,6 +205,11 @@ stdout:
   # Must include: MOQT_TEST_RESULT: SUCCESS or FAILURE
 ```
 
+### Proxy Image
+
+A proxy placed between client and relay (`--proxy`) has its own contract:
+see [PROXY-TESTING.md](PROXY-TESTING.md).
+
 ## Test Matrix
 
 The ultimate goal is to test every client × relay combination across all implementations. This matrix grows more valuable as implementations add Docker support:
