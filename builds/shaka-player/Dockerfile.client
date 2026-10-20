@@ -2,13 +2,18 @@
 # Shaka Player (MSF, experimental build) in a headless browser, fed by the
 # moqxr openmoq-publisher running in the same container. Builds on amd64 and
 # arm64; select the browser with --build-arg BROWSER=chrome|chromium|firefox.
-ARG MOQXR_REF=v0.4.4
+# moqxr main with PR #58 (--webtransport-allow-missing-reset-stream-at) and
+# PR #59 (loop timestamp rebasing); no release includes #59 yet.
+ARG MOQXR_REF=3d93f2af6afa9a6d29dd1f0302f8b08658d28d8f
 
 FROM debian:bookworm AS moqxr-clone
 ARG MOQXR_REF
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
-RUN git clone --depth 1 --branch "$MOQXR_REF" https://github.com/openmoq/moqxr.git /moqxr
+# Fetch by ref so MOQXR_REF can be a tag, a branch or a commit.
+RUN git init -q /moqxr && cd /moqxr \
+    && git fetch -q --depth 1 https://github.com/openmoq/moqxr.git "$MOQXR_REF" \
+    && git checkout -q FETCH_HEAD
 
 # The moqxr tree at the stage root, so `--build-context moqxr-src=<checkout>`
 # (build.sh --moqxr-local) can replace it.

@@ -17,7 +17,7 @@ One image per browser, all built from the same Dockerfile:
 | firefox  | `shaka-player-firefox-interop-client`   | Playwright's Firefox                 |
 
 - **Player**: Shaka Player 5.3.0, experimental build (MSF manifest parser)
-- **Publisher**: moqxr `openmoq-publisher` v0.4.4, built from source
+- **Publisher**: moqxr `openmoq-publisher` from `main` at [`3d93f2a`](https://github.com/openmoq/moqxr/commit/3d93f2af6afa9a6d29dd1f0302f8b08658d28d8f), built from source. That is the first commit with both [#58](https://github.com/openmoq/moqxr/pull/58) and [#59](https://github.com/openmoq/moqxr/pull/59); v0.4.8 lacks #59
 - **Draft versions**: draft-18, draft-22 (`MOQ_CLIENT_VERSION`, default draft-22)
 - **Transport**: WebTransport (`https://`) for the player. `moqt://` relays report SKIP.
 - **Test cases**: `publish-subscribe-media` only. Any other test case reports SKIP and exits 127.
@@ -76,8 +76,8 @@ using `https://`. The transport the publisher ended up using is reported under
 # Another Shaka Player version from npm
 ./builds/shaka-player/build.sh --ref 5.3.0
 
-# Another moqxr tag, or a local moqxr checkout (must be a git checkout)
-./builds/shaka-player/build.sh --moqxr-ref v0.4.4
+# Another moqxr tag, branch or commit, or a local moqxr checkout (must be a git checkout)
+./builds/shaka-player/build.sh --moqxr-ref v0.4.8
 ./builds/shaka-player/build.sh --moqxr-local ~/path/to/moqxr
 
 # Cross-build for another architecture
@@ -86,7 +86,7 @@ using `https://`. The transport the publisher ended up using is reported under
 
 The Dockerfile has three stages:
 
-- **moqxr source:** a clone of the moqxr tag, replaced by `--moqxr-local`.
+- **moqxr source:** a shallow fetch of the moqxr ref, replaced by `--moqxr-local`.
 - **Builder:** compiles only the `openmoq-publisher` target, with picoquic and picotls pinned to known-good commits.
 - **Runtime:** Node 22, Playwright and the selected browser, plus the publisher and its fixture. It runs as uid 1000.
 
@@ -200,6 +200,5 @@ forwarder handles TCP only, so set `portForwarder: grpc` in
 ## Known Limitations
 
 - **The relay must accept `PUBLISH`.** moqxr publishes its tracks with `PUBLISH`. Relays that reject it, such as moq-dev-rs and moqlivemock's mlmrel, fail before playback starts.
-- **Looping in moqxr v0.4.4:** this version resends the same media timestamps on every `--loop` cycle. Playback stalls after the fixture's first second, so passes are borderline (2–3 frames), and Firefox doesn't reach the threshold. Build with a moqxr that includes the loop-timestamp fix, using `--moqxr-ref` or `--moqxr-local`.
 - **Relays that don't answer FETCH,** such as quic-zig, delay startup while Shaka waits for its Joining FETCH to time out. Playback then starts from the subscription alone.
 - **Linux WebKit isn't supported.** WebKit's WebTransport backend exists only for Apple platforms, so use the Safari mode instead.

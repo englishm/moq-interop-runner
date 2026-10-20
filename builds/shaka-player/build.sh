@@ -10,7 +10,7 @@ set -euo pipefail
 BUILD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUNNER_ROOT="$(cd "$BUILD_DIR/../.." && pwd)"
 REF="5.3.0"
-MOQXR_REF="v0.4.4"
+MOQXR_REF="3d93f2af6afa9a6d29dd1f0302f8b08658d28d8f"
 MOQXR_LOCAL=""
 BROWSERS=(chromium)
 PLATFORM=""
@@ -44,6 +44,8 @@ args=(--build-arg "SHAKA_VERSION=$REF" --build-arg "MOQXR_REF=$MOQXR_REF")
 if [ -n "$MOQXR_LOCAL" ]; then
     args+=(--build-context "moqxr-src=$(cd "$MOQXR_LOCAL" && pwd)")
     moqxr_commit="$(git -C "$MOQXR_LOCAL" rev-parse HEAD)"
+elif [[ "$MOQXR_REF" =~ ^[0-9a-f]{40}$ ]]; then
+    moqxr_commit="$MOQXR_REF"
 else
     moqxr_commit="$(tag_commit https://github.com/openmoq/moqxr.git "$MOQXR_REF")"
 fi
