@@ -11,9 +11,9 @@ COPY --from=moqy . /src/moqy
 COPY --from=moq5 . /src/moq5
 COPY --from=picoquic . /src/picoquic
 COPY --from=picotls . /src/picotls
-RUN cmake -S /src/picotls -B /build/picotls \
+RUN cmake -S /src/picotls -B /src/picotls/build \
     -DCMAKE_BUILD_TYPE=Release \
-    && cmake --build /build/picotls -j 4
+    && cmake --build /src/picotls/build -j 4
 RUN cmake -S /src/moqxr -B /build -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DOPENMOQ_BUILD_TESTS=OFF \
@@ -25,7 +25,7 @@ RUN cmake -S /src/moqy -B /build/moqy -G Ninja \
     -DCMAKE_BUILD_TYPE=Debug \
     -DMOQ5_SOURCE_DIR=/src/moq5 \
     -DMOQ_PICOQUIC_SOURCE_DIR=/src/picoquic \
-    -DMOQ_PICOTLS_PREFIX=/build/picotls \
+    -DMOQ_PICOTLS_PREFIX=/src/picotls/build \
     && cmake --build /build/moqy --target moqy -j 4
 
 FROM debian:bookworm-slim
