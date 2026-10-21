@@ -229,13 +229,18 @@ run_with_timeout() {
     local seconds="$1"
     shift
 
+    # -k: KILL a command that outlives TERM by 10s; report that as a timeout
+    # (124), not as its 137.
+    local rc=0
     if command -v timeout >/dev/null 2>&1; then
-        timeout "$seconds" "$@"
-        return $?
+        timeout -k 10 "$seconds" "$@" || rc=$?
+        [ "$rc" -eq 137 ] && rc=124
+        return $rc
     fi
     if command -v gtimeout >/dev/null 2>&1; then
-        gtimeout "$seconds" "$@"
-        return $?
+        gtimeout -k 10 "$seconds" "$@" || rc=$?
+        [ "$rc" -eq 137 ] && rc=124
+        return $rc
     fi
 
     local timeout_marker
