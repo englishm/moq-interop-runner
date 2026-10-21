@@ -10,7 +10,7 @@ set -euo pipefail
 BUILD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUNNER_ROOT="$(cd "$BUILD_DIR/../.." && pwd)"
 REF="5.3.0"
-MOQXR_REF="3d93f2af6afa9a6d29dd1f0302f8b08658d28d8f"
+MOQXR_REF="v0.4.10"
 MOQXR_LOCAL=""
 BROWSERS=(chromium)
 PLATFORM=""

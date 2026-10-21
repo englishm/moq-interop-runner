@@ -17,7 +17,7 @@ One image per browser, all built from the same Dockerfile:
 | firefox  | `shaka-player-firefox-interop-client`   | Playwright's Firefox                 |
 
 - **Player**: Shaka Player 5.3.0, experimental build (MSF manifest parser)
-- **Publisher**: moqxr `openmoq-publisher` from `main` at [`3d93f2a`](https://github.com/openmoq/moqxr/commit/3d93f2af6afa9a6d29dd1f0302f8b08658d28d8f), built from source. That is the first commit with both [#58](https://github.com/openmoq/moqxr/pull/58) and [#59](https://github.com/openmoq/moqxr/pull/59); v0.4.8 lacks #59
+- **Publisher**: moqxr `openmoq-publisher` v0.4.10, built from source. It needs v0.4.9 or later, the first release with [#58](https://github.com/openmoq/moqxr/pull/58) and [#59](https://github.com/openmoq/moqxr/pull/59)
 - **Draft versions**: draft-18, draft-22 (`MOQ_CLIENT_VERSION`, default draft-22)
 - **Transport**: WebTransport (`https://`) for the player. `moqt://` relays report SKIP.
 - **Test cases**: `publish-subscribe-media` only. Any other test case reports SKIP and exits 127.
@@ -77,7 +77,7 @@ using `https://`. The transport the publisher ended up using is reported under
 ./builds/shaka-player/build.sh --ref 5.3.0
 
 # Another moqxr tag, branch or commit, or a local moqxr checkout (must be a git checkout)
-./builds/shaka-player/build.sh --moqxr-ref v0.4.8
+./builds/shaka-player/build.sh --moqxr-ref main
 ./builds/shaka-player/build.sh --moqxr-local ~/path/to/moqxr
 
 # Cross-build for another architecture
