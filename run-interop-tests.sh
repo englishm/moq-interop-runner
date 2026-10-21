@@ -229,13 +229,19 @@ run_with_timeout() {
     local seconds="$1"
     shift
 
+    # -k: KILL a command that outlives TERM by 10s; report that as a timeout
+    # (124), not as its 137. Callers wrap make, so 137 here is our KILL, not
+    # an OOM kill of the command.
+    local rc=0
     if command -v timeout >/dev/null 2>&1; then
-        timeout "$seconds" "$@"
-        return $?
+        timeout -k 10 "$seconds" "$@" || rc=$?
+        [ "$rc" -eq 137 ] && rc=124
+        return $rc
     fi
     if command -v gtimeout >/dev/null 2>&1; then
-        gtimeout "$seconds" "$@"
-        return $?
+        gtimeout -k 10 "$seconds" "$@" || rc=$?
+        [ "$rc" -eq 137 ] && rc=124
+        return $rc
     fi
 
     local timeout_marker
@@ -450,6 +456,9 @@ run_test() {
                 status="timeout"
                 FAILED=$((FAILED + 1))
                 echo -e "${RED}⧖ TIMEOUT (killed after ${test_timeout}s)${NC}"
+                # A KILL can interrupt compose's teardown; the next pair must
+                # not inherit this pair's relay.
+                docker compose -f "$SCRIPT_DIR/docker-compose.test.yml" down --timeout 1 >/dev/null 2>&1 || true
             else
                 status="fail"
                 FAILED=$((FAILED + 1))

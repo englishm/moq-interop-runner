@@ -119,7 +119,7 @@ test-external:
 	@echo "Running tests against $(RELAY_URL)..."
 	@echo "  Client: $(CLIENT_IMAGE)"
 	@if [ -n "$(EXTRA_DOCKER_RUN_ARGS)" ]; then echo "  Extra docker args: $(EXTRA_DOCKER_RUN_ARGS)"; fi
-	docker run --rm \
+	docker run --rm --init \
 		$(EXTRA_DOCKER_RUN_ARGS) \
 		--network host \
 		-e RELAY_URL=$(RELAY_URL) \
