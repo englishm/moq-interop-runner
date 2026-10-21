@@ -177,6 +177,11 @@ generate_detail() {
     # Extract data from summary
     local TIMESTAMP=$(jq -r '.timestamp' "$SUMMARY_FILE")
     local TARGET_VERSION=$(jq -r '.target_version // "unknown"' "$SUMMARY_FILE")
+    local MISSING_RELAYS=$(jq -r '(.missing_relays // []) | join(", ")' "$SUMMARY_FILE")
+    local MISSING_NOTICE=""
+    if [ -n "$MISSING_RELAYS" ]; then
+        MISSING_NOTICE="<p class=\"meta\"><strong>No results from:</strong> $MISSING_RELAYS (their test jobs produced nothing).</p>"
+    fi
     local TOTAL=$(jq '.runs | length' "$SUMMARY_FILE")
     local PASSED=$(jq '[.runs[] | select(.status == "pass")] | length' "$SUMMARY_FILE")
     local FAILED=$(jq '[.runs[] | select(.status == "fail")] | length' "$SUMMARY_FILE")
@@ -326,6 +331,7 @@ HEADER
 
     cat >> "$OUTPUT_FILE" << EOF
         <p class="meta"><a href="../index.html">&larr; All Runs</a> | Generated: $TIMESTAMP | Interop target: <code>$TARGET_VERSION</code></p>
+        $MISSING_NOTICE
 
         <div class="summary">
             <div class="stat">

@@ -5,10 +5,6 @@ on:
     - cron: '0 0 * * *'  # Daily at midnight UTC
   workflow_dispatch:
     inputs:
-      build_from_source:
-        description: 'Build source-based images from scratch instead of pulling pre-built from GHCR'
-        type: boolean
-        default: false
       dry_run:
         description: 'Validate the report/publish path without pushing to gh-pages (artifact + summary only)'
         type: boolean
@@ -75,7 +71,6 @@ jobs:
           path: main
 
       - name: Pull pre-built images from GHCR
-        if: "!inputs.build_from_source"
         working-directory: main
         env:
           RELAY: ${{ matrix.relay }}
@@ -92,41 +87,24 @@ jobs:
                 docker pull "$image" || echo "WARNING: Failed to pull $image"
               done
 
-      - name: Build from source
-        if: inputs.build_from_source
-        working-directory: main
-        run: |
-          # Build moq-rs (draft-14)
-          ./builds/moq-rs/build.sh
-          # Re-tag to GHCR-qualified names that implementations.json expects
-          docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf:latest
-          docker tag moq-test-client:latest ghcr.io/englishm/moq-interop-runner-moq-test-client:latest
-
-          # Build moq-rs-draft-14 (cloudflare/moq-rs, draft-ietf-moq-transport-14 branch)
-          ./builds/moq-rs/build.sh \
-            --repo https://github.com/cloudflare/moq-rs \
-            --ref draft-ietf-moq-transport-14
-          docker tag moq-relay-ietf:latest ghcr.io/englishm/moq-interop-runner-moq-relay-ietf-draft-14:latest
-          docker tag moq-test-client:latest ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-14:latest
-
       - name: Build adapters
         working-directory: main
         continue-on-error: true  # Adapter builds may fail (e.g., disk space) — run what we can
         env:
           RELAY: ${{ matrix.relay }}
         run: |
-          # Client adapters, plus this shard's relay adapter.
+          # Client adapters, plus this shard's relay adapter. A failed build is
+          # reported and the rest still build.
           jq -r --arg relay "$RELAY" '
             .implementations | to_entries[] | .key as $impl | .value.roles | to_entries[]
             | select(.key == "client" or ($impl == $relay and .key == "relay"))
-            | .value.docker.build? // empty
-            | select(.dockerfile | startswith("adapters/"))
-            | "\($impl)|\(.dockerfile)|\(.context)"' implementations.json \
-            | while IFS='|' read -r impl dockerfile context; do
-                image=$(jq -r --arg impl "$impl" --arg df "$dockerfile" '
-                  .implementations[$impl].roles[] | select(.docker.build.dockerfile? == $df) | .docker.image' implementations.json | head -1)
+            | .value.docker
+            | select(.build.dockerfile? // "" | startswith("adapters/"))
+            | "\(.image)|\(.build.dockerfile)|\(.build.context)"' implementations.json \
+            | while IFS='|' read -r image dockerfile context; do
                 echo "Building adapter: $image"
-                docker build -t "$image" -f "$dockerfile" "$context"
+                docker build -t "$image" -f "$dockerfile" "$context" \
+                  || echo "::warning::adapter build failed: $image"
               done
 
       - name: Generate TLS certificates
@@ -136,7 +114,9 @@ jobs:
       - name: Run interop tests
         working-directory: main
         continue-on-error: true  # Some tests may fail — publish results regardless
-        run: ./run-interop-tests.sh --relay "${{ matrix.relay }}"
+        env:
+          RELAY: ${{ matrix.relay }}
+        run: ./run-interop-tests.sh --relay "$RELAY"
 
       - name: Upload shard results
         # A shard cancelled at its timeout still uploads the runs it finished.
@@ -152,7 +132,8 @@ jobs:
 
   publish:
     needs: [plan, test]
-    if: always() && needs.plan.result == 'success'
+    # Shards that fail or time out still publish; a cancelled run does not.
+    if: "!cancelled() && needs.plan.result == 'success'"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -178,10 +159,18 @@ jobs:
 
       - name: Merge shard results
         id: merge
+        env:
+          PLANNED: ${{ needs.plan.outputs.relays }}
         run: |
           # A shard's results dir is wherever its summary.json landed: an
           # artifact is rooted at the deepest directory its files share.
           mapfile -t shard_dirs < <(find shards -name summary.json -printf '%h\n' | sort)
+          # Planned relays whose shard uploaded no summary.json.
+          mapfile -t present < <(find shards -name summary.json | cut -d/ -f2 | sed 's/^shard-//' | sort -u)
+          mapfile -t missing < <(jq -r '.[]' <<<"$PLANNED" | grep -vxF -f <(printf '%s\n' "${present[@]}") || true)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::warning title=Missing shards::No results from: ${missing[*]}"
+          fi
           if [ ${#shard_dirs[@]} -eq 0 ]; then
             echo "No shard results — nothing to publish"
             exit 0
@@ -189,6 +178,11 @@ jobs:
           # Name the merged run after the earliest shard, like a single run.
           TIMESTAMP=$(for d in "${shard_dirs[@]}"; do basename "$d"; done | sort | head -1)
           main/merge-results.sh "main/results/$TIMESTAMP" "${shard_dirs[@]}"
+          if [ ${#missing[@]} -gt 0 ]; then
+            jq '.missing_relays = $ARGS.positional' "main/results/$TIMESTAMP/summary.json" \
+              --args "${missing[@]}" > merged-summary.json
+            mv merged-summary.json "main/results/$TIMESTAMP/summary.json"
+          fi
           for relay_dir in shards/shard-*; do
             relay="${relay_dir#shards/shard-}"
             if [ -d "$relay_dir/mlog" ] && [ "$(ls -A "$relay_dir/mlog" 2>/dev/null)" ]; then
@@ -203,6 +197,10 @@ jobs:
             echo "| Shards | Runs | Pass | Fail | Skip |"
             echo "|---|---|---|---|---|"
             jq -r --arg n "${#shard_dirs[@]}" '"| \($n) | \(.runs | length) | \([.runs[] | select(.status == "pass")] | length) | \([.runs[] | select(.status == "fail" or .status == "timeout")] | length) | \([.runs[] | select(.status == "skip")] | length) |"' "main/results/$TIMESTAMP/summary.json"
+            if [ ${#missing[@]} -gt 0 ]; then
+              echo ""
+              echo "**No results from:** ${missing[*]}"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload merged results
