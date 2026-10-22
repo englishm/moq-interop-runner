@@ -182,18 +182,15 @@ async function connect(
 	let webtransport: ConnectProps["webtransport"];
 
 	if (tlsDisableVerify) {
-		// Prefer pinning the mounted self-signed cert via serverCertificateHashes
-		// over https://. This works against any relay using that cert, unlike the
-		// http:// `/certificate.sha256` fingerprint fetch (a moq.dev-only, non-
-		// standard convention). Fall back to that fetch if no cert is mounted.
+		// Prefer pinning the mounted self-signed cert via serverCertificateHashes.
+		// A remote relay mounts none, so skip verification in the polyfill rather
+		// than fetch `/certificate.sha256` over http://, which only moq.dev serves.
 		const hash = certHash();
-		if (hash) {
-			webtransport = {
-				serverCertificateHashes: [{ algorithm: "sha-256", value: hash }],
-			};
-		} else {
-			url.protocol = "http:";
-		}
+		webtransport = hash
+			? { serverCertificateHashes: [{ algorithm: "sha-256", value: hash }] }
+			: ({
+					serverCertificateDisableVerify: true,
+				} as ConnectProps["webtransport"]);
 	}
 
 	return await Moq.Connection.connect({
