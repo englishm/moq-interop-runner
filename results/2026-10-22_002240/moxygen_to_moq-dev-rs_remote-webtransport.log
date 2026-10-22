@@ -1,0 +1,63 @@
+Running tests against https://cdn.moq.dev/anon...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://cdn.moq.dev/anon \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://cdn.moq.dev/anon
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 93
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E1022 00:25:53.795225     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x622a72204d90
+ok 2 - announce-only
+  ---
+  duration_ms: 108
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 105
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: Session closed
+  ...
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 213
+  negotiated_version: draft-18
+  error: Subscribe failed: Session closed
+  ...
+E20261022 00:25:54.144318     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=d392713130cd22d6, local=10.1.0.127:48466, 40.160.237.106:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 97
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 603
+  negotiated_version: draft-18
+  info: Retained namespace and withdrawal reached both subscribers
+  ...
+E20261022 00:25:54.846412     7 HQSession.cpp:583] Connection closed with error err=91141958510812 msg=Client closed by peer reason= proto=h3, client CID=, server CID=2c1db78aff1ded5f, local=10.1.0.127:59924, 40.160.237.106:443=upstream, drain=done
+E20261022 00:25:54.846596     7 HQSession.cpp:583] Connection closed with error err=91141958510812 msg=Client closed by peer reason= proto=h3, client CID=, server CID=f7524ec70b55b8ff, local=10.1.0.127:50068, 40.160.237.106:443=upstream, drain=done
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 675
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): peer reset request stream
+  ...
+make: *** [Makefile:122: test-external] Error 1

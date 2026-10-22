@@ -1,0 +1,68 @@
+Running tests against https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 219
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E20261022 00:26:16.457073     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=8cbf1bd905ba2469, local=10.1.0.138:60597, 8.228.3.228:443=upstream, drain=done
+E1022 00:26:16.657135     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x5da3c80013e0
+ok 2 - announce-only
+  ---
+  duration_ms: 261
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E20261022 00:26:16.719830     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=b33539aa373b2d55, local=10.1.0.138:41126, 8.228.3.228:443=upstream, drain=done
+ok 3 - subscribe-error
+  ---
+  duration_ms: 259
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer FINed without terminal reply
+  ...
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 535
+  negotiated_version: draft-18
+  error: Subscribe failed: peer FINed without terminal reply
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 261
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1022 00:26:18.505805     7 MoQRelaySession.cpp:978] Invalid publishNamespace cancel requestID=0
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 791
+  negotiated_version: draft-18
+  error: PUBLISH_NAMESPACE failed: peer stopped reading the request stream
+  ...
+E20261022 00:26:18.568732     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=a8d4260e3126c629, local=10.1.0.138:34834, 8.228.3.228:443=upstream, drain=done
+E20261022 00:26:18.569525     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=1de82477e83fb72b, local=10.1.0.138:39001, 8.228.3.228:443=upstream, drain=done
+E20261022 00:26:18.777611     7 HQControlCodec.h:58] Unexpected control stream EOF
+E20261022 00:26:18.777686     7 HQSession.cpp:3027] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=f71cee3a60b78271, local=10.1.0.138:50672, 8.228.3.228:443=upstream, drain=done
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 998
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Session closed
+  ...
+E20261022 00:26:19.571619     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=74ff77ce12e21357, local=10.1.0.138:41276, 8.228.3.228:443=upstream, drain=done
+make: *** [Makefile:122: test-external] Error 1

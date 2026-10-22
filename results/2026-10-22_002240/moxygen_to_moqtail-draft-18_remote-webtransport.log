@@ -1,0 +1,80 @@
+Running tests against https://relay.moqtail.dev...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://relay.moqtail.dev \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://relay.moqtail.dev
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 89
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E20261022 00:28:17.638998     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=93d6f4effee96a35, local=10.1.0.139:59847, 172.232.23.42:443=upstream, drain=done
+E1022 00:28:17.701691     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x59c2393b6040
+ok 2 - announce-only
+  ---
+  duration_ms: 83
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 93
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer FINed without terminal reply
+  ...
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 188
+  negotiated_version: draft-18
+  error: Subscribe failed: peer FINed without terminal reply
+  ...
+E20261022 00:28:18.001719     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=161c69e32a70af2c, local=10.1.0.139:56431, 172.232.23.42:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 86
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1022 00:28:20.161804     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E20261022 00:28:20.179621     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=97e83d50944be08e, local=10.1.0.139:45557, 172.232.23.42:443=upstream, drain=done
+E1022 00:28:20.252042     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E20261022 00:28:20.269424     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=abdaa3093224dad7, local=10.1.0.139:59747, 172.232.23.42:443=upstream, drain=done
+*** Aborted at 1792629017 (Unix time, try 'date -d @1792629017') ***
+*** Signal 15 (SIGTERM) (0x1) received by PID 7 (pthread TID 0x7f9c855522c0) (linux TID 7) (maybe from PID 1, UID 0) (code: sent by kill, sigsend or raise), stack trace: ***
+    @ 0000000000688741 folly::symbolizer::(anonymous namespace)::signalHandler(int, siginfo_t*, void*)
+                       /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/debugging/symbolizer/SignalHandler.cpp:598
+    @ 000000000004532f (unknown)
+    @ 000000000012a2d2 epoll_wait
+    @ 000000000002a634 (unknown)
+    @ 0000000000022267 event_base_loop
+    @ 0000000000603ded folly::EventBase::loopMain(int, folly::EventBase::LoopOptions)
+                       /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/io/async/EventBase.cpp:113
+    @ 00000000006044d1 folly::EventBase::loopBody(int, folly::EventBase::LoopOptions)
+                       /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/io/async/EventBase.cpp:562
+    @ 000000000060c5f0 non-virtual thunk to folly::EventBase::drive()
+                       /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/io/async/EventBase.h:943
+                       -> /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/io/async/EventBase.cpp
+    @ 00000000001385c8 folly::coro::detail::BlockingWaitTask<moxygen::InteropTestResult&>::getVia(folly::DrivableExecutor*, folly::AsyncStackFrame&) &&
+                       /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/installed/folly/include/folly/coro/BlockingWait.h:224
+                       -> /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebookexperimental-moxygen.git/moxygen/moqtest/interop/MoQInteropClientMain.cpp
+    @ 0000000000133470 folly::coro::detail::decay_rvalue_reference<folly::coro::await_result<decltype (folly::coro::folly_cpo__::co_viaIfAsync((static_cast<folly::ExecutorKeepAlive<folly::Executor> (*)() noexcept>(decltype(nullptr)))(), (static_cast<folly::coro::TaskWithExecutor<moxygen::InteropTestResult> (*)() noexcept>(decltype(nullptr)))())), void>::type>::type folly::coro::blocking_wait_fn::operator()<folly::coro::TaskWithExecutor<moxygen::InteropTestResult> >(folly::coro::TaskWithExecutor<moxygen::InteropTestResult>&&, folly::DrivableExecutor*) const [clone .isra.0]
+                       /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/installed/folly/include/folly/coro/BlockingWait.h:395
+                       -> /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebookexperimental-moxygen.git/moxygen/moqtest/interop/MoQInteropClientMain.cpp
+    @ 0000000000103b04 main
+                       /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebookexperimental-moxygen.git/moxygen/moqtest/interop/MoQInteropClientMain.cpp:232
+    @ 000000000002a1c9 (unknown)
+    @ 000000000002a28a __libc_start_main
+    @ 000000000010aee4 _start
+make: *** [Makefile:122: test-external] Error 143
