@@ -87,6 +87,7 @@ Tests are organized by functional category:
 | `announce-only` | Namespace | Announce namespace, receive OK, close |
 | `publish-namespace-done` | Namespace | Announce, then send PUBLISH_NAMESPACE_DONE |
 | `subscribe-namespace-lifecycle` | Namespace | Observe namespace publication and withdrawal from a subscriber |
+| `publish-namespace-multi-publisher-retention` | Namespace | Retain a shared namespace after one publisher withdraws |
 | `subscribe-error` | Subscription | Subscribe to non-existent track, expect error |
 | `rendezvous-timeout` | Subscription | Subscribe with a rendezvous window, expect TIMEOUT |
 | `announce-subscribe` | Subscription | Publisher announces, subscriber subscribes |
