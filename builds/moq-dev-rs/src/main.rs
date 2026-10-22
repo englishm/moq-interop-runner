@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::Context;
 use clap::Parser;
-use moq_net::{broadcast, Error, Pattern, Patterns};
+use moq_net::{broadcast, track, Error, Pattern, Patterns, Timestamp};
 use moq_tokio::moq_net;
 
 #[derive(Parser)]
@@ -46,6 +46,7 @@ const TESTS: &[&str] = &[
     "subscribe-error",
     "announce-subscribe",
     "subscribe-before-announce",
+    "data-subgroup-basic",
 ];
 
 /// Tests that are skipped with a reason.
@@ -64,6 +65,14 @@ const SKIPPED_TESTS: &[(&str, &str)] = &[
 
 const TEST_NAMESPACE: &str = "moq-test/interop";
 const TEST_TRACK: &str = "test-track";
+
+/// The revision of each prose specification this client implements, for tests that declare one.
+fn spec_revision(test: &str) -> Option<u32> {
+    match test {
+        "data-subgroup-basic" => Some(2),
+        _ => None,
+    }
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -151,12 +160,16 @@ async fn main() -> anyhow::Result<()> {
         match result {
             Ok(diag) => {
                 println!("ok {} - {}", num, test_name);
-                print_diagnostics(duration_ms, &diag);
+                print_diagnostics(duration_ms, spec_revision(test_name), &diag);
             }
             Err(e) => {
                 all_passed = false;
                 println!("not ok {} - {}", num, test_name);
-                print_failure_diagnostics(duration_ms, &format!("{:#}", e));
+                print_failure_diagnostics(
+                    duration_ms,
+                    spec_revision(test_name),
+                    &format!("{:#}", e),
+                );
             }
         }
     }
@@ -177,9 +190,12 @@ struct Diagnostics {
     outcome: Option<String>,
 }
 
-fn print_diagnostics(duration_ms: u128, diag: &Diagnostics) {
+fn print_diagnostics(duration_ms: u128, revision: Option<u32>, diag: &Diagnostics) {
     println!("  ---");
     println!("  duration_ms: {}", duration_ms);
+    if let Some(revision) = revision {
+        println!("  test_spec_revision: {}", revision);
+    }
     if let Some(id) = &diag.connection_id {
         println!("  connection_id: {}", id);
     }
@@ -198,9 +214,12 @@ fn print_diagnostics(duration_ms: u128, diag: &Diagnostics) {
     println!("  ...");
 }
 
-fn print_failure_diagnostics(duration_ms: u128, message: &str) {
+fn print_failure_diagnostics(duration_ms: u128, revision: Option<u32>, message: &str) {
     println!("  ---");
     println!("  duration_ms: {}", duration_ms);
+    if let Some(revision) = revision {
+        println!("  test_spec_revision: {}", revision);
+    }
     println!("  message: \"{}\"", message.replace('"', "\\\""));
     println!("  ...");
 }
@@ -216,6 +235,8 @@ async fn run_test(
         "publish-namespace-done" => Duration::from_secs(2),
         "subscribe-namespace-lifecycle" => Duration::from_secs(12),
         "announce-subscribe" => Duration::from_secs(3),
+        // Two 5 s setup and subscription phases, then 10 s to deliver and drain.
+        "data-subgroup-basic" => Duration::from_secs(20),
         _ => Duration::from_secs(5),
     };
 
@@ -237,6 +258,7 @@ async fn run_test_inner(
             test_subscribe_namespace_lifecycle(client, relay_url).await
         }
         "announce-subscribe" => test_announce_subscribe(client, relay_url).await,
+        "data-subgroup-basic" => test_data_subgroup_basic(client, relay_url).await,
         _ => anyhow::bail!("unknown test: {}", name),
     }
 }
@@ -498,4 +520,220 @@ async fn test_announce_subscribe(
         outcome: Some("SUBSCRIBE_OK for moq-test/interop/test-track".into()),
         ..Default::default()
     })
+}
+
+/// The canonical `data-subgroup-basic` MoQT Test tuple: groups 0-2, objects 0-4 on subgroup 0,
+/// a 64-byte object 0 then 32-byte objects, 2 ms apart, with no end-of-group markers,
+/// extensions, or delivery timeout.
+const SUBGROUP_BASIC_TUPLE: &str = "moq-test-00/0/0/0/2/4/5/64/32/2/1/1/0/-1/-1/0";
+const SUBGROUP_BASIC_GROUPS: u64 = 3;
+const SUBGROUP_BASIC_OBJECTS: u64 = 5;
+const SUBGROUP_BASIC_TRACK: &str = "track";
+
+/// A run identifier with 128 bits of entropy, as lowercase hex.
+fn run_id() -> anyhow::Result<String> {
+    use std::io::Read;
+
+    let mut bytes = [0u8; 16];
+    std::fs::File::open("/dev/urandom")
+        .and_then(|mut f| f.read_exact(&mut bytes))
+        .context("failed to read a random run id")?;
+    Ok(bytes.iter().map(|b| format!("{b:02x}")).collect())
+}
+
+/// The payload of one canonical object: MoQT Test fills it with `t`.
+fn subgroup_basic_payload(object: u64) -> Vec<u8> {
+    vec![b't'; if object == 0 { 64 } else { 32 }]
+}
+
+/// Publish the routing prefix, serve the canonical tuple beneath it on demand, and verify
+/// that a second session subscribing through the relay receives exactly that object set.
+///
+/// moq-net does not surface subgroup IDs, publisher priority, or PUBLISH_DONE, so the
+/// subscriber checks only what the track exposes: every object, and a clean end. A
+/// downstream PUBLISH_DONE with an error status aborts the track, which fails the test.
+///
+/// Two departures from the specified stimulus come from moq-net itself: its SUBSCRIBE
+/// joins at the live edge (Largest Object plus a joining FETCH, or Next Object plus a fill
+/// from draft 20) instead of omitting the filter, and moq-tokio 0.19 stamps every object
+/// with a Timestamp property. Neither changes the object set a relay must deliver.
+async fn test_data_subgroup_basic(
+    client: &moq_tokio::Client,
+    relay_url: &url::Url,
+) -> anyhow::Result<Diagnostics> {
+    let prefix = format!("moq-test/data-subgroup-basic/{}", run_id()?);
+    let path = format!("{prefix}/{SUBGROUP_BASIC_TUPLE}");
+
+    let pub_origin = moq_tokio::origin::spawn();
+    let dynamic = pub_origin
+        .dynamic(prefix.as_str(), Default::default())
+        .context("failed to publish the routing prefix")?;
+    let pub_session = tokio::time::timeout(
+        Duration::from_secs(5),
+        client
+            .clone()
+            .with_publisher(&pub_origin)
+            .connect(relay_url.clone())
+            .established(),
+    )
+    .await
+    .context("timeout connecting the publisher")?
+    .context("publisher failed to connect")?;
+
+    // Asking only for the routing prefix keeps the namespace subscription off the empty
+    // prefix, which drafts before 16 forbid.
+    let sub_origin = scoped(&prefix)?;
+    let sub_consumer = sub_origin.consume();
+    let sub_session = tokio::time::timeout(
+        Duration::from_secs(5),
+        client
+            .clone()
+            .with_subscriber(sub_origin)
+            .connect(relay_url.clone())
+            .established(),
+    )
+    .await
+    .context("timeout connecting the subscriber")?
+    .context("subscriber failed to connect")?;
+    let negotiated = negotiated(&sub_session);
+
+    // The publisher never returns on success: it keeps the track alive while the relay drains.
+    let (established, subscribed) = tokio::sync::oneshot::channel();
+    let received = tokio::select! {
+        res = serve_subgroup_basic(&dynamic, &path, subscribed) => return Err(res.unwrap_err()),
+        res = receive_subgroup_basic(&sub_consumer, &path, established) => res?,
+    };
+
+    pub_session.abort(Error::Cancel);
+    sub_session.abort(Error::Cancel);
+
+    Ok(Diagnostics {
+        negotiated: Some(negotiated),
+        outcome: Some(format!(
+            "received all {received} objects, then the track ended"
+        )),
+        ..Default::default()
+    })
+}
+
+/// Answer the relay's request for the tuple's namespace and publish the canonical objects
+/// once both subscriptions are established, then hold the track open until cancelled.
+async fn serve_subgroup_basic(
+    dynamic: &moq_net::origin::Dynamic,
+    path: &str,
+    subscribed: tokio::sync::oneshot::Receiver<()>,
+) -> anyhow::Result<std::convert::Infallible> {
+    let request = tokio::time::timeout(Duration::from_secs(5), dynamic.requested_broadcast())
+        .await
+        .context("timeout waiting for the relay to request the tuple's namespace")?
+        .context("routing prefix closed")?;
+    if request.path().as_str() != path {
+        let requested = request.path().to_owned();
+        request.reject(Error::NotFound);
+        anyhow::bail!("relay requested {requested}, expected {path}");
+    }
+
+    let broadcast = broadcast::Info::new().produce();
+    let track = broadcast
+        .create_track(SUBGROUP_BASIC_TRACK, None)
+        .context("failed to create track")?;
+    request.accept(&broadcast);
+
+    // Objects start once both subscriptions are established, as the normal publication flow
+    // orders. The relay answers downstream only after the upstream SUBSCRIBE_OK, so waiting for
+    // the subscriber's answer keeps object 0 out of that SUBSCRIBE_OK's Largest Location, which
+    // would leave the relay to recover it with a joining FETCH.
+    tokio::time::timeout(Duration::from_secs(5), track.used())
+        .await
+        .context("timeout waiting for the relay to subscribe")?
+        .context("track closed before the relay subscribed")?;
+    subscribed
+        .await
+        .context("subscriber gave up before SUBSCRIBE_OK")?;
+
+    for sequence in 0..SUBGROUP_BASIC_GROUPS {
+        let mut group = track.append_group().context("failed to create group")?;
+        for object in 0..SUBGROUP_BASIC_OBJECTS {
+            if sequence > 0 || object > 0 {
+                tokio::time::sleep(Duration::from_millis(2)).await;
+            }
+            group
+                .write_frame(Timestamp::now(), subgroup_basic_payload(object))
+                .context("failed to write object")?;
+        }
+        group.finish().context("failed to finish group")?;
+    }
+    track.finish().context("failed to finish track")?;
+
+    std::future::pending().await
+}
+
+/// Subscribe to the canonical track through the relay and verify every object it delivers,
+/// returning how many arrived once the track ends.
+async fn receive_subgroup_basic(
+    consumer: &moq_net::origin::Consumer,
+    path: &str,
+    established: tokio::sync::oneshot::Sender<()>,
+) -> anyhow::Result<usize> {
+    let broadcast = tokio::time::timeout(Duration::from_secs(5), consumer.routed_broadcast(path))
+        .await
+        .context("timeout waiting for the routing prefix")?
+        .context("failed to resolve the tuple's namespace")?;
+    // Verified against the expected set, so keep every group however late it lands.
+    let subscription = track::Subscription::default().with_max_age(Duration::from_secs(10));
+    let mut subscriber = tokio::time::timeout(
+        Duration::from_secs(5),
+        broadcast
+            .track(SUBGROUP_BASIC_TRACK)
+            .context("failed to request track")?
+            .subscribe(subscription),
+    )
+    .await
+    .context("timeout waiting for SUBSCRIBE_OK")?
+    .context("subscription rejected")?;
+    let _ = established.send(());
+
+    let mut seen = std::collections::BTreeSet::new();
+    let mut failures = Vec::new();
+    let delivered = tokio::time::timeout(Duration::from_secs(10), async {
+        while let Some(mut group) = subscriber.recv_group().await.context("track aborted")? {
+            let sequence = group.sequence;
+            let mut object = 0;
+            while let Some(frame) = group
+                .read_frame()
+                .await
+                .with_context(|| format!("group {sequence} aborted"))?
+            {
+                if sequence >= SUBGROUP_BASIC_GROUPS || object >= SUBGROUP_BASIC_OBJECTS {
+                    failures.push(format!("unexpected object ({sequence}, {object})"));
+                } else if !seen.insert((sequence, object)) {
+                    failures.push(format!("duplicate object ({sequence}, {object})"));
+                } else if frame.payload.as_ref() != subgroup_basic_payload(object).as_slice() {
+                    failures.push(format!(
+                        "object ({sequence}, {object}) carried {} unexpected bytes",
+                        frame.payload.len()
+                    ));
+                }
+                object += 1;
+            }
+        }
+        anyhow::Ok(())
+    })
+    .await;
+
+    let missing: Vec<String> = (0..SUBGROUP_BASIC_GROUPS)
+        .flat_map(|group| (0..SUBGROUP_BASIC_OBJECTS).map(move |object| (group, object)))
+        .filter(|location| !seen.contains(location))
+        .map(|(group, object)| format!("({group}, {object})"))
+        .collect();
+    if !missing.is_empty() {
+        failures.push(format!("missing objects {}", missing.join(", ")));
+    }
+    match delivered {
+        Err(_) => failures.push("timeout waiting for the track to end".into()),
+        Ok(Err(err)) => failures.push(format!("{err:#}")),
+        Ok(Ok(())) => {}
+    }
+    anyhow::ensure!(failures.is_empty(), "{}", failures.join("; "));
+    Ok(seen.len())
 }
