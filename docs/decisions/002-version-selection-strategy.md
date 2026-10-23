@@ -110,4 +110,4 @@ Each test result in `summary.json` includes the computed negotiated version and 
 
 - **Milestone tracking.** If the community formalizes the concept of milestone draft versions, the runner could classify pairs against multiple reference points, not just the current target. This would be a natural extension of the classification system.
 
-- **Version negotiation verification.** If test clients gain the ability to report which version was actually negotiated (e.g., in TAP YAML diagnostics), the runner could verify its prediction against reality and flag mismatches.
+- **Version negotiation verification.** If test clients gain the ability to report which version was actually negotiated (e.g., in TAP YAML diagnostics), the runner could verify its prediction against reality and flag mismatches. Implemented for clients that report `sessions.*.moqt_version` (see [Version Matching](../VERSION-MATCHING.md)).

@@ -20,6 +20,7 @@ set -euo pipefail
 # See: https://apple.stackexchange.com/questions/193411/
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/tap-parser.sh"
 CONFIG_FILE="$SCRIPT_DIR/implementations.json"
 RESULTS_DIR="$SCRIPT_DIR/results/$(date +%Y-%m-%d_%H%M%S)"
 
@@ -488,6 +489,11 @@ run_test() {
         fi
     fi
 
+    local negotiated="[]"
+    if parse_negotiated_versions "$result_file"; then
+        negotiated=$(printf '%s\n' $TAP_NEGOTIATED | jq -R . | jq -sc .)
+    fi
+
     # Append to summary (using mktemp for safe atomic update)
     local tmp_file
     tmp_file=$(mktemp "${SUMMARY_FILE}.XXXXXX")
@@ -499,7 +505,8 @@ run_test() {
           --arg target "$target" \
           --arg status "$status" \
           --argjson exit_code "$exit_code" \
-          '.runs += [{"client": $client, "relay": $relay, "version": $version, "classification": $classification, "mode": $mode, "target": $target, "status": $status, "exit_code": $exit_code}]' \
+          --argjson negotiated "$negotiated" \
+          '.runs += [{"client": $client, "relay": $relay, "version": $version, "classification": $classification, "mode": $mode, "target": $target, "status": $status, "exit_code": $exit_code, "negotiated_versions": $negotiated}]' \
           "$SUMMARY_FILE" > "$tmp_file"; then
         mv "$tmp_file" "$SUMMARY_FILE"
     else
