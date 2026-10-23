@@ -1,0 +1,61 @@
+Running tests against moqt://fb.mvfst.net:9448/moq-relay...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://fb.mvfst.net:9448/moq-relay \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=1 \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://fb.mvfst.net:9448/moq-relay
+# Transport: QUIC
+# Offered ALPNs: moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 128
+  negotiated_version: draft-16
+  info: SETUP exchange completed successfully
+  ...
+E1023 00:36:27.967157     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x5556ab463100
+ok 2 - announce-only
+  ---
+  duration_ms: 171
+  negotiated_version: draft-16
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 179
+  negotiated_version: draft-16
+  info: Subscribe correctly returned error: no such namespace or track
+  ...
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 383
+  negotiated_version: draft-16
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 197
+  negotiated_version: draft-16
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1023 00:36:31.761631     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x5556ab435510
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 3033
+  negotiated_version: draft-16
+  error: Timed out waiting for target namespace fan-out
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 789
+  negotiated_version: draft-16
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): no such namespace or track
+  ...
+make: *** [Makefile:122: test-external] Error 1

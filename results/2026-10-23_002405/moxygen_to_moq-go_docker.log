@@ -1,0 +1,127 @@
+rm -rf mlog/
+mkdir -p mlog/relay mlog/client
+Running interop tests...
+  Relay:  ghcr.io/englishm/moq-interop-runner-moq-go-relay:latest
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+  URL:    https://relay:4443
+time="2026-10-23T00:25:23Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-23T00:25:23Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-23T00:25:23Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-23T00:25:23Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+time="2026-10-23T00:25:23Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+ Container main-test-client-1 Recreate 
+ Container main-test-client-1 Recreated 
+Attaching to relay-1, test-client-1
+ Container main-relay-1 Starting 
+relay-1  | Starting moq relay: port=4443 cert=/certs/cert.pem wt-path=/ (serving raw QUIC and WebTransport; MOQT_TRANSPORT=webtransport is informational)
+ Container main-relay-1 Started 
+ Container main-relay-1 Waiting 
+relay-1  | [2m00:25:23[0m [92mINF[0m failed to sufficiently increase receive buffer size (was: 1024 kiB, wanted: 7168 kiB, got: 2048 kiB). See https://github.com/quic-go/quic-go/wiki/UDP-Buffer-Sizes for details.
+relay-1  | [2m00:25:23[0m [92mINF[0m relay listening on [::]:4443 (raw QUIC as moqt://0.0.0.0:4443, WebTransport as https://0.0.0.0:4443/)
+relay-1  | [2m00:25:23[0m [92mINF[0m WebTransport server cert SHA-256: b87d08e35c70fbd383aa7a3a2cc8e96b96b5c58b8c1353554976b4e7f818a712
+relay-1  | [2m00:25:23[0m [92mINF[0m   → new WebTransport("https://0.0.0.0:4443/", {serverCertificateHashes: [{algorithm: "sha-256", value: new Uint8Array([184,125,8,227,92,112,251,211,131,170,122,58,44,200,233,107,150,181,197,139,140,19,83,85,73,118,180,231,248,24,167,18])}]})
+relay-1  | [2m00:25:23[0m [92mINF[0m relay accept loop starting [2mcomponent=[0mrelay [2maddr=[0m[::]:4443
+ Container main-relay-1 Healthy 
+ Container main-test-client-1 Starting 
+ Container main-test-client-1 Started 
+test-client-1  | TAP version 14
+test-client-1  | # moxygen interop test client
+test-client-1  | # Relay: https://relay:4443
+test-client-1  | # Transport: WebTransport
+test-client-1  | # Offered ALPNs: moqt-18, moqt-16
+test-client-1  | 1..7
+relay-1        | [2m00:25:29[0m [92mINF[0m tls: ClientHello from 172.18.0.3:37836 sni="relay" alpn=[h3] versions=[772]
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade request [2mremote=[0m172.18.0.3:37836 [2mmethod=[0mCONNECT [2mpath=[0m/ [2mproto=[0mwebtransport [2morigin=[0m""
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade ok [2mremote=[0m172.18.0.3:37836 [2mwt_protocol=[0m""
+relay-1        | [2m00:25:29[0m [93mWRN[0m relay SETUP failed [2mcomponent=[0mrelay [2merr=[0m"open send control: moqt/session: no bidirectional stream credit"
+test-client-1  | W1023 00:25:29.342542     7 MoQWebTransportClient.cpp:159] WebTransport: No WT-Protocol header in response
+test-client-1  | E1023 00:25:29.342631     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: Got error=386759528
+test-client-1  | E1023 00:25:29.342647     7 MoQClientBase.cpp:150] MoQClientBase: no supported MoQT version negotiated, protocol=<none>
+test-client-1  | not ok 1 - setup-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 4
+test-client-1  |   error: No supported MoQT version negotiated
+test-client-1  |   ...
+relay-1        | [2m00:25:29[0m [92mINF[0m tls: ClientHello from 172.18.0.3:46937 sni="relay" alpn=[h3] versions=[772]
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade request [2mremote=[0m172.18.0.3:46937 [2mmethod=[0mCONNECT [2mpath=[0m/ [2mproto=[0mwebtransport [2morigin=[0m""
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade ok [2mremote=[0m172.18.0.3:46937 [2mwt_protocol=[0m""
+relay-1        | [2m00:25:29[0m [93mWRN[0m relay SETUP failed [2mcomponent=[0mrelay [2merr=[0m"open send control: moqt/session: no bidirectional stream credit"
+test-client-1  | not ok 2 - announce-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 1
+test-client-1  |   error: Error setting up WebTransport: proxygen::HTTPException: Got error=386759528
+test-client-1  |   ...
+test-client-1  | E1023 00:25:29.344560     7 MoQWebTransportClient.cpp:130] std::runtime_error: Error setting up WebTransport: proxygen::HTTPException: Got error=386759528
+relay-1        | [2m00:25:29[0m [92mINF[0m tls: ClientHello from 172.18.0.3:43577 sni="relay" alpn=[h3] versions=[772]
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade request [2mremote=[0m172.18.0.3:43577 [2mmethod=[0mCONNECT [2mpath=[0m/ [2mproto=[0mwebtransport [2morigin=[0m""
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade ok [2mremote=[0m172.18.0.3:43577 [2mwt_protocol=[0m""
+test-client-1  | W1023 00:25:29.346045     7 MoQWebTransportClient.cpp:159] WebTransport: No WT-Protocol header in response
+test-client-1  | E1023 00:25:29.346095     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: Got error=386759528
+relay-1        | [2m00:25:29[0m [93mWRN[0m relay SETUP failed [2mcomponent=[0mrelay [2merr=[0m"open send control: moqt/session: no bidirectional stream credit"
+test-client-1  | E1023 00:25:29.346116     7 MoQClientBase.cpp:150] MoQClientBase: no supported MoQT version negotiated, protocol=<none>
+test-client-1  | not ok 3 - subscribe-error
+test-client-1  |   ---
+test-client-1  |   duration_ms: 1
+test-client-1  |   error: No supported MoQT version negotiated
+test-client-1  |   ...
+relay-1        | [2m00:25:29[0m [92mINF[0m tls: ClientHello from 172.18.0.3:59088 sni="relay" alpn=[h3] versions=[772]
+test-client-1  | W1023 00:25:29.347819     7 MoQWebTransportClient.cpp:159] WebTransport: No WT-Protocol header in response
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade request [2mremote=[0m172.18.0.3:59088 [2mmethod=[0mCONNECT [2mpath=[0m/ [2mproto=[0mwebtransport [2morigin=[0m""
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade ok [2mremote=[0m172.18.0.3:59088 [2mwt_protocol=[0m""
+relay-1        | [2m00:25:29[0m [93mWRN[0m relay SETUP failed [2mcomponent=[0mrelay [2merr=[0m"open send control: moqt/session: no bidirectional stream credit"
+test-client-1  | E1023 00:25:29.347972     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: Got error=386759528
+test-client-1  | E1023 00:25:29.348005     7 MoQClientBase.cpp:150] MoQClientBase: no supported MoQT version negotiated, protocol=<none>
+test-client-1  | not ok 4 - announce-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 1
+test-client-1  |   error: No supported MoQT version negotiated
+test-client-1  |   ...
+relay-1        | [2m00:25:29[0m [92mINF[0m tls: ClientHello from 172.18.0.3:49526 sni="relay" alpn=[h3] versions=[772]
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade request [2mremote=[0m172.18.0.3:49526 [2mmethod=[0mCONNECT [2mpath=[0m/ [2mproto=[0mwebtransport [2morigin=[0m""
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade ok [2mremote=[0m172.18.0.3:49526 [2mwt_protocol=[0m""
+relay-1        | [2m00:25:29[0m [93mWRN[0m relay SETUP failed [2mcomponent=[0mrelay [2merr=[0m"open send control: moqt/session: no bidirectional stream credit"
+test-client-1  | W1023 00:25:29.349777     7 MoQWebTransportClient.cpp:159] WebTransport: No WT-Protocol header in response
+test-client-1  | E1023 00:25:29.349826     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: Got error=386759528
+test-client-1  | E1023 00:25:29.349849     7 MoQClientBase.cpp:150] MoQClientBase: no supported MoQT version negotiated, protocol=<none>
+test-client-1  | not ok 5 - publish-namespace-done
+test-client-1  |   ---
+test-client-1  |   duration_ms: 1
+test-client-1  |   error: No supported MoQT version negotiated
+test-client-1  |   ...
+relay-1        | [2m00:25:29[0m [92mINF[0m tls: ClientHello from 172.18.0.3:44734 sni="relay" alpn=[h3] versions=[772]
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade request [2mremote=[0m172.18.0.3:44734 [2mmethod=[0mCONNECT [2mpath=[0m/ [2mproto=[0mwebtransport [2morigin=[0m""
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade ok [2mremote=[0m172.18.0.3:44734 [2mwt_protocol=[0m""
+test-client-1  | W1023 00:25:29.351571     7 MoQWebTransportClient.cpp:159] WebTransport: No WT-Protocol header in response
+test-client-1  | E1023 00:25:29.351633     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: Got error=386759528
+test-client-1  | E1023 00:25:29.351652     7 MoQClientBase.cpp:150] MoQClientBase: no supported MoQT version negotiated, protocol=<none>
+relay-1        | [2m00:25:29[0m [93mWRN[0m relay SETUP failed [2mcomponent=[0mrelay [2merr=[0m"open send control: moqt/session: no bidirectional stream credit"
+test-client-1  | not ok 6 - publish-namespace-multi-publisher-retention
+test-client-1  |   ---
+test-client-1  |   duration_ms: 1
+test-client-1  |   error: No supported MoQT version negotiated
+test-client-1  |   ...
+relay-1        | [2m00:25:29[0m [92mINF[0m tls: ClientHello from 172.18.0.3:58692 sni="relay" alpn=[h3] versions=[772]
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade request [2mremote=[0m172.18.0.3:58692 [2mmethod=[0mCONNECT [2mpath=[0m/ [2mproto=[0mwebtransport [2morigin=[0m""
+relay-1        | [2m00:25:29[0m DBG wtconn: upgrade ok [2mremote=[0m172.18.0.3:58692 [2mwt_protocol=[0m""
+test-client-1  | W1023 00:25:29.353411     7 MoQWebTransportClient.cpp:159] WebTransport: No WT-Protocol header in response
+test-client-1  | E1023 00:25:29.353464     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: Got error=386759528
+relay-1        | [2m00:25:29[0m [93mWRN[0m relay SETUP failed [2mcomponent=[0mrelay [2merr=[0m"open send control: moqt/session: no bidirectional stream credit"
+test-client-1  | E1023 00:25:29.353503     7 MoQClientBase.cpp:150] MoQClientBase: no supported MoQT version negotiated, protocol=<none>
+test-client-1  | not ok 7 - subscribe-before-announce
+test-client-1  |   ---
+test-client-1  |   duration_ms: 1
+test-client-1  |   error: No supported MoQT version negotiated
+test-client-1  |   ...
+test-client-1  | E20261023 00:25:30.355317     7 EventHandler.cpp:93] EventBase: failed to register event handler for fd 10: No such file or directory
+[Ktest-client-1 exited with code 1
+ Compose Stopping Aborting on container exit...
+ Container main-test-client-1 Stopping 
+ Container main-test-client-1 Stopped 
+ Container main-relay-1 Stopping 
+relay-1        | [2m00:25:30[0m [92mINF[0m relay stopping [2mcomponent=[0mrelay
+relay-1        | [2m00:25:30[0m [92mINF[0m relay accept loop stopped [2mcomponent=[0mrelay
+relay-1        | [2m00:25:30[0m [92mINF[0m relay stopped [2mcomponent=[0mrelay
+ Container main-relay-1 Stopped 
+[Krelay-1 exited with code 0
+
+make: *** [Makefile:86: test] Error 1

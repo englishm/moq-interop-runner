@@ -1,0 +1,72 @@
+Running tests against https://fb.mvfst.net:9448/moq-relay...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://fb.mvfst.net:9448/moq-relay \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=1 \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://fb.mvfst.net:9448/moq-relay
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 195
+  negotiated_version: draft-16
+  info: SETUP exchange completed successfully
+  ...
+E1023 00:28:13.020420     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x5fff06b0f8a0
+ok 2 - announce-only
+  ---
+  duration_ms: 257
+  negotiated_version: draft-16
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 229
+  negotiated_version: draft-16
+  info: Subscribe correctly returned error: no such namespace or track
+  ...
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 544
+  negotiated_version: draft-16
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 249
+  negotiated_version: draft-16
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1023 00:28:16.853269     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1023 00:28:16.903881     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1023 00:28:16.965954     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1023 00:28:17.392853     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1023 00:28:17.443487     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+*** Aborted at 1792715412 (Unix time, try 'date -d @1792715412') ***
+*** Signal 15 (SIGTERM) (0x3e800000001) received by PID 7 (pthread TID 0x7b8f2940c080) (linux TID 7) (maybe from PID 1, UID 1000) (code: sent by kill, sigsend or raise), stack trace: ***
+moq_interop_client(+0x64ef0b)[0x5ffee0b06f0b]
+moq_interop_client(+0x6482e5)[0x5ffee0b002e5]
+moq_interop_client(+0x646a48)[0x5ffee0afea48]
+/lib/x86_64-linux-gnu/libc.so.6(+0x3c04f)[0x7b8f2948004f]
+/lib/x86_64-linux-gnu/libc.so.6(epoll_wait+0x56)[0x7b8f2954cf36]
+moq_interop_client(+0x6bcc7f)[0x5ffee0b74c7f]
+moq_interop_client(+0x6b303c)[0x5ffee0b6b03c]
+moq_interop_client(+0x5c7d9d)[0x5ffee0a7fd9d]
+moq_interop_client(+0x5c83dd)[0x5ffee0a803dd]
+moq_interop_client(+0x5cff97)[0x5ffee0a87f97]
+moq_interop_client(+0x171bb8)[0x5ffee0629bb8]
+moq_interop_client(+0x16d8ae)[0x5ffee06258ae]
+moq_interop_client(+0x14225f)[0x5ffee05fa25f]
+/lib/x86_64-linux-gnu/libc.so.6(+0x27249)[0x7b8f2946b249]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x84)[0x7b8f2946b304]
+moq_interop_client(+0x148600)[0x5ffee0600600]
+(safe mode, symbolizer not available)
+make: *** [Makefile:122: test-external] Error 143
