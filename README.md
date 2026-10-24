@@ -143,9 +143,9 @@ existing detailed specifications with protocol references.
 - [MOQtail](https://github.com/moqtail/moqtail) - OzU (Rust + TypeScript)
 - [moq-go](https://github.com/floatdrop/moq-go) - Vsevolod Strukchinsky (Go)
 - [moqtopus](https://github.com/kota-yata/moqtopus) - Kota Yatagai (C++)
-- [moq-web]](https://github.com/Quicr/moq-web) - Cisco (Typescript)
-- [qdroid] (https://github.com/Quicr/qdroid) - Cisco (Kotlin , C++)
-- [quicr-mac] (https://github.com/Quicr/quicr-mac) - Cisco (swift, C++)
+- [moq-web](https://github.com/Quicr/moq-web) - Cisco (Typescript)
+- [qdroid](https://github.com/Quicr/qdroid) - Cisco (Kotlin , C++)
+- [quicr-mac](https://github.com/Quicr/quicr-mac) - Cisco (swift, C++)
 
 ### Inspiration
 
