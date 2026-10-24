@@ -1,0 +1,72 @@
+Running tests against https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 204
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E20261024 00:26:54.536422     8 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=265428dc2d25cf65, local=10.1.1.183:60629, 8.228.3.228:443=upstream, drain=done
+E1024 00:26:54.668230     8 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x5bb09b784080
+ok 2 - announce-only
+  ---
+  duration_ms: 185
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E20261024 00:26:54.857203     8 HQControlCodec.h:58] Unexpected control stream EOF
+E20261024 00:26:54.857286     8 HQSession.cpp:3027] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=4eef414977510422, local=10.1.1.183:44821, 8.228.3.228:443=upstream, drain=done
+ok 3 - subscribe-error
+  ---
+  duration_ms: 188
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer FINed without terminal reply
+  ...
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 428
+  negotiated_version: draft-18
+  error: Subscribe failed: peer FINed without terminal reply
+  ...
+E20261024 00:26:55.286427     8 HQControlCodec.h:58] Unexpected control stream EOF
+E20261024 00:26:55.286509     8 HQSession.cpp:3027] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=ff5001ec7b6a9b59, local=10.1.1.183:42282, 8.228.3.228:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 237
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E20261024 00:26:55.579332     8 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=37457016583994b6, local=10.1.1.183:45012, 8.228.3.228:443=upstream, drain=done
+E1024 00:26:56.128892     8 MoQRelaySession.cpp:978] Invalid publishNamespace cancel requestID=0
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 605
+  negotiated_version: draft-18
+  error: PUBLISH_NAMESPACE failed: peer stopped reading the request stream
+  ...
+E20261024 00:26:56.171888     8 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=87e5620904b707ae, local=10.1.1.183:41595, 8.228.3.228:443=upstream, drain=done
+E20261024 00:26:56.172102     8 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=c2508a2b90b4636f, local=10.1.1.183:47005, 8.228.3.228:443=upstream, drain=done
+E20261024 00:26:56.352406     8 HQControlCodec.h:58] Unexpected control stream EOF
+E20261024 00:26:56.352483     8 HQSession.cpp:3027] Got error on control stream error=HTTP: Critical stream was closed streamID=3 sess=proto=h3, client CID=, server CID=d311a55c9f086eb5, local=10.1.1.183:52989, 8.228.3.228:443=upstream, drain=done
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 904
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): peer FINed without terminal reply
+  ...
+E20261024 00:26:57.088508     8 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=f21c60d9c9d3112b, local=10.1.1.183:51270, 8.228.3.228:443=upstream, drain=done
+make: *** [Makefile:122: test-external] Error 1
