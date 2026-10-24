@@ -444,9 +444,14 @@ run_test() {
         SKIPPED=$((SKIPPED + 1))
         return
     fi
+    # Optional per-client memory ceiling (e.g. headless browsers); compose defaults to 256M
+    local client_memory_limit
+    client_memory_limit=$(jq -r --arg c "$client" '.implementations[$c].roles.client.docker.memory_limit // empty' "$CONFIG_FILE")
 
     if [[ "$mode" == "docker" ]]; then
-        if run_with_timeout "$test_timeout" make test RELAY_IMAGE="$target" CLIENT_IMAGE="$client_image" > "$result_file" 2>&1; then
+        local -a docker_make_args=("test" "RELAY_IMAGE=$target" "CLIENT_IMAGE=$client_image")
+        [ -n "$client_memory_limit" ] && docker_make_args+=("CLIENT_MEMORY_LIMIT=$client_memory_limit")
+        if run_with_timeout "$test_timeout" make "${docker_make_args[@]}" > "$result_file" 2>&1; then
             status="pass"
             PASSED=$((PASSED + 1))
             echo -e "${GREEN}✓ PASSED${NC}"
@@ -469,6 +474,7 @@ run_test() {
         # Build make arguments as array to avoid word splitting issues
         local -a make_args=("test-external" "RELAY_URL=$target" "CLIENT_IMAGE=$client_image")
         [ "$tls_disable" = "true" ] && make_args+=("TLS_DISABLE_VERIFY=1")
+        [ -n "$client_memory_limit" ] && make_args+=("CLIENT_MEMORY_LIMIT=$client_memory_limit")
 
         if run_with_timeout "$test_timeout" make "${make_args[@]}" > "$result_file" 2>&1; then
             status="pass"
