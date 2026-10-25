@@ -1,0 +1,72 @@
+Running tests against https://relay.moqtail.dev...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://relay.moqtail.dev \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://relay.moqtail.dev
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 105
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E1025 00:34:06.311774     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x587e2c251300
+ok 2 - announce-only
+  ---
+  duration_ms: 89
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 113
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer FINed without terminal reply
+  ...
+E20261025 00:34:06.447713     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=08b97c3fd73f90ac, local=10.1.1.71:39281, 172.232.23.42:443=upstream, drain=done
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 132
+  negotiated_version: draft-18
+  error: Subscribe failed: peer FINed without terminal reply
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 91
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1025 00:34:08.766277     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E20261025 00:34:08.791311     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=b509ff5f080f4761, local=10.1.1.71:43297, 172.232.23.42:443=upstream, drain=done
+E1025 00:34:08.936808     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E20261025 00:34:08.962105     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=76511a512ed29286, local=10.1.1.71:39551, 172.232.23.42:443=upstream, drain=done
+*** Aborted at 1792888566 (Unix time, try 'date -d @1792888566') ***
+*** Signal 15 (SIGTERM) (0x3e800000001) received by PID 7 (pthread TID 0x790e06688080) (linux TID 7) (maybe from PID 1, UID 1000) (code: sent by kill, sigsend or raise), stack trace: ***
+moq_interop_client(+0x64fd4b)[0x587dfccadd4b]
+moq_interop_client(+0x649125)[0x587dfcca7125]
+moq_interop_client(+0x647888)[0x587dfcca5888]
+/lib/x86_64-linux-gnu/libc.so.6(+0x3c04f)[0x790e066fc04f]
+/lib/x86_64-linux-gnu/libc.so.6(epoll_wait+0x56)[0x790e067c8f36]
+moq_interop_client(+0x6bdabf)[0x587dfcd1babf]
+moq_interop_client(+0x6b3e7c)[0x587dfcd11e7c]
+moq_interop_client(+0x5c8bdd)[0x587dfcc26bdd]
+moq_interop_client(+0x5c921d)[0x587dfcc2721d]
+moq_interop_client(+0x5d0dd7)[0x587dfcc2edd7]
+moq_interop_client(+0x171bf8)[0x587dfc7cfbf8]
+moq_interop_client(+0x16d8ee)[0x587dfc7cb8ee]
+moq_interop_client(+0x14228f)[0x587dfc7a028f]
+/lib/x86_64-linux-gnu/libc.so.6(+0x27249)[0x790e066e7249]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x84)[0x790e066e7304]
+moq_interop_client(+0x148640)[0x587dfc7a6640]
+(safe mode, symbolizer not available)
+make: *** [Makefile:122: test-external] Error 143
