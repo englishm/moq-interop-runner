@@ -306,7 +306,10 @@ record_missing_image() {
 }
 
 # List runnable endpoints for a relay, one per line.
-# Output format: mode|target|tls_disable
+# Output format: mode|target|tls_disable|url
+# A docker relay with roles.relay.docker.endpoints yields one docker-<transport>
+# run per endpoint, each passing its url as RELAY_URL; otherwise one "docker"
+# run whose URL the Makefile resolves from the image.
 # Respects DOCKER_ONLY, REMOTE_ONLY, and TRANSPORT_FILTER.
 list_endpoints() {
     local relay="$1"
@@ -315,11 +318,19 @@ list_endpoints() {
     if [ "$REMOTE_ONLY" != true ]; then
         local docker_image=$(jq -r --arg relay "$relay" '.implementations[$relay].roles.relay.docker.image // empty' "$CONFIG_FILE")
         if [ -n "$docker_image" ]; then
-            if image_exists "$docker_image"; then
-                echo "docker|$docker_image|false"
-            else
+            local skip=""
+            if ! image_exists "$docker_image"; then
                 record_missing_image "$docker_image"
-                echo "docker-skip|$docker_image|false"
+                skip="-skip"
+            fi
+            local docker_endpoints=$(jq -r --arg relay "$relay" '.implementations[$relay].roles.relay.docker.endpoints[]? | "\(.transport)|\(.url)"' "$CONFIG_FILE")
+            if [ -n "$docker_endpoints" ]; then
+                local d_transport d_url
+                while IFS='|' read -r d_transport d_url; do
+                    echo "docker-$d_transport$skip|$docker_image|false|$d_url"
+                done <<< "$docker_endpoints"
+            else
+                echo "docker$skip|$docker_image|false|"
             fi
         fi
     fi
@@ -380,9 +391,10 @@ run_test() {
     local relay="$2"
     local version="$3"
     local classification="$4"  # "at", "ahead", or "behind"
-    local mode="$5"      # "docker" or "remote-quic" or "remote-webtransport"
+    local mode="$5"      # "docker", "docker-<transport>" or "remote-<transport>"
     local target="$6"    # image name or URL
     local tls_disable="${7:-false}"
+    local docker_url="${8:-}"  # explicit RELAY_URL for a docker-<transport> run
 
     TOTAL=$((TOTAL + 1))
 
@@ -400,7 +412,7 @@ run_test() {
     # Handle skipped tests (image unavailable)
     if [[ "$mode" == *-skip ]]; then
         local skip_reason
-        if [[ "$mode" == "docker-skip" ]]; then
+        if [[ "$mode" == docker*-skip ]]; then
             skip_reason="relay image unavailable: $target"
         else
             local skip_client_image
@@ -446,8 +458,10 @@ run_test() {
         return
     fi
 
-    if [[ "$mode" == "docker" ]]; then
-        if run_with_timeout "$test_timeout" make test RELAY_IMAGE="$target" CLIENT_IMAGE="$client_image" > "$result_file" 2>&1; then
+    if [[ "$mode" == docker* ]]; then
+        local -a docker_make_args=("test" "RELAY_IMAGE=$target" "CLIENT_IMAGE=$client_image")
+        [ -n "$docker_url" ] && docker_make_args+=("RELAY_URL=$docker_url")
+        if run_with_timeout "$test_timeout" make "${docker_make_args[@]}" > "$result_file" 2>&1; then
             status="pass"
             PASSED=$((PASSED + 1))
             echo -e "${GREEN}✓ PASSED${NC}"
@@ -575,6 +589,7 @@ PLAN_CLASS=()
 PLAN_MODE=()
 PLAN_TARGET=()
 PLAN_TLS=()
+PLAN_URL=()
 
 for client in "${CLIENTS_ARR[@]}"; do
     for relay in "${RELAYS_ARR[@]}"; do
@@ -610,18 +625,18 @@ for client in "${CLIENTS_ARR[@]}"; do
         fi
 
         echo -e "  $client → $relay: $version ($class_display)"
-        while IFS='|' read -r mode target tls_disable; do
+        while IFS='|' read -r mode target tls_disable url; do
             [ -z "$mode" ] && continue
 
             # Determine if this test will be skipped
             effective_mode="$mode"
-            if [ "$mode" = "docker-skip" ]; then
-                echo -e "    ${YELLOW}docker  $target  [SKIP: relay image unavailable]${NC}"
+            if [[ "$mode" == docker*-skip ]]; then
+                echo -e "    ${YELLOW}${mode%-skip}  $target${url:+  $url}  [SKIP: relay image unavailable]${NC}"
             elif [ "$client_image_missing" = true ]; then
                 effective_mode="${mode}-skip"
                 echo -e "    ${YELLOW}$mode  $target  [SKIP: client image unavailable ($client_image)]${NC}"
             else
-                echo -e "    $mode  $target"
+                echo -e "    $mode  $target${url:+  $url}"
             fi
 
             PLAN_CLIENT+=("$client")
@@ -631,6 +646,7 @@ for client in "${CLIENTS_ARR[@]}"; do
             PLAN_MODE+=("$effective_mode")
             PLAN_TARGET+=("$target")
             PLAN_TLS+=("$tls_disable")
+            PLAN_URL+=("$url")
         done <<< "$endpoints"
     done
 done
@@ -682,7 +698,8 @@ fi
 
 for idx in "${SORTED_INDICES[@]}"; do
     run_test "${PLAN_CLIENT[$idx]}" "${PLAN_RELAY[$idx]}" "${PLAN_VERSION[$idx]}" \
-             "${PLAN_CLASS[$idx]}" "${PLAN_MODE[$idx]}" "${PLAN_TARGET[$idx]}" "${PLAN_TLS[$idx]}"
+             "${PLAN_CLASS[$idx]}" "${PLAN_MODE[$idx]}" "${PLAN_TARGET[$idx]}" "${PLAN_TLS[$idx]}" \
+             "${PLAN_URL[$idx]}"
 done
 
 #############################################################################
