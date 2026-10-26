@@ -1,0 +1,224 @@
+Running tests against moqt://us-west-2.relay.quicr.org:33437...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://us-west-2.relay.quicr.org:33437 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=1 \
+	ghcr.io/gmarzot/aiomoqt:latest
+WARNING aiopquic.quic.connection: connection closed (transport): error=376
+2026-10-26 00:24:52.218 ERROR: QUIC error: code: 376 reason: ConnectionTerminated
+2026-10-26 00:24:52.218 ERROR: MOQT error: closing: ConnectionTerminated (376)
+WARNING aiopquic.quic.connection: connection closed (transport): error=376
+2026-10-26 00:24:52.241 ERROR: QUIC error: code: 376 reason: ConnectionTerminated
+2026-10-26 00:24:52.241 ERROR: MOQT error: closing: ConnectionTerminated (376)
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+  [FAIL] subscribe-error: Unexpected SUBSCRIBE_OK for non-existent track
+  [FAIL] rendezvous-timeout: SUBSCRIBE_OK for a track nobody publishes
+2026-10-26 00:24:53.270 WARNING: QUIC event: stream data after close: stream 1 (rate-limited to once per stream)
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+  [PASS] subscribe-before-announce: SUBSCRIBE_OK received after delayed announce (relay buffered)
+WARNING aiopquic.quic.connection: stream 1 reset by peer: error=0
+  [FAIL] data-subgroup-basic: no downstream PUBLISH_DONE (16 problem(s)); 15 objects received; Stream Count upstream 3, downstream none
+  [PASS] subscribe-namespace-lifecycle: NAMESPACE then NAMESPACE_DONE received
+2026-10-26 00:25:04.480 ERROR: MOQT error: control task failed with exception: no request stream bound for request_id=5: cannot send RequestOk (1)
+2026-10-26 00:25:04.500 WARNING: QUIC event: stream data after close: stream 4 (rate-limited to once per stream)
+  [PASS] namespace-discovery: discovered 'track-9dd4'
+  [PASS] publish-track-only: PUBLISH_OK received, PUBLISH_DONE sent
+  [PASS] publish-track-subscribe: 5 objects received from the published track
+  Discovered: moq-test/9dd4/interop/namespace-discovery/track-9dd4
+TAP version 14
+# date: 2026-10-26T00:24:52Z
+# ended: 2026-10-26T00:25:04Z
+# target: moqt://us-west-2.relay.quicr.org:33437
+# version: aiomoqt/0.13.3
+# note: preference probe pinned draft-18
+1..12
+ok 1 - setup-only
+  ---
+  duration_ms: 63
+  implementation_version: "0.13.3"
+  sessions:
+    client:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "2a0d4d2f1cbabfcd"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 84
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "3576f228ba8f9bf8"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 432
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "059fd0ca32856fb5"
+  message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+  ...
+not ok 4 - subscribe-error
+  ---
+  duration_ms: 87
+  implementation_version: "0.13.3"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "800813514c6ea089"
+  message: "Unexpected SUBSCRIBE_OK for non-existent track"
+  expected: "error response"
+  received: "SUBSCRIBE_OK"
+  ...
+not ok 5 - rendezvous-timeout
+  ---
+  duration_ms: 102
+  implementation_version: "0.13.3"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "fb682390f6665321"
+  message: "SUBSCRIBE_OK for a track nobody publishes"
+  expected: "REQUEST_ERROR TIMEOUT"
+  ...
+ok 6 - announce-subscribe
+  ---
+  duration_ms: 193
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "12cd45fcece826c0"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "2072b83ae8676066"
+  message: "SUBSCRIBE_OK received — relay routed subscription"
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 656
+  implementation_version: "0.13.3"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "07d4f3dd732fa886"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "f3df499832a3ff61"
+  message: "SUBSCRIBE_OK received after delayed announce (relay buffered)"
+  ...
+not ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 10192
+  implementation_version: "0.13.3"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "668812ca90020773"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d21c1d7e292859a1"
+  message: "no downstream PUBLISH_DONE (16 problem(s)); 15 objects received; Stream Count upstream 3, downstream none"
+  ...
+ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 192
+  implementation_version: "0.13.3"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "bf43060f7e6a865f"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "31f1965a050c96a5"
+  message: "NAMESPACE then NAMESPACE_DONE received"
+  ...
+ok 10 - namespace-discovery
+  ---
+  duration_ms: 188
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "b605aa88b0524cfe"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "537f362b3997e91f"
+  message: "discovered 'track-9dd4'"
+  expected: "PUBLISH announcing 'track-9dd4'"
+  received: "track-9dd4"
+  ...
+ok 11 - publish-track-only
+  ---
+  duration_ms: 186
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d1cc7eec68700f3d"
+  message: "PUBLISH_OK received, PUBLISH_DONE sent"
+  ...
+ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 273
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "18cc47f79a154289"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "68055aa455fa975d"
+  message: "5 objects received from the published track"
+  expected: "5 objects"
+  received: "5 objects"
+  ...
+make: *** [Makefile:122: test-external] Error 1

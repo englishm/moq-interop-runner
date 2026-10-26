@@ -1,0 +1,60 @@
+Running tests against moqt://aiomoqt-relay.marzresearch.net:4443...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://aiomoqt-relay.marzresearch.net:4443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://aiomoqt-relay.marzresearch.net:4443
+# Transport: QUIC
+# Offered ALPNs: moqt-18, moqt-16, moqt-20-meta-02
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 133
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 157
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E1026 00:30:28.761223     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x568cb2eb45a0
+ok 3 - subscribe-error
+  ---
+  duration_ms: 155
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer stopped reading the request stream
+  ...
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 323
+  negotiated_version: draft-18
+  error: Subscribe failed: peer stopped reading the request stream
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 155
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 891
+  negotiated_version: draft-18
+  info: Retained namespace and withdrawal reached both subscribers
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 774
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): peer stopped reading the request stream
+  ...
+make: *** [Makefile:122: test-external] Error 1

@@ -1,0 +1,50 @@
+Running tests against moqt://cdn.moq.dev:443/anon...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://cdn.moq.dev:443/anon \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+WARNING aiopquic.quic.connection: stream 0 reset by peer: error=91141958510812
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+  [PASS] subscribe-error: Error received (expected): code=16
+  [FAIL] rendezvous-timeout: REQUEST_ERROR code=0x10, expected TIMEOUT
+2026-10-26 00:26:53.530 WARNING: QUIC event: stream data after close: stream 21 (rate-limited to once per stream)
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+  [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=16
+WARNING aiopquic.quic.connection: stream 25 reset by peer: error=91141958510812
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1950, in <module>
+    cli()
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1946, in cli
+    main()
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1925, in main
+    asyncio.run(
+  File "/usr/local/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1793, in run_tests
+    result = await fn(host, port, path, use_quic, tls_disable_verify,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1232, in test_data_subgroup_basic
+    sent = await pub.send(pub_session)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/aiomoqt/tools/moq_interop_client.py", line 1063, in send
+    await session.stream_write_drain(stream_id, buf.data)
+  File "/app/aiomoqt/protocol.py", line 3331, in stream_write_drain
+    raise MOQTStreamStopped()
+aiomoqt.types.MOQTStreamStopped
+make: *** [Makefile:122: test-external] Error 1
