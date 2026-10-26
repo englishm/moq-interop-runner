@@ -159,6 +159,37 @@ INDEXFOOT
     echo "Index generated: $INDEX_FILE"
 }
 
+# Print the summary with each run placed at the version its client reported
+# negotiating: version and classification follow the negotiated version, and
+# predicted_version keeps the runner's prediction. Runs whose log reports no
+# version keep the prediction.
+augment_negotiated() {
+    local results_dir="$1" summary="$2" i=0 tsv=""
+    local client relay mode status
+    while IFS=$'\t' read -r client relay mode status; do
+        local negotiated=""
+        if [ "$status" != "skip" ] && parse_negotiated_versions "$results_dir/${client}_to_${relay}_${mode}.log"; then
+            negotiated="$TAP_NEGOTIATED"
+        fi
+        tsv+="$i"$'\t'"$negotiated"$'\n'
+        i=$((i + 1))
+    done < <(jq -r '.runs[] | [.client, .relay, .mode, .status] | @tsv' "$summary")
+    jq --arg tsv "$tsv" '
+        ($tsv | split("\n") | map(select(length > 0) | split("\t")) |
+            map({key: .[0], value: ((.[1] // "") | split(" ") | map(select(length > 0)))}) |
+            from_entries) as $neg |
+        ((.target_version // "draft-0") | ltrimstr("draft-") | tonumber) as $tn |
+        .runs |= [to_entries[] | (.key | tostring) as $k | .value |
+            . + {predicted_version: .version} + (
+                ($neg[$k] // []) as $n |
+                if ($n | length) > 0 then
+                    {version: $n[0], negotiated_versions: $n,
+                     classification: (($n[0] | ltrimstr("draft-") | tonumber) as $vn |
+                        if $vn == $tn then "at" elif $vn > $tn then "ahead" else "behind" end)}
+                else {negotiated_versions: []} end)]
+    ' "$summary"
+}
+
 #############################################################################
 # Generate Detail Report (single run with matrix)
 #############################################################################
@@ -173,6 +204,11 @@ generate_detail() {
     fi
 
     echo "Generating detail report: $OUTPUT_FILE"
+
+    local AUG_SUMMARY
+    AUG_SUMMARY=$(mktemp "${TMPDIR:-/tmp}/summary.XXXXXX")
+    augment_negotiated "$RESULTS_DIR" "$SUMMARY_FILE" > "$AUG_SUMMARY"
+    SUMMARY_FILE="$AUG_SUMMARY"
 
     # Extract data from summary
     local TIMESTAMP=$(jq -r '.timestamp' "$SUMMARY_FILE")
@@ -319,6 +355,9 @@ generate_detail() {
         .matrix .version-tag.at { color: var(--pass); }
         .matrix .version-tag.ahead { color: #60a5fa; }
         .matrix .version-tag.behind { color: #fbbf24; }
+        .version-tag.predicted, code.predicted { font-style: italic; opacity: 0.55; }
+        .version-tag.mismatch, code.mismatch { text-decoration: underline wavy #f87171; }
+        .legend { color: var(--muted); font-size: 0.8rem; margin: -1rem 0 2rem; }
         .matrix-link { color: inherit; text-decoration: none; }
         .matrix-link:hover { text-decoration: none; opacity: 0.85; }
         tr:target { background: rgba(96, 165, 250, 0.15); }
@@ -393,16 +432,26 @@ MATRIXHEAD
                 continue
             fi
 
-            # Get the negotiated version and classification for this pair
-            local pair_version pair_classification version_tag=""
-            pair_version=$(jq -r --arg c "$client" --arg r "$relay" \
-                '[.runs[] | select(.client == $c and .relay == $r) | .version] | unique | .[0] // ""' "$SUMMARY_FILE")
-            if [ -n "$pair_version" ]; then
-                pair_classification=$(jq -r --arg c "$client" --arg r "$relay" \
-                    '[.runs[] | select(.client == $c and .relay == $r) | .classification] | unique | .[0] // ""' "$SUMMARY_FILE")
-                # Strip "draft-" prefix for compact display
-                local short_version="${pair_version#draft-}"
-                version_tag="<span class=\"version-tag ${pair_classification}\" title=\"Expected negotiated version: ${pair_version}\">${short_version}</span>"
+            # Version badge: what the client reported negotiating, else the
+            # runner's prediction (italic). Wavy underline: differs from the prediction.
+            local pair_badge version_tag=""
+            pair_badge=$(jq -r --arg c "$client" --arg r "$relay" '
+                [.runs[] | select(.client == $c and .relay == $r)] as $all |
+                ([$all[] | select(.status != "skip")] | if length > 0 then . else $all end) as $rs |
+                ($rs | map(.version) | unique | sort_by(ltrimstr("draft-") | tonumber) | reverse) as $vs |
+                ($all | map(.predicted_version) | unique | .[0] // "") as $pred |
+                ($rs | map(select((.negotiated_versions | length) > 0)) | length) as $nn |
+                [ ($vs | map(ltrimstr("draft-")) | join("/")),
+                  ($rs | map(.classification) | .[0] // ""),
+                  (if $nn == 0 then "predicted" elif $vs != [$pred] then "mismatch" else "" end),
+                  (if $nn == 0 then "Predicted \($pred); the client reported no negotiated version"
+                   elif $nn < ($rs | length) then "Negotiated \($vs | join(", ")) where reported; predicted \($pred)"
+                   else "Negotiated \($vs | join(", ")); predicted \($pred)" end)
+                ] | join("\u001f")' "$SUMMARY_FILE")
+            if [ -n "$pair_badge" ]; then
+                local badge_text badge_class badge_flag badge_title
+                IFS=$'\x1f' read -r badge_text badge_class badge_flag badge_title <<< "$pair_badge"
+                [ -n "$badge_text" ] && version_tag="<span class=\"version-tag ${badge_class} ${badge_flag}\" title=\"${badge_title}\">${badge_text}</span>"
             fi
 
             local anchor_id="detail-${client}_to_${relay}"
@@ -450,6 +499,7 @@ MATRIXHEAD
     cat >> "$OUTPUT_FILE" << 'MATRIXFOOT'
             </tbody>
         </table>
+        <p class="legend">Superscript: the MoQT version the client reported negotiating. <em>Italic</em>: the runner's prediction, for clients that report none. Wavy underline: differs from the prediction.</p>
 
         <h2>Detailed Results</h2>
         <table>
@@ -492,6 +542,8 @@ MATRIXFOOT
             local mode=$(echo "$run" | jq -r '.mode')
             local status=$(echo "$run" | jq -r '.status')
             local classification=$(echo "$run" | jq -r '.classification')
+            local predicted=$(echo "$run" | jq -r '.predicted_version // .version')
+            local negotiated_count=$(echo "$run" | jq -r '.negotiated_versions // [] | length')
 
             local log_file="$RESULTS_DIR/${client}_to_${relay}_${mode}.log"
             local test_display
@@ -504,6 +556,16 @@ MATRIXFOOT
                 behind) version_tooltip="Behind interop target ($TARGET_VERSION)" ;;
                 *)     version_tooltip="" ;;
             esac
+            local version_class="$classification"
+            if [ "$negotiated_count" -eq 0 ]; then
+                version_class="$classification predicted"
+                version_tooltip="Predicted; the client reported no negotiated version. $version_tooltip"
+            elif [ "$version" != "$predicted" ]; then
+                version_class="$classification mismatch"
+                version_tooltip="Negotiated $version; predicted $predicted. $version_tooltip"
+            else
+                version_tooltip="Negotiated $version. $version_tooltip"
+            fi
 
             if parse_tap_file "$log_file" && [ "$TAP_TOTAL" -gt 0 ]; then
                 local passed=$TAP_PASSED
@@ -542,7 +604,7 @@ MATRIXFOOT
             else
                 log_link="<a href=\"${client}_to_${relay}_${mode}.log\">log</a>"
             fi
-            echo "<tr${row_id_attr}><td>$client</td><td>$relay</td><td><code class=\"$classification\" title=\"$version_tooltip\">$version</code></td><td>$mode</td><td>$test_display</td><td>$log_link</td></tr>" >> "$OUTPUT_FILE"
+            echo "<tr${row_id_attr}><td>$client</td><td>$relay</td><td><code class=\"$version_class\" title=\"$version_tooltip\">$version</code></td><td>$mode</td><td>$test_display</td><td>$log_link</td></tr>" >> "$OUTPUT_FILE"
         done < <(jq -c --arg cl "$class" \
             '.target_version as $tv |
             ($tv | ltrimstr("draft-") | tonumber) as $tn |
@@ -573,6 +635,7 @@ MATRIXFOOT
 </html>
 FOOTER
 
+    rm -f "$AUG_SUMMARY"
     echo "Detail report generated: $OUTPUT_FILE"
 }
 
