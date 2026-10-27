@@ -1,0 +1,236 @@
+Running tests against https://relay.moqtail.dev...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://relay.moqtail.dev \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+  [PASS] subscribe-error: Error received (expected): code=16
+  [FAIL] rendezvous-timeout: REQUEST_ERROR code=0x10, expected TIMEOUT
+  [PASS (COMPAT)] announce-subscribe: relay holds subscription pending (forward-and-wait); no SUBSCRIBE_OK within 5s
+  [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=16
+  [FAIL] data-subgroup-basic: timed out waiting for SUBSCRIBE
+  [FAIL] subscribe-namespace-lifecycle: no NAMESPACE within 5s
+  [FAIL] namespace-discovery: Failed: TimeoutError
+  [FAIL] publish-track-only: Failed: TimeoutError
+  [FAIL] publish-track-subscribe: Failed: MOQTRequestError: request error: code=16 reason=Unknown track namespace
+TAP version 14
+# date: 2026-10-27T00:23:32Z
+# ended: 2026-10-27T00:24:04Z
+# target: https://relay.moqtail.dev
+# version: aiomoqt/0.13.3
+# note: preference probe pinned draft-18
+1..12
+ok 1 - setup-only
+  ---
+  duration_ms: 153
+  implementation_version: "0.13.3"
+  sessions:
+    client:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "556bc458e88c35b6"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 179
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "73e9a2854086dac0"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 308
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "c78fb19ab258d34a"
+  message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+  ...
+ok 4 - subscribe-error
+  ---
+  duration_ms: 245
+  implementation_version: "0.13.3"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "63dca07d797631ff"
+  message: "Error received (expected): code=16"
+  expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+  ...
+not ok 5 - rendezvous-timeout
+  ---
+  duration_ms: 172
+  implementation_version: "0.13.3"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "e67359c49ac6d77a"
+  message: "REQUEST_ERROR code=0x10, expected TIMEOUT"
+  expected: "REQUEST_ERROR TIMEOUT"
+  ...
+ok 6 - announce-subscribe # COMPAT
+  ---
+  duration_ms: 5329
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "2638449674c81728"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "de32d3445e936bf4"
+  message: "relay holds subscription pending (forward-and-wait); no SUBSCRIBE_OK within 5s"
+  compat: true
+  compat_note: "relay held the subscription pending without an eager SUBSCRIBE_OK; accepted as a valid forward-and-wait relay model (matches moq-rs)"
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 878
+  implementation_version: "0.13.3"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "5ed5e004a06b9f27"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "63a67dee4bae5fc0"
+  message: "Error received (valid: relay didn't buffer): code=16"
+  ...
+not ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 5442
+  implementation_version: "0.13.3"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "0a4db5b76ead730e"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "8a91008f4a4ff45d"
+  message: "timed out waiting for SUBSCRIBE"
+  ...
+not ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 5320
+  implementation_version: "0.13.3"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "79d6995077aa512d"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "beaa50f64cb64603"
+  message: "no NAMESPACE within 5s"
+  expected: "NAMESPACE (), NAMESPACE_DONE ()"
+  received: "nothing"
+  ...
+not ok 10 - namespace-discovery
+  ---
+  duration_ms: 7829
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "c4d3243c938211ad"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "76043bb1158a35e1"
+  message: "Failed: TimeoutError"
+  expected: "PUBLISH announcing 'track-ef04'"
+  received: "TimeoutError"
+  ...
+not ok 11 - publish-track-only
+  ---
+  duration_ms: 5027
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "b87d5ba463417204"
+  message: "Failed: TimeoutError"
+  expected: "PUBLISH_OK"
+  received: "TimeoutError"
+  ...
+not ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 393
+  implementation_version: "0.13.3"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "3d82af757d661d60"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "67aafdbf0103803e"
+  message: "Failed: MOQTRequestError: request error: code=16 reason=Unknown track namespace"
+  expected: "SUBSCRIBE_OK and 5 objects"
+  received: "MOQTRequestError: request error: code=16 reason=Unknown track namespace"
+  ...
+make: *** [Makefile:122: test-external] Error 1
