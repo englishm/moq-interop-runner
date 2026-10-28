@@ -749,7 +749,7 @@ const tests: TestName[] = args.test
 	: [...TESTS];
 
 tap("TAP version 14");
-tap("# moq-dev-js-client v0.1.0 (@moq/net 0.4.4)");
+tap("# moq-dev-js-client v0.1.0 (@moq/net 0.4.7)");
 tap(`# Relay: ${args.relay}`);
 tap(`1..${tests.length}`);
 
