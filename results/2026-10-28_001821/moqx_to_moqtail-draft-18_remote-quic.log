@@ -1,0 +1,67 @@
+Running tests against https://relay.moqtail.dev...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://relay.moqtail.dev \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://relay.moqtail.dev
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 94
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E1028 00:19:43.807294     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x5ad78b36d860
+ok 2 - announce-only
+  ---
+  duration_ms: 90
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 102
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer FINed without terminal reply
+  ...
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 228
+  negotiated_version: draft-18
+  error: Subscribe failed: peer FINed without terminal reply
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 102
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1028 00:19:46.484050     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1028 00:19:46.629825     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E20261028 00:19:46.651425     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=09533f9dded65d68, local=10.1.0.217:33937, 172.232.23.42:443=upstream, drain=done
+E1028 00:19:46.670065     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E20261028 00:19:46.695231     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=e9944991d9359d7c, local=10.1.0.217:34665, 172.232.23.42:443=upstream, drain=done
+E1028 00:19:46.819738     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1028 00:19:46.833376     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x5ad78b36b060
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 2590
+  negotiated_version: draft-18
+  error: Timed out waiting for target namespace fan-out
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 692
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): peer FINed without terminal reply
+  ...
+make: *** [Makefile:122: test-external] Error 1
