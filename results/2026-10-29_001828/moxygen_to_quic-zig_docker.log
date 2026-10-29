@@ -1,0 +1,150 @@
+rm -rf mlog/
+mkdir -p mlog/relay mlog/client
+Running interop tests...
+  Relay:  ghcr.io/endel/quic-zig-moq-relay:latest
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+  URL:    https://relay:4443
+time="2026-10-29T00:20:06Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-29T00:20:06Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-29T00:20:06Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-29T00:20:06Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+time="2026-10-29T00:20:06Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+ Container main-test-client-1 Recreate 
+ Container main-test-client-1 Recreated 
+Attaching to relay-1, test-client-1
+ Container main-relay-1 Starting 
+ Container main-relay-1 Started 
+ Container main-relay-1 Waiting 
+relay-1  | 
+relay-1  | === MoQ Relay (draft-17/18, WebTransport + QUIC) ===
+relay-1  | Certificate SHA-256: b263d0e2c46aa70b5f5266962639a7accbc2889485d61f5f8f665f52531481d6
+relay-1  | 
+relay-1  | Listening on https://0.0.0.0:4443
+relay-1  | Video demo: https://127.0.0.1:4443/moq_video.html
+relay-1  | Clock demo: https://127.0.0.1:4443/moq.html
+relay-1  | 
+ Container main-relay-1 Healthy 
+ Container main-test-client-1 Starting 
+ Container main-test-client-1 Started 
+test-client-1  | TAP version 14
+test-client-1  | # moxygen interop test client
+test-client-1  | # Relay: https://relay:4443
+test-client-1  | # Transport: WebTransport
+test-client-1  | # Offered ALPNs: moqt-18, moqt-16, moqt-20-meta-02
+test-client-1  | 1..7
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+test-client-1  | ok 1 - setup-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 6
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: SETUP exchange completed successfully
+test-client-1  |   ...
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/"
+test-client-1  | E1029 00:20:12.072705     8 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x5e123013f700
+relay-1        | [relay] namespace "moq-test/" withdrawn by client 0
+relay-1        | [relay] client 0 gone
+test-client-1  | ok 2 - announce-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 3
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: PUBLISH_NAMESPACE completed successfully
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="nonexistent/" track="no-such-track"
+relay-1        | [relay] REQUEST_ERROR → client: code=16 no such namespace
+relay-1        | [relay] client 0 gone
+test-client-1  | ok 3 - subscribe-error
+test-client-1  |   ---
+test-client-1  |   duration_ms: 2
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: Subscribe correctly returned error: no such namespace
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/interop/"
+relay-1        | [relay] client 1 connected (WT session 0, moqt-18)
+relay-1        | [relay] SUBSCRIBE client=1 ns="moq-test/interop/" track="interop-track"
+relay-1        | [relay] SUBSCRIBE → publisher client 0 ns="moq-test/interop/" track="interop-track"
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] SUBSCRIBE_OK ← publisher client 0 alias=0
+relay-1        | [relay] client 0 gone
+test-client-1  | ok 4 - announce-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: Publisher announced, subscriber subscribed successfully
+test-client-1  |   ...
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/interop/"
+relay-1        | [relay] namespace "moq-test/interop/" withdrawn by client 0
+relay-1        | [relay] client 0 gone
+test-client-1  | ok 5 - publish-namespace-done
+test-client-1  |   ---
+test-client-1  |   duration_ms: 3
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE_NAMESPACE client=0 prefix="moq-test/interop/publish-namespace-multi-publisher-retention/163254669052/"
+relay-1        | [relay] client 1 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=1 ns="moq-test/interop/publish-namespace-multi-publisher-retention/163254669052/namespace/"
+relay-1        | [relay] client 2 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 2 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=2 ns="moq-test/interop/publish-namespace-multi-publisher-retention/163254669052/namespace/"
+relay-1        | [relay] PUBLISH_NAMESPACE client=2 ns="moq-test/interop/publish-namespace-multi-publisher-retention/163254669052/zz-sync/"
+relay-1        | [relay] namespace "moq-test/interop/publish-namespace-multi-publisher-retention/163254669052/namespace/" withdrawn by client 2
+relay-1        | [relay] namespace "moq-test/interop/publish-namespace-multi-publisher-retention/163254669052/zz-sync/" withdrawn by client 2
+relay-1        | [relay] client 3 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 3 SETUP received
+relay-1        | [relay] client 4 connected (WT session 0, moqt-18)
+relay-1        | [relay] SUBSCRIBE_NAMESPACE client=3 prefix="moq-test/interop/publish-namespace-multi-publisher-retention/163254669052/"
+relay-1        | [relay] → 1 NAMESPACE to client 3
+relay-1        | [relay] client 4 SETUP received
+relay-1        | [relay] SUBSCRIBE_NAMESPACE client=4 prefix="moq-test/interop/publish-namespace-multi-publisher-retention/163254669052/"
+relay-1        | [relay] → 1 NAMESPACE to client 4
+relay-1        | [relay] namespace "moq-test/interop/publish-namespace-multi-publisher-retention/163254669052/namespace/" withdrawn by client 1
+relay-1        | [relay] client 4 gone
+test-client-1  | ok 6 - publish-namespace-multi-publisher-retention
+test-client-1  |   ---
+test-client-1  |   duration_ms: 14
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: Retained namespace and withdrawal reached both subscribers
+test-client-1  |   ...
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 2 gone
+relay-1        | [relay] client 3 gone
+relay-1        | [relay] client 0 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test/interop/" track="test-track"
+relay-1        | [relay] REQUEST_ERROR → client: code=16 no such namespace
+relay-1        | [relay] client 1 connected (WT session 0, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=1 ns="moq-test/interop/"
+relay-1        | [relay] namespace "moq-test/interop/" withdrawn by client 1
+relay-1        | [relay] client 0 gone
+test-client-1  | ok 7 - subscribe-before-announce
+test-client-1  |   ---
+test-client-1  |   duration_ms: 508
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: Subscribe returned error (relay doesn't buffer pending subscriptions): no such namespace
+test-client-1  |   ...
+relay-1        | [relay] client 1 gone
+[Ktest-client-1 exited with code 0
+ Compose Stopping Aborting on container exit...
+ Container main-test-client-1 Stopping 
+ Container main-test-client-1 Stopped 
+ Container main-relay-1 Stopping 
+ Container main-relay-1 Stopped 
+[Krelay-1 exited with code 143
+
+Test results in mlog/
