@@ -292,6 +292,16 @@ image_exists() {
     docker image inspect "$image" &>/dev/null
 }
 
+save_docker_artifacts() {
+    local destination="$1"
+    local name
+    for name in mlog keylogs pcap; do
+        [ -d "$SCRIPT_DIR/$name" ] || continue
+        mkdir -p "$destination/$name"
+        cp -R "$SCRIPT_DIR/$name/." "$destination/$name/"
+    done
+}
+
 # Track images that were referenced but not available.
 # Accumulated during planning, printed as a consolidated warning at the end.
 MISSING_IMAGES=()
@@ -466,6 +476,7 @@ run_test() {
                 echo -e "${RED}✗ FAILED (exit code: $exit_code)${NC}"
             fi
         fi
+        save_docker_artifacts "$RESULTS_DIR/$test_id"
     else
         # Build make arguments as array to avoid word splitting issues
         local -a make_args=("test-external" "RELAY_URL=$target" "CLIENT_IMAGE=$client_image")

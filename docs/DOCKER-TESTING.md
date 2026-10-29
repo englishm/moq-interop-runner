@@ -240,8 +240,10 @@ Results: 5 passed, 0 failed
 MOQT_TEST_RESULT: SUCCESS
 ```
 
-### mlog Files
-qlog-format files in the mounted volume:
+### Test Artifacts
+
+MoQT event logs use qlog format. TLS key logs and packet captures are stored
+separately:
 ```
 mlog/
   relay/
@@ -249,7 +251,22 @@ mlog/
     def456_server.mlog
   client/
     client.mlog
+keylogs/
+  relay/
+    keys.log
+  client/
+    keys.log
+pcap/
+  trace.pcap
 ```
+
+### Packet Captures
+
+Docker tests capture the relay's network namespace to `pcap/trace.pcap`.
+The runner sets `SSLKEYLOGFILE=/keylogs/keys.log` for both endpoints; clients
+and relays that support the NSS key log format can use those files to decrypt
+the capture in Wireshark. Config-driven runs preserve these artifacts in each
+test's results directory.
 
 ## Troubleshooting
 
