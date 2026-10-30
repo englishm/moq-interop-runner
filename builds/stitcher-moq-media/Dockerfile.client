@@ -1,0 +1,67 @@
+# syntax=docker/dockerfile:1
+# Dockerfile for stitcher-moq-media-client (Rust)
+#
+# Builds the CMSF media test client on the moq-net / moq-tokio crates (moq-net 0.3.15 /
+# moq-tokio 0.19.28) and bakes the CMSF fixture (lib/media/cmsf/) into the image, so the
+# publisher and the checker read the same media and manifest. The runtime image carries
+# ffmpeg for the ffprobe decode check.
+#
+# The build context is the runner repository root:
+#   docker build -t stitcher-moq-media-client:latest -f builds/stitcher-moq-media/Dockerfile.client .
+
+FROM rust:bookworm AS builder
+
+WORKDIR /build
+
+# Copy project files (build.rs reads Cargo.lock for the TAP header's crate versions)
+COPY builds/stitcher-moq-media/Cargo.toml builds/stitcher-moq-media/Cargo.lock builds/stitcher-moq-media/build.rs ./
+COPY builds/stitcher-moq-media/src ./src
+
+# Build release binary
+RUN cargo build --release --locked
+
+# Fixture: generated here, with the same ffmpeg build that wrote the manifest.
+FROM debian:bookworm AS fixture
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY lib/media/cmsf /src/lib/media/cmsf
+RUN bash /src/lib/media/cmsf/make-fixture.sh /fixture \
+    && bash /src/lib/media/cmsf/test/test-manifest.sh
+
+# Runtime image
+FROM debian:bookworm-slim AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy binary
+COPY --from=builder /build/target/release/stitcher-moq-media-client /app/stitcher-moq-media-client
+
+# Copy the fixture and its manifest
+COPY --from=fixture /fixture /app/fixture
+
+# Copy entrypoint script
+COPY builds/stitcher-moq-media/entrypoint-client.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Create mlog directory
+RUN mkdir -p /mlog
+
+# Environment variables with defaults. TLS_DISABLE_VERIFY deliberately has no
+# default here: the entrypoint translates 1/true into the CLI flag, and an unset
+# var means verification stays on.
+ENV RELAY_URL=https://relay:4443
+ENV MEDIA_FIXTURE_DIR=/app/fixture
+
+RUN useradd -r -u 1000 -g nogroup moq
+USER moq
+
+ENTRYPOINT ["/app/entrypoint.sh"]
