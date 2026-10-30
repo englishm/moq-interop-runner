@@ -1,0 +1,206 @@
+rm -rf mlog/
+mkdir -p mlog/relay mlog/client
+Running interop tests...
+  Relay:  aiomoqt-interop-relay:latest
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+  URL:    moqt://relay:4443
+time="2026-10-30T00:23:12Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-30T00:23:12Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-30T00:23:12Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-10-30T00:23:12Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+time="2026-10-30T00:23:12Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+ Container main-test-client-1 Recreate 
+ Container main-test-client-1 Recreated 
+Attaching to relay-1, test-client-1
+ Container main-relay-1 Starting 
+ Container main-relay-1 Started 
+ Container main-relay-1 Waiting 
+relay-1  | 2026-10-30 00:23:12.864 INFO : relay: start aiomoqt 0.13.3 aiopquic 0.6.1 pid 7
+relay-1  | aiomoqt ERSATZ-RELAY: an API demonstrator and conformance SUT — not a production relay (no auth, no hardening).
+relay-1  | 2026-10-30 00:23:12.864 INFO : Starting dual-stack MOQT server on 0.0.0.0:4443
+relay-1  | ================================================================
+relay-1  |  EXPERIMENTAL aiomoqt interop relay.
+relay-1  |  NOT a production relay: no auth, no scale handling.
+relay-1  | ================================================================
+relay-1  | Listening on all interfaces, UDP port 4443 (dual raw QUIC + H3/WebTransport, draft-[22, 20, 18, 16, 14])
+ Container main-relay-1 Healthy 
+ Container main-test-client-1 Starting 
+ Container main-test-client-1 Started 
+test-client-1  | TAP version 14
+test-client-1  | # moxygen interop test client
+test-client-1  | # Relay: moqt://relay:4443
+test-client-1  | # Transport: QUIC
+test-client-1  | # Offered ALPNs: moqt-18, moqt-16, moqt-20-meta-02
+test-client-1  | 1..7
+relay-1        | 2026-10-30 00:23:18.108 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.108 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+test-client-1  | ok 1 - setup-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: SETUP exchange completed successfully
+test-client-1  |   ...
+relay-1        | 2026-10-30 00:23:18.109 INFO : QUIC: connection closed: code: 0
+relay-1        | 2026-10-30 00:23:18.109 INFO : MOQT: closing: ConnectionTerminated (0)
+relay-1        | 2026-10-30 00:23:18.111 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.111 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.111 INFO : MOQT event: control message parsed: PublishNamespace(request_id=0, namespace=["moq-test"], parameters={}))
+relay-1        | 2026-10-30 00:23:18.112 INFO : relay: announce ns=(b'moq-test',) -> 1 publisher(s)
+relay-1        | 2026-10-30 00:23:18.112 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None) request_id: 0 namespace: (b'moq-test',)
+relay-1        | 2026-10-30 00:23:18.112 INFO : relay: session quic d18 from 172.18.0.3:58233
+test-client-1  | E1030 00:23:18.112619     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x59652c81be10
+test-client-1  | ok 2 - announce-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 3
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: PUBLISH_NAMESPACE completed successfully
+test-client-1  |   ...
+relay-1        | 2026-10-30 00:23:18.112 INFO : QUIC: connection closed: code: 0
+relay-1        | 2026-10-30 00:23:18.112 INFO : MOQT: closing: ConnectionTerminated (0)
+relay-1        | 2026-10-30 00:23:18.114 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.115 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.115 INFO : MOQT event: control message parsed: Subscribe(request_id=0, track_namespace=["nonexistent"], track_name="no-such-track", priority=None, group_order=None, forward=None, filter_type=2, start_group=None, start_object=None, end_group=None, parameters={}, location_filter=None, track_alias=None, libquicr_compat=False))
+relay-1        | 2026-10-30 00:23:18.115 INFO : relay: subscribe ns=(b'nonexistent',) track=b'no-such-track' -> DOES_NOT_EXIST (not announced)
+relay-1        | 2026-10-30 00:23:18.115 INFO : MOQT send: RequestError(request_id=0, error_code=16, retry_interval=0, reason=track does not exist, redirect=None)
+relay-1        | 2026-10-30 00:23:18.116 INFO : QUIC: connection closed: code: 0
+relay-1        | 2026-10-30 00:23:18.116 INFO : MOQT: closing: ConnectionTerminated (0)
+test-client-1  | ok 3 - subscribe-error
+test-client-1  |   ---
+test-client-1  |   duration_ms: 3
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: Subscribe correctly returned error: track does not exist
+test-client-1  |   ...
+relay-1        | 2026-10-30 00:23:18.118 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.118 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.118 INFO : MOQT event: control message parsed: PublishNamespace(request_id=0, namespace=["moq-test", "interop"], parameters={}))
+relay-1        | 2026-10-30 00:23:18.119 INFO : relay: announce ns=(b'moq-test', b'interop') -> 1 publisher(s)
+relay-1        | 2026-10-30 00:23:18.119 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None) request_id: 0 namespace: (b'moq-test', b'interop')
+relay-1        | 2026-10-30 00:23:18.119 INFO : relay: session quic d18 from 172.18.0.3:55620
+relay-1        | 2026-10-30 00:23:18.121 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.121 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.121 INFO : MOQT event: control message parsed: Subscribe(request_id=0, track_namespace=["moq-test", "interop"], track_name="interop-track", priority=None, group_order=None, forward=None, filter_type=2, start_group=None, start_object=None, end_group=None, parameters={}, location_filter=None, track_alias=None, libquicr_compat=False))
+relay-1        | 2026-10-30 00:23:18.122 INFO : MOQT send: Subscribe(request_id=1, track_namespace=["moq-test", "interop"], track_name="interop-track", priority=None, group_order=None, forward=1, filter_type=None, start_group=0, start_object=0, end_group=0, parameters={}, location_filter=None, track_alias=None, libquicr_compat=False)
+relay-1        | 2026-10-30 00:23:18.122 INFO : MOQT event: control message parsed: SubscribeOk(request_id=1, track_alias=0, expires=None, group_order=1, content_exists=0, largest_group_id=None, largest_object_id=None, parameters={}, track_extensions=None))
+relay-1        | 2026-10-30 00:23:18.122 INFO : Track: subscribed (direct) to (b'moq-test', b'interop')/interop-track
+relay-1        | 2026-10-30 00:23:18.122 INFO : relay: upstream established ns=(b'moq-test', b'interop') track=interop-track alias=0
+relay-1        | 2026-10-30 00:23:18.123 INFO : MOQT send: SubscribeOk(request_id=0, track_alias=0, expires=0, group_order=1, content_exists=0, largest_group_id=None, largest_object_id=None, parameters={}, track_extensions={})
+relay-1        | 2026-10-30 00:23:18.123 INFO : relay: subscribe ns=(b'moq-test', b'interop') track=b'interop-track' -> SUBSCRIBE_OK (fanout=1)
+relay-1        | 2026-10-30 00:23:18.123 INFO : relay: session quic d18 from 172.18.0.3:54443
+test-client-1  | ok 4 - announce-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 7
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: Publisher announced, subscriber subscribed successfully
+relay-1        | 2026-10-30 00:23:18.123 INFO : QUIC: connection closed: code: 0
+test-client-1  |   ...
+relay-1        | 2026-10-30 00:23:18.123 INFO : MOQT: closing: ConnectionTerminated (0)
+relay-1        | 2026-10-30 00:23:18.124 INFO : QUIC: connection closed: code: 0
+relay-1        | 2026-10-30 00:23:18.124 INFO : MOQT: closing: ConnectionTerminated (0)
+relay-1        | 2026-10-30 00:23:18.126 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.126 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.126 INFO : MOQT event: control message parsed: PublishNamespace(request_id=0, namespace=["moq-test", "interop"], parameters={}))
+relay-1        | 2026-10-30 00:23:18.126 INFO : relay: announce ns=(b'moq-test', b'interop') -> 1 publisher(s)
+relay-1        | 2026-10-30 00:23:18.126 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None) request_id: 0 namespace: (b'moq-test', b'interop')
+relay-1        | 2026-10-30 00:23:18.127 INFO : relay: session quic d18 from 172.18.0.3:49999
+relay-1        | 2026-10-30 00:23:18.127 INFO : QUIC: connection closed: code: 0
+relay-1        | 2026-10-30 00:23:18.127 INFO : MOQT: closing: ConnectionTerminated (0)
+test-client-1  | ok 5 - publish-namespace-done
+test-client-1  |   ---
+test-client-1  |   duration_ms: 3
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+test-client-1  |   ...
+relay-1        | 2026-10-30 00:23:18.129 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.130 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.130 INFO : MOQT event: control message parsed: SubscribeNamespace(request_id=0, namespace_prefix=["moq-test", "interop", "publish-namespace-multi-publishe...", "329547972883"], subscribe_options=0, parameters={}))
+relay-1        | 2026-10-30 00:23:18.130 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None)
+relay-1        | 2026-10-30 00:23:18.130 INFO : relay: subscribe-namespace prefix=(b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883') (d18 discovery, subs=1)
+relay-1        | 2026-10-30 00:23:18.130 INFO : relay: session quic d18 from 172.18.0.3:54338
+relay-1        | 2026-10-30 00:23:18.132 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.132 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.133 INFO : MOQT event: control message parsed: PublishNamespace(request_id=0, namespace=["moq-test", "interop", "publish-namespace-multi-publishe...", "329547972883", "namespace"], parameters={}))
+relay-1        | 2026-10-30 00:23:18.133 INFO : relay: announce ns=(b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883', b'namespace') -> 1 publisher(s)
+relay-1        | 2026-10-30 00:23:18.133 INFO : MOQT send: Namespace(namespace_suffix=["namespace"])
+relay-1        | 2026-10-30 00:23:18.133 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None) request_id: 0 namespace: (b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883', b'namespace')
+relay-1        | 2026-10-30 00:23:18.133 INFO : relay: session quic d18 from 172.18.0.3:48399
+relay-1        | 2026-10-30 00:23:18.135 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.135 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.136 INFO : MOQT event: control message parsed: PublishNamespace(request_id=0, namespace=["moq-test", "interop", "publish-namespace-multi-publishe...", "329547972883", "namespace"], parameters={}))
+relay-1        | 2026-10-30 00:23:18.136 INFO : relay: announce ns=(b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883', b'namespace') -> 2 publisher(s)
+relay-1        | 2026-10-30 00:23:18.136 INFO : MOQT send: Namespace(namespace_suffix=["namespace"])
+relay-1        | 2026-10-30 00:23:18.136 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None) request_id: 0 namespace: (b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883', b'namespace')
+relay-1        | 2026-10-30 00:23:18.136 INFO : relay: session quic d18 from 172.18.0.3:52852
+relay-1        | 2026-10-30 00:23:18.136 INFO : MOQT event: control message parsed: PublishNamespace(request_id=2, namespace=["moq-test", "interop", "publish-namespace-multi-publishe...", "329547972883", "zz-sync"], parameters={}))
+relay-1        | 2026-10-30 00:23:18.137 INFO : relay: announce ns=(b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883', b'zz-sync') -> 1 publisher(s)
+relay-1        | 2026-10-30 00:23:18.137 INFO : MOQT send: Namespace(namespace_suffix=["zz-sync"])
+relay-1        | 2026-10-30 00:23:18.137 INFO : MOQT send: RequestOk(request_id=2, parameters=None, track_properties=None) request_id: 2 namespace: (b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883', b'zz-sync')
+relay-1        | 2026-10-30 00:23:18.137 INFO : MOQT: request 2 cancelled by stream termination (stream 4)
+relay-1        | 2026-10-30 00:23:18.137 INFO : MOQT send: NamespaceDone(namespace_suffix=["zz-sync"])
+relay-1        | 2026-10-30 00:23:18.137 INFO : relay: namespace_done ns=(b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883', b'zz-sync') -> 0 publisher(s)
+relay-1        | 2026-10-30 00:23:18.137 INFO : MOQT: request 0 cancelled by stream termination (stream 0)
+relay-1        | 2026-10-30 00:23:18.137 INFO : relay: namespace_done ns=(b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883', b'namespace') -> 1 publisher(s)
+relay-1        | 2026-10-30 00:23:18.139 INFO : MOQT: request 0 cancelled by stream termination (stream 0)
+relay-1        | 2026-10-30 00:23:18.140 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.140 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.142 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.142 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.143 INFO : MOQT event: control message parsed: SubscribeNamespace(request_id=0, namespace_prefix=["moq-test", "interop", "publish-namespace-multi-publishe...", "329547972883"], subscribe_options=0, parameters={}))
+relay-1        | 2026-10-30 00:23:18.143 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None)
+relay-1        | 2026-10-30 00:23:18.143 INFO : MOQT send: Namespace(namespace_suffix=["namespace"])
+relay-1        | 2026-10-30 00:23:18.143 INFO : relay: subscribe-namespace prefix=(b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883') (d18 discovery, subs=1)
+relay-1        | 2026-10-30 00:23:18.143 INFO : relay: session quic d18 from 172.18.0.3:50396
+relay-1        | 2026-10-30 00:23:18.143 INFO : MOQT event: control message parsed: SubscribeNamespace(request_id=0, namespace_prefix=["moq-test", "interop", "publish-namespace-multi-publishe...", "329547972883"], subscribe_options=0, parameters={}))
+relay-1        | 2026-10-30 00:23:18.143 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None)
+relay-1        | 2026-10-30 00:23:18.144 INFO : MOQT send: Namespace(namespace_suffix=["namespace"])
+relay-1        | 2026-10-30 00:23:18.144 INFO : relay: subscribe-namespace prefix=(b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883') (d18 discovery, subs=2)
+relay-1        | 2026-10-30 00:23:18.144 INFO : relay: session quic d18 from 172.18.0.3:49803
+relay-1        | 2026-10-30 00:23:18.144 INFO : MOQT: request 0 cancelled by stream termination (stream 0)
+relay-1        | 2026-10-30 00:23:18.144 INFO : MOQT send: NamespaceDone(namespace_suffix=["namespace"])
+relay-1        | 2026-10-30 00:23:18.144 INFO : MOQT send: NamespaceDone(namespace_suffix=["namespace"])
+relay-1        | 2026-10-30 00:23:18.144 INFO : relay: namespace_done ns=(b'moq-test', b'interop', b'publish-namespace-multi-publisher-retention', b'329547972883', b'namespace') -> 0 publisher(s)
+relay-1        | 2026-10-30 00:23:18.145 INFO : QUIC: connection closed: code: 0
+relay-1        | 2026-10-30 00:23:18.145 INFO : MOQT: closing: ConnectionTerminated (0)
+test-client-1  | ok 6 - publish-namespace-multi-publisher-retention
+relay-1        | 2026-10-30 00:23:18.145 INFO : QUIC: connection closed: code: 0
+relay-1        | 2026-10-30 00:23:18.145 INFO : MOQT: closing: ConnectionTerminated (0)
+relay-1        | 2026-10-30 00:23:18.145 INFO : QUIC: connection closed: code: 0
+test-client-1  |   ---
+test-client-1  |   duration_ms: 17
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: Retained namespace and withdrawal reached both subscribers
+test-client-1  |   ...
+relay-1        | 2026-10-30 00:23:18.145 INFO : MOQT: closing: ConnectionTerminated (0)
+relay-1        | 2026-10-30 00:23:18.145 INFO : QUIC: connection closed: code: 0
+relay-1        | 2026-10-30 00:23:18.145 INFO : MOQT: closing: ConnectionTerminated (0)
+relay-1        | 2026-10-30 00:23:18.146 INFO : QUIC: connection closed: code: 0
+relay-1        | 2026-10-30 00:23:18.146 INFO : MOQT: closing: ConnectionTerminated (0)
+relay-1        | 2026-10-30 00:23:18.147 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.147 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.148 INFO : MOQT event: control message parsed: Subscribe(request_id=0, track_namespace=["moq-test", "interop"], track_name="test-track", priority=None, group_order=None, forward=None, filter_type=2, start_group=None, start_object=None, end_group=None, parameters={}, location_filter=None, track_alias=None, libquicr_compat=False))
+relay-1        | 2026-10-30 00:23:18.148 INFO : relay: subscribe ns=(b'moq-test', b'interop') track=b'test-track' -> DOES_NOT_EXIST (not announced)
+relay-1        | 2026-10-30 00:23:18.148 INFO : MOQT send: RequestError(request_id=0, error_code=16, retry_interval=0, reason=track does not exist, redirect=None)
+relay-1        | 2026-10-30 00:23:18.650 INFO : MOQT event: control message parsed: Setup(options={1: b'', 5: b'relay:4443', 7: b'Meta MoQ C++ Draft-16'}))
+relay-1        | 2026-10-30 00:23:18.651 INFO : MOQT session: setup complete: draft-18 (raw QUIC)
+relay-1        | 2026-10-30 00:23:18.651 INFO : MOQT event: control message parsed: PublishNamespace(request_id=0, namespace=["moq-test", "interop"], parameters={}))
+relay-1        | 2026-10-30 00:23:18.651 INFO : relay: announce ns=(b'moq-test', b'interop') -> 1 publisher(s)
+relay-1        | 2026-10-30 00:23:18.651 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None) request_id: 0 namespace: (b'moq-test', b'interop')
+relay-1        | 2026-10-30 00:23:18.651 INFO : relay: session quic d18 from 172.18.0.3:43115
+relay-1        | 2026-10-30 00:23:18.652 INFO : QUIC: connection closed: code: 0
+test-client-1  | ok 7 - subscribe-before-announce
+test-client-1  |   ---
+test-client-1  |   duration_ms: 506
+test-client-1  |   negotiated_version: draft-18
+test-client-1  |   info: Subscribe returned error (relay doesn't buffer pending subscriptions): track does not exist
+test-client-1  |   ...
+relay-1        | 2026-10-30 00:23:18.652 INFO : MOQT: closing: ConnectionTerminated (0)
+relay-1        | 2026-10-30 00:23:18.652 INFO : QUIC: connection closed: code: 0
+relay-1        | 2026-10-30 00:23:18.652 INFO : MOQT: closing: ConnectionTerminated (0)
+[Ktest-client-1 exited with code 0
+ Compose Stopping Aborting on container exit...
+ Container main-test-client-1 Stopping 
+ Container main-test-client-1 Stopped 
+ Container main-relay-1 Stopping 
+ Container main-relay-1 Stopped 
+[Krelay-1 exited with code 0
+
+Test results in mlog/

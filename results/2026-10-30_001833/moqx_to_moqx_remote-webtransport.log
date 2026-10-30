@@ -1,0 +1,65 @@
+Running tests against https://moqx-main.ci.openmoq.org:4433/moq-relay...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://moqx-main.ci.openmoq.org:4433/moq-relay \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://moqx-main.ci.openmoq.org:4433/moq-relay
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 181
+  negotiated_version: draft-16
+  info: SETUP exchange completed successfully
+  ...
+E1030 00:21:37.471386     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x5b1794f4ef70
+ok 2 - announce-only
+  ---
+  duration_ms: 200
+  negotiated_version: draft-16
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 202
+  negotiated_version: draft-16
+  info: Subscribe correctly returned error: no such namespace or track
+  ...
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 437
+  negotiated_version: draft-16
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 203
+  negotiated_version: draft-16
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1030 00:21:40.922877     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1030 00:21:40.972810     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1030 00:21:41.023809     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1030 00:21:41.410453     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1030 00:21:41.451688     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x5b1794ee2ec0
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 3135
+  negotiated_version: draft-16
+  error: Timed out waiting for target namespace fan-out
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 1279
+  negotiated_version: draft-16
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): no such namespace or track
+  ...
+make: *** [Makefile:122: test-external] Error 1
