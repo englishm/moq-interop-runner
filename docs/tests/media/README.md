@@ -143,7 +143,7 @@ fields](../../TAP-YAML-METADATA.md#common-fields) and per-session
 
 | Field | Meaning |
 |-------|---------|
-| `media_format` | the format of the fixture, such as `cmsf` or `mpeg-ts` |
+| `media_format` | the fixture's format; its value is the format's directory name under `lib/media/` (`cmsf`, `mpeg-ts`) |
 | `groups_received` | groups received across the media tracks |
 | `objects_received` | objects received across the media tracks |
 | `bytes_received` | payload bytes received across the media tracks |
