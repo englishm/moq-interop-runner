@@ -1,0 +1,61 @@
+Running tests against moqt://draft-18-interop.cloudflare.mediaoverquic.com:443...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://draft-18-interop.cloudflare.mediaoverquic.com:443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://draft-18-interop.cloudflare.mediaoverquic.com:443
+# Transport: QUIC
+# Offered ALPNs: moqt-18, moqt-16, moqt-20-meta-02
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 82
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 111
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E1031 00:18:10.109745     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x5ba7c0850900
+ok 3 - subscribe-error
+  ---
+  duration_ms: 99
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: peer stopped reading the request stream
+  ...
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 202
+  negotiated_version: draft-18
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 54
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1031 00:18:10.699234     7 MoQRelaySession.cpp:978] Invalid publishNamespace cancel requestID=0
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 232
+  negotiated_version: draft-18
+  error: PUBLISH_NAMESPACE failed: peer stopped reading the request stream
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 677
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): peer stopped reading the request stream
+  ...
+make: *** [Makefile:122: test-external] Error 1
