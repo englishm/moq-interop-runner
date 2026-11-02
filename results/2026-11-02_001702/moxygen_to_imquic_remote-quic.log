@@ -1,0 +1,61 @@
+Running tests against moqt://lminiero.it:9000...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://lminiero.it:9000 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://lminiero.it:9000
+# Transport: QUIC
+# Offered ALPNs: moqt-18, moqt-16, moqt-22-meta-00
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 648
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 824
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E1102 00:27:02.571848     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x61e35503bba0
+ok 3 - subscribe-error
+  ---
+  duration_ms: 801
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: Namespace not found
+  ...
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 1120
+  negotiated_version: draft-18
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 979
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 2884
+  negotiated_version: draft-18
+  error: PUBLISH_NAMESPACE failed: Namespace already published
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 1344
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Namespace not found
+  ...
+E20261102 00:27:10.702857     7 EventHandler.cpp:93] EventBase: failed to register event handler for fd 13: No such file or directory
+make: *** [Makefile:122: test-external] Error 1
