@@ -18,6 +18,7 @@ as participants revisit them; adding a label does not change their behavior.
 | `announce-only` | Namespace discovery | [TEST-CASES.md](./TEST-CASES.md#announce-only) |
 | `publish-namespace-done` | Namespace discovery | [TEST-CASES.md](./TEST-CASES.md#publish-namespace-done) |
 | `subscribe-namespace-lifecycle` | Namespace discovery | [namespace-discovery/subscribe-namespace-lifecycle.md](./namespace-discovery/subscribe-namespace-lifecycle.md) |
+| `publish-namespace-multi-publisher-retention` | Namespace discovery | [namespace-discovery/publish-namespace-multi-publisher-retention.md](./namespace-discovery/publish-namespace-multi-publisher-retention.md) |
 | `subscribe-error` | Subscription | [TEST-CASES.md](./TEST-CASES.md#subscribe-error) |
 | `rendezvous-timeout` | Subscription | [TEST-CASES.md](./TEST-CASES.md#rendezvous-timeout) |
 | `announce-subscribe` | Subscription | [TEST-CASES.md](./TEST-CASES.md#announce-subscribe) |

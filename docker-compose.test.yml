@@ -15,6 +15,8 @@
 services:
   relay:
     image: ${RELAY_IMAGE:-moq-relay-ietf:latest}
+    # PID 1 ignores TERM it has no handler for; tini forwards it.
+    init: true
     # Run as non-root user - use env vars to allow override for different host UIDs
     user: "${DOCKER_USER:-1000}:${DOCKER_GROUP:-65534}"
     ports:
@@ -44,6 +46,7 @@ services:
 
   test-client:
     image: ${CLIENT_IMAGE:-moq-test-client:latest}
+    init: true
     # Run as non-root user - use env vars to allow override for different host UIDs
     user: "${DOCKER_USER:-1000}:${DOCKER_GROUP:-65534}"
     depends_on:

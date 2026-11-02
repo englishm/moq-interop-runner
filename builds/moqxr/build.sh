@@ -4,7 +4,7 @@ set -euo pipefail
 BUILD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_DIR="$BUILD_DIR/.sources/moqxr"
 REPO="https://github.com/openmoq/moqxr.git"
-REF="v0.4.4"
+REF="v0.4.10"
 LOCAL=""
 MOQY_LOCAL="${BUILD_DIR}/../../../moqy"
 MOQ5_LOCAL="${BUILD_DIR}/../../../moq5"

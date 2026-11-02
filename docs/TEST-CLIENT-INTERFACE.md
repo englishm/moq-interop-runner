@@ -228,6 +228,7 @@ setup-only
 announce-only
 publish-namespace-done
 subscribe-namespace-lifecycle
+publish-namespace-multi-publisher-retention
 subscribe-error
 rendezvous-timeout
 announce-subscribe

@@ -95,6 +95,24 @@ _parse_tap() {
     rm -f "$tmpfile"
 }
 
+# Set TAP_NEGOTIATED to the MoQT versions a log reports as negotiated:
+# "draft-NN" words, unique, newest first; empty when the client reports none.
+# Reads TAP YAML sessions.*.moqt_version ("moqt-NN") and, as a legacy alias,
+# "negotiated_version: draft-NN".
+#
+# Returns 0 if any version was found, 1 otherwise.
+parse_negotiated_versions() {
+    local file="$1"
+    TAP_NEGOTIATED=""
+    [ -f "$file" ] || return 1
+    TAP_NEGOTIATED=$(_strip_docker_prefix < "$file" | sed -nE \
+        -e 's/^[[:space:]]*moqt_version:[[:space:]]*"?moqt-([0-9]+)"?[[:space:]]*$/draft-\1/p' \
+        -e 's/^[[:space:]]*negotiated_version:[[:space:]]*"?draft-([0-9]+)"?[[:space:]]*$/draft-\1/p' \
+        | sort -t- -k2,2nr -u | tr '\n' ' ')
+    TAP_NEGOTIATED="${TAP_NEGOTIATED% }"
+    [ -n "$TAP_NEGOTIATED" ]
+}
+
 # Parse legacy checkmark format (fallback).
 # Uses relaxed matching (no ^ anchor) to handle docker-compose prefixed output.
 _parse_legacy() {

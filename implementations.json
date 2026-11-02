@@ -19,8 +19,8 @@
       "roles": {
         "client": {
           "docker": {
-            "image": "ghcr.io/gmarzot/aiomoqt:0.12.0rc1",
-            "notes": "Pre-built on GHCR from the upstream repo (see Dockerfile at the repo root). Pinned to the 0.12.0rc1 pre-release until 0.12.0; :latest tracks stable releases."
+            "image": "ghcr.io/gmarzot/aiomoqt:latest",
+            "notes": "Pre-built on GHCR from the upstream repo (see Dockerfile at the repo root). :latest tracks stable releases."
           }
         }
       }
@@ -36,58 +36,31 @@
         "draft-20",
         "draft-22"
       ],
-      "notes": "aiomoqt interop relay (draft-14/16/18/20/22): SETUP, PUBLISH_NAMESPACE, PUBLISH, SUBSCRIBE and FETCH, forwarding objects; RENDEZVOUS_TIMEOUT on draft-18 and later. One UDP port serves raw QUIC and WebTransport; the docker entry tests WebTransport.",
+      "notes": "aiomoqt interop relay (draft-14/16/18/20/22): SETUP, PUBLISH_NAMESPACE, PUBLISH, SUBSCRIBE and FETCH, forwarding objects; RENDEZVOUS_TIMEOUT on draft-18 and later. One UDP port serves raw QUIC and WebTransport, chosen by ALPN; the docker entry is tested over raw QUIC, the open relay over both.",
       "roles": {
         "relay": {
           "docker": {
             "image": "aiomoqt-interop-relay:latest",
-            "url": "https://relay:4443",
-            "build": {
-              "dockerfile": "adapters/aiomoqt/Dockerfile.relay",
-              "context": "adapters/aiomoqt"
-            },
-            "upstream_image": "ghcr.io/gmarzot/aiomoqt:0.12.0rc1",
-            "notes": "Adapter pins relay mode + both transports on one port (MOQT_DUAL=1) + draft-22/20/18/16/14 on the /certs convention (MOQT_ROLE=relay)."
-          },
-          "remote": [
-            {
-              "url": "moqt://moqarena.marzresearch.net:4443",
-              "transport": "quic",
-              "notes": "Open interop relay (no auth; bounded per-track cache of 8 groups / 32 MB, serves FETCH), tracks the aiomoqt development branch. Drafts 22/20/18/16/14. IPv4 only."
-            },
-            {
-              "url": "https://moqarena.marzresearch.net:4443/",
-              "transport": "webtransport",
-              "notes": "Same relay as the moqt:// entry, over WebTransport."
-            }
-          ]
-        }
-      }
-    },
-    "aiomoqt-relay-quic": {
-      "name": "aiomoqt (relay, raw QUIC)",
-      "organization": "MarzResearch",
-      "repository": "https://github.com/gmarzot/aiomoqt",
-      "draft_versions": [
-        "draft-14",
-        "draft-16",
-        "draft-18",
-        "draft-20",
-        "draft-22"
-      ],
-      "notes": "The aiomoqt-relay image tested over raw QUIC (moqt://).",
-      "roles": {
-        "relay": {
-          "docker": {
-            "image": "aiomoqt-interop-relay-quic:latest",
             "url": "moqt://relay:4443",
             "build": {
               "dockerfile": "adapters/aiomoqt/Dockerfile.relay",
               "context": "adapters/aiomoqt"
             },
-            "upstream_image": "ghcr.io/gmarzot/aiomoqt:0.12.0rc1",
-            "notes": "Same adapter as aiomoqt-relay under its own tag: the runner resolves a docker relay's URL by image name, so a shared tag would test WebTransport twice."
-          }
+            "upstream_image": "ghcr.io/gmarzot/aiomoqt:latest",
+            "notes": "Adapter pins relay mode + both transports on one port (MOQT_DUAL=1), offering every draft the image supports, on the /certs convention (MOQT_ROLE=relay)."
+          },
+          "remote": [
+            {
+              "url": "moqt://aiomoqt-relay.marzresearch.net:4443",
+              "transport": "quic",
+              "notes": "Open interop relay (no auth; bounded per-track cache of 8 groups / 32 MB, serves FETCH), tracks the aiomoqt development branch. Drafts 22/20/18/16/14. IPv4 only."
+            },
+            {
+              "url": "https://aiomoqt-relay.marzresearch.net:4443/",
+              "transport": "webtransport",
+              "notes": "Same relay as the moqt:// entry, over WebTransport."
+            }
+          ]
         }
       }
     },
@@ -162,13 +135,10 @@
       "organization": "Luke Curley",
       "repository": "https://github.com/moq-dev/moq",
       "draft_versions": [
-        "draft-14",
-        "draft-15",
-        "draft-16",
-        "draft-17",
-        "draft-18"
+        "draft-18",
+        "draft-22"
       ],
-      "notes": "Bun/TypeScript test client using @moq/net npm package with @moq/web-transport polyfill. Supports all moq-transport draft versions 14+ via version negotiation.",
+      "notes": "Bun/TypeScript test client using @moq/net npm package with @moq/web-transport polyfill. Registers moq-transport drafts 18 and 22, the versions retained by moq-dev main.",
       "roles": {
         "client": {
           "docker": {
@@ -183,15 +153,10 @@
       "organization": "Luke Curley",
       "repository": "https://github.com/moq-dev/moq",
       "draft_versions": [
-        "draft-14",
-        "draft-15",
-        "draft-16",
-        "draft-17",
         "draft-18",
-        "draft-19",
-        "draft-20"
+        "draft-22"
       ],
-      "notes": "Rust implementation by kixelated, supports moq-lite and IETF MoQT. Test client built on moq-net/moq-native. Supports all moq-transport draft versions 14+ via version negotiation.",
+      "notes": "Rust implementation by kixelated, supports moq-lite and IETF MoQT. Test client built on moq-net/moq-tokio. Registers moq-transport drafts 18 and 22, the versions retained by moq-dev main.",
       "roles": {
         "relay": {
           "docker": {
@@ -229,9 +194,9 @@
       "organization": "floatdrop",
       "repository": "https://github.com/floatdrop/moq-go",
       "draft_versions": [
-        "draft-20"
+        "draft-22"
       ],
-      "notes": "Go implementation of MoQT (draft-ietf-moq-transport-20): transport-agnostic session library, single-instance reference relay, and an interop test client. Advertises the moqt-20 ALPN only. Both relay and client images are built in-tree (cmd/relay, cmd/interop-client) and follow the runner conventions.",
+      "notes": "Go implementation of MoQT (draft-ietf-moq-transport-22): transport-agnostic session library, single-instance reference relay, and an interop test client. Advertises the moqt-22 ALPN only. Both relay and client images are built in-tree (cmd/relay, cmd/interop-client) and follow the runner conventions.",
       "roles": {
         "relay": {
           "docker": {
@@ -456,19 +421,19 @@
       "name": "moqt-nokiaresearch",
       "organization": "Nokia",
       "repository": "",
-      "draft_versions": ["draft-18","draft-19"],
+      "draft_versions": ["draft-18"],
       "notes": "Support native QUIC and WebTransport",
       "roles": {
         "relay": {
            "remote": [
             {
-              "url": "moqt://moqt.nokiaresearch.com:4443/moq",
+              "url": "moqt://moqt.nokiaresearch.com:8443/moq",
               "transport": "quic",
               "tls_disable_verify": false,
               "notes": "Raw QUIC endpoint"
             },
             {
-              "url": "https://moqt.nokiaresearch.com:4443/moq",
+              "url": "https://moqt.nokiaresearch.com:8443/moq",
               "transport": "webtransport",
               "tls_disable_verify": false,
               "notes": "WebTransport endpoint"
@@ -484,15 +449,22 @@
       "draft_versions": [
         "draft-22"
       ],
-      "notes": "Draft-22 relay (first release). Served on port 8443; the draft-18 relay remains on port 4443 (see moqt-nr).",
+      "notes": "Draft-22 relay. The draft-18 relay uses port 8443 (see moqt-nr)",
       "roles": {
         "relay": {
           "remote": [
             {
-              "url": "moqt://moqt.nokiaresearch.com:8443/moq",
+              "url": "moqt://moqt.nokiaresearch.com:4443/moq",
               "transport": "quic",
               "notes": "Raw QUIC endpoint"
+            },
+            {
+              "url": "https://moqt.nokiaresearch.com:4443/moq",
+              "transport": "webtransport",
+              "tls_disable_verify": false,
+              "notes": "WebTransport endpoint"
             }
+
           ]
         }
       }
@@ -579,7 +551,6 @@
       "organization": "Meta",
       "repository": "https://github.com/facebookexperimental/moxygen",
       "draft_versions": [
-        "draft-14",
         "draft-16",
         "draft-18",
         "draft-22"
@@ -685,7 +656,7 @@
         "draft-21",
         "draft-22"
       ],
-      "notes": "moq-dev moq-relay 0.17.3 (moq-dev 0.17 release line; negotiates moqt-22) fronting Paramount's MoQ SSAI sandbox on GCP, behind a moq auth serve sidecar: anonymous subscribe everywhere; anonymous publish only under the moq-test and moq-test-00 prefixes and the one-element moq-test/interop namespace; any other publish needs a JWT. Single UDP+TCP 443 via L4 passthrough LB, ACME certificate. Publishes live demo channels 24/7. The client target is a test client on crates.io moq-net 0.3.11 / moq-tokio 0.19.24 (the moq-relay 0.17.3 release train, which carries the EXPIRES fix moq-dev #4195 and the draft-22 LOCATION_FILTER layout of moq-dev #5094) that speaks MoQT drafts 14-22 (no moq-lite); this entry declares drafts 18-22, the ones we support and test. subscribe-error reports SKIP when moq-net answers locally because no announced route covers the path; subscribe-before-announce sends its SUBSCRIBE after the late announce. moq-net accepts IETF subscriptions locally before SUBSCRIBE_OK, so announce-subscribe and subscribe-before-announce pass only once the relay has routed the SUBSCRIBE to the client's own publisher with no REQUEST_ERROR.",
+      "notes": "moq-dev moq-relay 0.17.5 (moq-dev 0.17 release line; negotiates moqt-22) fronting Paramount's MoQ SSAI sandbox on GCP, behind a moq auth serve sidecar: anonymous subscribe everywhere; anonymous publish only under the moq-test and moq-test-00 prefixes and the one-element moq-test/interop namespace; any other publish needs a JWT. UDP 443 (QUIC and WebTransport) and TCP 443 (TLS: HTTPS and WebSocket at wss://34-72-6-160.sslip.io) via an L4 passthrough LB, ACME certificate. Publishes live demo channels 24/7. The client target is a test client on crates.io moq-net 0.3.11 / moq-tokio 0.19.24 (the moq-relay 0.17.3 release train, which carries the EXPIRES fix moq-dev #4195 and the draft-22 LOCATION_FILTER layout of moq-dev #5094) that offers MoQT drafts 18-22 by default (moq-net also speaks 14-17 through MOQ_CLIENT_VERSION; no moq-lite); this entry declares drafts 18-22, the ones we support and test. subscribe-error reports SKIP when moq-net answers locally because no announced route covers the path; subscribe-before-announce sends its SUBSCRIBE after the late announce. moq-net accepts IETF subscriptions locally before SUBSCRIBE_OK, so announce-subscribe and subscribe-before-announce pass only once the relay has routed the SUBSCRIBE to the client's own publisher with no REQUEST_ERROR.",
       "roles": {
         "relay": {
           "remote": [

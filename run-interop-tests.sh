@@ -20,6 +20,7 @@ set -euo pipefail
 # See: https://apple.stackexchange.com/questions/193411/
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/tap-parser.sh"
 CONFIG_FILE="$SCRIPT_DIR/implementations.json"
 RESULTS_DIR="$SCRIPT_DIR/results/$(date +%Y-%m-%d_%H%M%S)"
 
@@ -229,13 +230,19 @@ run_with_timeout() {
     local seconds="$1"
     shift
 
+    # -k: KILL a command that outlives TERM by 10s; report that as a timeout
+    # (124), not as its 137. Callers wrap make, so 137 here is our KILL, not
+    # an OOM kill of the command.
+    local rc=0
     if command -v timeout >/dev/null 2>&1; then
-        timeout "$seconds" "$@"
-        return $?
+        timeout -k 10 "$seconds" "$@" || rc=$?
+        [ "$rc" -eq 137 ] && rc=124
+        return $rc
     fi
     if command -v gtimeout >/dev/null 2>&1; then
-        gtimeout "$seconds" "$@"
-        return $?
+        gtimeout -k 10 "$seconds" "$@" || rc=$?
+        [ "$rc" -eq 137 ] && rc=124
+        return $rc
     fi
 
     local timeout_marker
@@ -464,6 +471,9 @@ run_test() {
                 status="timeout"
                 FAILED=$((FAILED + 1))
                 echo -e "${RED}⧖ TIMEOUT (killed after ${test_timeout}s)${NC}"
+                # A KILL can interrupt compose's teardown; the next pair must
+                # not inherit this pair's relay.
+                docker compose -f "$SCRIPT_DIR/docker-compose.test.yml" down --timeout 1 >/dev/null 2>&1 || true
             else
                 status="fail"
                 FAILED=$((FAILED + 1))
@@ -493,6 +503,11 @@ run_test() {
         fi
     fi
 
+    local negotiated="[]"
+    if parse_negotiated_versions "$result_file"; then
+        negotiated=$(printf '%s\n' $TAP_NEGOTIATED | jq -R . | jq -sc .)
+    fi
+
     # Append to summary (using mktemp for safe atomic update)
     local tmp_file
     tmp_file=$(mktemp "${SUMMARY_FILE}.XXXXXX")
@@ -504,7 +519,8 @@ run_test() {
           --arg target "$target" \
           --arg status "$status" \
           --argjson exit_code "$exit_code" \
-          '.runs += [{"client": $client, "relay": $relay, "version": $version, "classification": $classification, "mode": $mode, "target": $target, "status": $status, "exit_code": $exit_code}]' \
+          --argjson negotiated "$negotiated" \
+          '.runs += [{"client": $client, "relay": $relay, "version": $version, "classification": $classification, "mode": $mode, "target": $target, "status": $status, "exit_code": $exit_code, "negotiated_versions": $negotiated}]' \
           "$SUMMARY_FILE" > "$tmp_file"; then
         mv "$tmp_file" "$SUMMARY_FILE"
     else

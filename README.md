@@ -56,7 +56,7 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 |----------------|--------------|----------------|-------|------------------|
 | moq-rs | Cloudflare | 14 | relay, client | `https://draft-14.cloudflare.mediaoverquic.com:443/moq` |
 | moq-rs (draft-16) | Cloudflare | 16 | relay, client | |
-| moxygen | Meta | 14, 16 | relay, client | `https://fb.mvfst.net:9448/moq-relay` |
+| moxygen | Meta | 16, 18 | relay, client | `https://fb.mvfst.net:9448/moq-relay` |
 | moq (moq-dev) | Luke Curley | 14-17 | relay, client | `https://cdn.moq.dev/anon` |
 | moq (moq-dev, JS) | Luke Curley | 14-17 | client | |
 | quiche-moq | Google | 16 | relay | `https://quichemoq.dev:443` |
@@ -64,7 +64,7 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 | MOQtail | OzU | 18-22 | relay | `https://relay.moqtail.dev`, `https://relay.moqtail.dev:8244`  |
 | libquicr | Cisco | 14 | relay | `https://us-west-2.relay.quicr.org:33437/relay` |
 | imquic | Meetecho | 16-18 | relay, client | `https://lminiero.it:9000` |
-| moq-go | Vsevolod Strukchinsky | 20 | relay, client |  |
+| moq-go | Vsevolod Strukchinsky | 22 | relay, client |  |
 | moqtopus | Kota Yatagai | 18 | client |  |
 | xquic | Alibaba | 14, 18 | relay, client |  |
 | moq-web (Typescript) | Cisco | 18-22 | client | |
@@ -87,6 +87,7 @@ Tests are organized by functional category:
 | `announce-only` | Namespace | Announce namespace, receive OK, close |
 | `publish-namespace-done` | Namespace | Announce, then send PUBLISH_NAMESPACE_DONE |
 | `subscribe-namespace-lifecycle` | Namespace | Observe namespace publication and withdrawal from a subscriber |
+| `publish-namespace-multi-publisher-retention` | Namespace | Retain a shared namespace after one publisher withdraws |
 | `subscribe-error` | Subscription | Subscribe to non-existent track, expect error |
 | `rendezvous-timeout` | Subscription | Subscribe with a rendezvous window, expect TIMEOUT |
 | `announce-subscribe` | Subscription | Publisher announces, subscriber subscribes |
@@ -142,9 +143,9 @@ existing detailed specifications with protocol references.
 - [MOQtail](https://github.com/moqtail/moqtail) - OzU (Rust + TypeScript)
 - [moq-go](https://github.com/floatdrop/moq-go) - Vsevolod Strukchinsky (Go)
 - [moqtopus](https://github.com/kota-yata/moqtopus) - Kota Yatagai (C++)
-- [moq-web]](https://github.com/Quicr/moq-web) - Cisco (Typescript)
-- [qdroid] (https://github.com/Quicr/qdroid) - Cisco (Kotlin , C++)
-- [quicr-mac] (https://github.com/Quicr/quicr-mac) - Cisco (swift, C++)
+- [moq-web](https://github.com/Quicr/moq-web) - Cisco (Typescript)
+- [qdroid](https://github.com/Quicr/qdroid) - Cisco (Kotlin , C++)
+- [quicr-mac](https://github.com/Quicr/quicr-mac) - Cisco (swift, C++)
 
 ### Inspiration
 
