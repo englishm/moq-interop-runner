@@ -36,12 +36,15 @@
         "draft-20",
         "draft-22"
       ],
-      "notes": "aiomoqt interop relay (draft-14/16/18/20/22): SETUP, PUBLISH_NAMESPACE, PUBLISH, SUBSCRIBE and FETCH, forwarding objects; RENDEZVOUS_TIMEOUT on draft-18 and later. One UDP port serves raw QUIC and WebTransport, chosen by ALPN; the docker entry is tested over raw QUIC, the open relay over both.",
+      "notes": "aiomoqt interop relay (draft-14/16/18/20/22): SETUP, PUBLISH_NAMESPACE, PUBLISH, SUBSCRIBE and FETCH, forwarding objects; RENDEZVOUS_TIMEOUT on draft-18 and later. One UDP port serves raw QUIC and WebTransport, chosen by ALPN; the docker relay and the open relay are each tested over both.",
       "roles": {
         "relay": {
           "docker": {
             "image": "aiomoqt-interop-relay:latest",
-            "url": "moqt://relay:4443",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ],
             "build": {
               "dockerfile": "adapters/aiomoqt/Dockerfile.relay",
               "context": "adapters/aiomoqt"
