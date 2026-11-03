@@ -146,7 +146,8 @@ Beside the area's shared fields, a CMSF client reports a `tracks` mapping
 with, per media track, `groups`, `objects`, `bytes`, `first_group`,
 `first_object`, `last_group`, `complete_groups`, `decoded_frames` and
 `expected_frames`, and `catalog_ms` (time from the catalog SUBSCRIBE to its
-object). `media_format` is `cmsf`.
+object; `catalog_ms_<session>` when a scenario has several subscribers).
+`media_format` is `cmsf`.
 
 ## Scope
 

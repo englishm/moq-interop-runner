@@ -98,10 +98,14 @@ takes `MEDIA_IDLE_SECS` plus about 15 s, so about 85 s by default.
 
 ## Diagnostics
 
-The TAP YAML should carry `media_format`, `idle_ms`, `catalog_ms` for each
-subscriber session, the shared counts, `first_group` and `last_group`, the
-per-track `tracks` mapping from the [format notes](./cmsf.md#diagnostics),
-metadata for all four sessions, and `first_mismatch` when a check fails.
+The client reports one test point, `cmsf-late-join-idle-catalog`, preceded
+by a subtest block with the four checks in the area's [TAP
+output](./README.md#tap-output) shape; the `catalog` subtest covers all three
+subscribers. The TAP YAML should carry `media_format`, `idle_ms`,
+`catalog_ms_<session>` for each subscriber session (`catalog_ms_subscriber_1`
+and so on), the shared counts, `first_group` and `last_group`, the per-track
+`tracks` mapping from the [format notes](./cmsf.md#diagnostics), metadata for
+all four sessions, and `first_mismatch` when a check fails.
 
 ## Revision History
 

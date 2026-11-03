@@ -58,10 +58,11 @@ The test passes when:
 - `ordering`: objects and groups are in order with no gap or duplicate
   between the first and last received group on each track;
 - both tracks deliver Group 9 completely;
-- media is still arriving at least 3 s after the first media object arrived
-  (the subscriber is following a live edge, not draining a cache);
 - `decode`: the reassembled complete groups of each track decode with the
-  expected frame counts.
+  expected frame counts;
+- `live`: media is still arriving at least 3 s after the first media object
+  arrived (the subscriber is following a live edge, not draining a cache).
+  This check is specific to the scenario and is reported as its own subtest.
 
 Permitted variation: the first received group (the one in progress at the
 join, or the next); whether the head of the group in progress is delivered
@@ -79,7 +80,9 @@ skipped or repeated fails on the corresponding check. The test takes about
 
 ## Diagnostics
 
-The TAP YAML should carry `media_format`, `join_offset_ms`, the shared
+The client reports one test point, `cmsf-live-join`, preceded by a subtest
+block with the four checks in the area's [TAP output](./README.md#tap-output)
+shape. The TAP YAML should carry `media_format`, `join_offset_ms`, the shared
 counts, `first_group` and `last_group`, the per-track `tracks` mapping from
 the [format notes](./cmsf.md#diagnostics), `publisher` and `subscriber`
 session metadata, and `first_mismatch` when a check fails.

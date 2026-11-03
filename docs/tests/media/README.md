@@ -22,9 +22,18 @@ checks in a notes file beside this README:
 - [CMSF](./cmsf.md): CMAF fragments described by an MSF catalog (the IETF
   media-over-QUIC streaming format).
 
-Other formats add their own notes file in the same layout. A scenario names
-the format it uses; its identifier carries the format as a prefix (`cmsf-`,
-`ts-`) so a client can expose several formats without ambiguity.
+Other formats add their own notes file in the same layout; MPEG-TS
+(`mpeg-ts.md`, with `ts-carriage-integrity` and `ts-late-subscriber`) is
+proposed separately. A scenario names the format it uses; its identifier
+carries the format as a prefix (`cmsf-`, `ts-`) so a client can expose several
+formats without ambiguity.
+
+Formats differ in who sets the object boundaries. In CMSF the fixture does:
+each CMAF fragment is one object, so the expected objects are known before
+anything is published. In MPEG-TS the packaging does: the publisher decides
+how many 188-byte packets make an object, so only the reassembled stream can
+be compared with the fixture. The conventions below say which form applies
+where that distinction matters.
 
 ## Proposed Scenarios
 
@@ -57,9 +66,14 @@ routing prefix `("moq-test", "<test-id>", "<run-id>")`, where `<test-id>` is
 the scenario identifier and `<run-id>` follows [Test
 Identity](../data-plane/README.md#test-identity). The publisher sends
 PUBLISH_NAMESPACE for that prefix. Unlike data-plane scenarios, no MoQT Test
-tuple follows it: the tracks of the format sit directly under the prefix, with
-the Track Names the format notes define (for CMSF, `catalog`, `video` and
-`audio`). The `moq-test` root lets deployments that limit anonymous
+tuple follows it: the tracks of the format sit directly under the prefix. A
+format whose fixture sets the objects also fixes the Track Names (for CMSF,
+`catalog`, `video` and `audio`); a format whose packaging sets them (MPEG-TS)
+leaves the Track Names to the packaging, and the client reports which
+packaging it used (`ts_packaging`) so a reader of the result knows what the
+names were. Either way the subscriber learns the names the same way a viewer
+would: from the description track when the format has one, otherwise from the
+packaging. The `moq-test` root lets deployments that limit anonymous
 publication to test namespaces accept the run.
 
 ## Normal Flow
@@ -93,12 +107,15 @@ nothing large or rights-encumbered is committed. Each format provides:
 
 - `make-fixture.sh`, which produces the media (synthetic sources, fixed
   parameters, bit-exact where the toolchain allows);
-- a manifest builder, which derives the expected per-object data (hashes,
-  sizes, media times) and the expected description track from the media;
+- the oracle's reference: when the fixture sets the objects, a manifest
+  builder derives the expected per-object data (hashes, sizes, media times)
+  and the expected description track from the media; when the packaging sets
+  them, the reference is the fixture stream itself and the format's notes say
+  how the received stream is reassembled before comparison;
 - a `test/` directory with a sensitivity test showing that the checks catch
   the faults they target and accept the permitted variations.
 
-The publisher and the checker read the fixture and the manifest from the same
+The publisher and the checker read the fixture and its reference from the same
 image, because an encoder's output is reproducible within one build but not
 necessarily across builds.
 
@@ -125,13 +142,16 @@ subtests and discussion can refer to them:
 | Check | Passes when |
 |-------|-------------|
 | `catalog` | the received description track equals the expected one (for formats that have one) |
-| `byte-identical` | every received object payload matches the manifest's hash for its (track, group, object) |
+| `byte-identical` | the received bytes are the fixture's: when the fixture sets the objects, every received object payload matches the manifest's hash for its (track, group, object); when the packaging sets them, the stream reassembled from the received payloads in (group, object) order equals the fixture, or a contiguous tail of it from a random access point when the scenario permits a late join |
 | `ordering` | groups are opened with increasing Group ID, within each group the objects are contiguous and in order, and the set between the first and last received group has no gap or duplicate; objects of adjacent groups may interleave in time |
-| `decode` | the media reassembled from the received objects decodes with the frame counts the manifest predicts |
+| `decode` | the media reassembled from the received objects decodes with the frame counts the fixture predicts |
 
-A format's notes say how each check is computed for that format and which
-tool performs the decode. Byte identity is format-agnostic; the other three
-are where a format's structure matters.
+A format's notes say how each check is computed for that format, which form
+of `byte-identical` applies, and which tool performs the decode. A format may
+add checks of its own as further subtests (for MPEG-TS, the continuity and
+PSI checks), named in its notes, and a scenario may add one for the property
+it isolates (`live` in `cmsf-live-join`); the four above keep the same
+meaning across formats so results can be read side by side.
 
 ## Diagnostics
 
@@ -156,6 +176,79 @@ fields](../../TAP-YAML-METADATA.md#common-fields) and per-session
 A format adds its own fields under its own names (`ts_packaging`, or a
 per-track `tracks` mapping) rather than redefining these.
 
+## TAP Output
+
+A media client follows the [test client
+interface](../../TEST-CLIENT-INTERFACE.md): `--list` prints the scenario
+identifiers it exposes, one per line; `TESTCASE` or `--test` selects one, and
+an identifier it does not expose exits 127. The output is TAP version 14 with
+one test point per scenario, the subtest block for the checks before it, and
+the YAML block after it. The subtests are the area's four checks plus any
+check the scenario adds under its own name (`live` in `cmsf-live-join`). A
+passing `cmsf-live-join` against a draft-22 relay over raw QUIC looks like
+this (the `tracks` mapping is abbreviated):
+
+```tap
+TAP version 14
+# stitcher-moq-media-client v0.1.0 (moq-net 0.3.15 via moq-tokio 0.19.28)
+# Relay: moqt://relay:4443
+# Offered: moq-transport-22, moq-transport-21, moq-transport-20, moq-transport-19, moq-transport-18
+# Fixture: cmsf 10000 ms, 1000 ms groups: audio 10 groups/47 objects/470 frames, video 10 groups/50 objects/300 frames
+1..1
+# Subtest: cmsf-live-join
+    1..5
+    ok 1 - catalog (received in 105 ms, equal to the expected catalog)
+    ok 2 - byte-identical (87 objects match the manifest)
+    ok 3 - ordering (18 groups in order, groups 9-9 complete on every track)
+    ok 4 - decode (audio 420 frames, video 270 frames)
+    ok 5 - live (media kept arriving for 7999 ms after the first object)
+ok 1 - cmsf-live-join
+  ---
+  duration_ms: 10805
+  implementation_version: "0.1.0"
+  test_spec_revision: 1
+  media_format: "cmsf"
+  sessions:
+    publisher:
+      moqt_version: "moqt-22"
+      transport: "quic"
+      alpn: "moqt-22"
+    subscriber:
+      moqt_version: "moqt-22"
+      transport: "quic"
+      alpn: "moqt-22"
+  run_id: "7dfdb7e04df778eb2c1130710d8b03cf"
+  namespace: "moq-test/cmsf-live-join/7dfdb7e04df778eb2c1130710d8b03cf"
+  join_offset_ms: 1687
+  catalog_ms: 105
+  groups_received: 18
+  objects_received: 87
+  bytes_received: 1894236
+  first_group: 1
+  last_group: 9
+  tracks:
+    audio:
+      groups: 9
+      objects: 42
+      bytes: 149888
+      first_group: 1
+      first_object: 0
+      last_group: 9
+      complete_groups: 9
+      decoded_frames: 420
+      expected_frames: 420
+    video:
+      ...
+  media_span_ms: 7999
+  ...
+```
+
+A failing check is `not ok` in the subtest block with the reason in
+parentheses, the parent test point is `not ok`, `message` repeats the first
+failing check, and `first_mismatch` names the object when a payload or
+position differed. The harness counts only the parent test point; the
+subtests and YAML are for the reader.
+
 ## Timeouts
 
 A media scenario runs for the length of its fixture plus whatever idle or
@@ -163,10 +256,18 @@ join delay it scripts, so each scenario states its own deadlines rather than
 inheriting the data-plane 10-second delivery budget. A client that exposes
 the two CMSF scenarios runs for about 100 seconds per relay endpoint, 70 of
 them the idle period of `cmsf-late-join-idle-catalog`. The harness bounds each
-client run with `TEST_TIMEOUT` (120 seconds by default), so a media client is
-registered as its own implementation entry rather than added to a
-control-plane client's case list: the media run gets its own budget and its
-own column in the report.
+client run with `TEST_TIMEOUT` (120 seconds by default) and runs every
+scenario a client exposes in that one budget, so a media client is registered
+as its own implementation entry rather than added to a control-plane client's
+case list: the media run gets its own budget and its own column in the report.
+
+The same rule applies across formats. The registry has no per-client timeout,
+so a client whose scenarios together would not fit the budget registers one
+implementation entry per format, each exposing that format's identifiers
+(the entry name then carries the format, as in `<impl>-media-ts`); one entry
+that exposes two formats is fine while their total stays well inside the
+budget. If the harness later lets an entry declare its own timeout, entries
+can be merged without changing any scenario.
 
 ## Relation To `publish-subscribe-media`
 
