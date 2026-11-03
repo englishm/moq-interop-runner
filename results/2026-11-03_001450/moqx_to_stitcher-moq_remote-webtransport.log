@@ -1,0 +1,65 @@
+Running tests against https://34-72-6-160.sslip.io:443...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://34-72-6-160.sslip.io:443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://34-72-6-160.sslip.io:443
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 173
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E1103 00:15:57.162110     7 MoQRelaySession.cpp:1056] PublishNamespaceDone for unknown publishNamespace, sess=0x55de9b2e3fc0
+ok 2 - announce-only
+  ---
+  duration_ms: 205
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E20261103 00:15:57.210978     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=4f5b9d277c95a9e0, local=10.1.0.58:53764, 34.72.6.160:443=upstream, drain=done
+ok 3 - subscribe-error
+  ---
+  duration_ms: 203
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: unroutable
+  ...
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 432
+  negotiated_version: draft-18
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+E20261103 00:15:57.845091     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=d2efc0d39bca44f1, local=10.1.0.58:42725, 34.72.6.160:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 203
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 1165
+  negotiated_version: draft-18
+  info: Retained namespace and withdrawal reached both subscribers
+  ...
+E20261103 00:15:59.215682     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=acad6777e4b2631d, local=10.1.0.58:32870, 34.72.6.160:443=upstream, drain=done
+E20261103 00:15:59.217561     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=e71ef2734a0f91c1, local=10.1.0.58:46702, 34.72.6.160:443=upstream, drain=done
+E20261103 00:15:59.218442     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=6765a7a4a01e1bf3, local=10.1.0.58:58279, 34.72.6.160:443=upstream, drain=done
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 855
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): unroutable
+  ...
+E20261103 00:16:00.073009     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=2b969ab114a2bd9b, local=10.1.0.58:47736, 34.72.6.160:443=upstream, drain=done

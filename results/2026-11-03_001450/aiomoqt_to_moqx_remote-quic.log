@@ -1,0 +1,216 @@
+Running tests against moqt://moqx-main.ci.openmoq.org:4433...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://moqx-main.ci.openmoq.org:4433 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+2026-11-03 00:15:43.711 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup; reason: fizz::FizzException: Unable to negotiate ALPN, as required by policy. policy=AlpnMode::Required
+2026-11-03 00:15:43.811 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup; reason: fizz::FizzException: Unable to negotiate ALPN, as required by policy. policy=AlpnMode::Required
+TAP version 14
+# date: 2026-11-03T00:15:43Z
+# target: moqt://moqx-main.ci.openmoq.org:4433
+# version: aiomoqt/0.14.0
+# note: preference probe pinned draft-18
+1..12
+ok 1 - setup-only
+  ---
+  duration_ms: 195
+  implementation_version: "0.14.0"
+  sessions:
+    client:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "59ba774e077b5db5"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+ok 2 - announce-only
+  ---
+  duration_ms: 212
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "e6d5d89929be21a5"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 302
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "9c7cbf71659adf94"
+  message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+  ...
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+  [PASS] subscribe-error: Error received (expected): code=16
+ok 4 - subscribe-error
+  ---
+  duration_ms: 161
+  implementation_version: "0.14.0"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "a06b84e9b8f477d1"
+  message: "Error received (expected): code=16"
+  expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+  ...
+  [PASS] rendezvous-timeout: REQUEST_ERROR TIMEOUT received
+ok 5 - rendezvous-timeout
+  ---
+  duration_ms: 724
+  implementation_version: "0.14.0"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "342dc4e6c67ca8e4"
+  message: "REQUEST_ERROR TIMEOUT received"
+  expected: "REQUEST_ERROR TIMEOUT"
+  ...
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+ok 6 - announce-subscribe
+  ---
+  duration_ms: 476
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "9c24ddceb6493367"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "cacd6b7bf3e4f02e"
+  message: "SUBSCRIBE_OK received — relay routed subscription"
+  ...
+  [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=16
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 1075
+  implementation_version: "0.14.0"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "6a73dd9bf641ec8c"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "87c72d7f66ee8292"
+  message: "Error received (valid: relay didn't buffer): code=16"
+  ...
+WARNING aiopquic.quic.connection: stream 15 reset by peer: error=3
+  [FAIL] data-subgroup-basic: missing object 2.4 (1 problem(s)); 14 objects received; Stream Count upstream 3, downstream 3; 1 downstream stream(s) reset
+not ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 744
+  implementation_version: "0.14.0"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "aa755ef6da91808b"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "b5b688736fd2ad8d"
+  message: "missing object 2.4 (1 problem(s)); 14 objects received; Stream Count upstream 3, downstream 3; 1 downstream stream(s) reset"
+  ...
+  [PASS] subscribe-namespace-lifecycle: NAMESPACE then NAMESPACE_DONE received
+ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 476
+  implementation_version: "0.14.0"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "407285334694b5f0"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "dec6ea3c8ba43f0c"
+  message: "NAMESPACE then NAMESPACE_DONE received"
+  ...
+  Discovered: moq-test/27af/interop/namespace-discovery/track-27af
+ok 10 - namespace-discovery
+  ---
+  duration_ms: 468
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "09adff6fd2e76f2b"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "dab07d2a555e3c66"
+  message: "discovered 'track-27af'"
+  expected: "PUBLISH announcing 'track-27af'"
+  received: "track-27af"
+  ...
+  [PASS] namespace-discovery: discovered 'track-27af'
+ok 11 - publish-track-only
+  ---
+  duration_ms: 319
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "2fa0d03c0b7dd2a5"
+  message: "PUBLISH_OK received, PUBLISH_DONE sent"
+  ...
+  [PASS] publish-track-only: PUBLISH_OK received, PUBLISH_DONE sent
+  [PASS] publish-track-subscribe: 5 objects received from the published track
+ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 553
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "355c0f5f04023aec"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "23e1b1d052b15c1c"
+  message: "5 objects received from the published track"
+  expected: "5 objects"
+  received: "5 objects"
+  ...
+# ended: 2026-11-03T00:15:49Z
+make: *** [Makefile:122: test-external] Error 1

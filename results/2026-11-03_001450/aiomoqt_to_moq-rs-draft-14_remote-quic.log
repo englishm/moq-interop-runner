@@ -1,0 +1,210 @@
+Running tests against moqt://draft-14.cloudflare.mediaoverquic.com:443...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://draft-14.cloudflare.mediaoverquic.com:443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+2026-11-03 00:15:28.262 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup; reason: peer doesn't support any known protocol
+2026-11-03 00:15:28.302 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup; reason: peer doesn't support any known protocol
+2026-11-03 00:15:28.334 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup; reason: peer doesn't support any known protocol
+2026-11-03 00:15:28.362 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup; reason: peer doesn't support any known protocol
+TAP version 14
+# date: 2026-11-03T00:15:28Z
+# target: moqt://draft-14.cloudflare.mediaoverquic.com:443
+# version: aiomoqt/0.14.0
+# note: preference probe pinned draft-14
+1..12
+ok 1 - setup-only
+  ---
+  duration_ms: 55
+  implementation_version: "0.14.0"
+  sessions:
+    client:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "1e824928d8262dc7"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+ok 2 - announce-only
+  ---
+  duration_ms: 295
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "fd5abf1fd7367e8b"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 359
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "01839dc570043288"
+  message: "PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent"
+  ...
+  [PASS] subscribe-error: Error received (expected): code=4
+ok 4 - subscribe-error
+  ---
+  duration_ms: 480
+  implementation_version: "0.14.0"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "63ef1d777a734496"
+  message: "Error received (expected): code=4"
+  expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+  ...
+  [PASS] rendezvous-timeout: 
+ok 5 - rendezvous-timeout # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-14
+  ---
+  duration_ms: 48
+  implementation_version: "0.14.0"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "65e488c2f120c282"
+  ...
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+ok 6 - announce-subscribe
+  ---
+  duration_ms: 377
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "f078ce369f3b0492"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "e93047d68b9e96a2"
+  message: "SUBSCRIBE_OK received — relay routed subscription"
+  ...
+  [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=4
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 671
+  implementation_version: "0.14.0"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "346b90f1cf6fa419"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "1a02141ebb128f4e"
+  message: "Error received (valid: relay didn't buffer): code=4"
+  ...
+  [FAIL] data-subgroup-basic: SUBSCRIBE refused: code=4 not found: Track not found [error:8f3d7a32-cd43-4c51-ab23-80c16234557f]
+not ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 624
+  implementation_version: "0.14.0"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "28a73740c82ce033"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "600c576c358416d1"
+  message: "SUBSCRIBE refused: code=4 not found: Track not found [error:8f3d7a32-cd43-4c51-ab23-80c16234557f]"
+  ...
+ok 9 - subscribe-namespace-lifecycle # SKIP NAMESPACE is draft-16; negotiated draft-14
+  ---
+  duration_ms: 45
+  implementation_version: "0.14.0"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "62c168d1917dbde7"
+  ...
+  [PASS] subscribe-namespace-lifecycle: 
+not ok 10 - namespace-discovery
+  ---
+  duration_ms: 10352
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "831e83a504d76369"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "938b819ce769f6cb"
+  message: "Failed: MOQTRequestError: request error: code=2 reason=Request timed out"
+  expected: "PUBLISH announcing 'track-27a0'"
+  received: "MOQTRequestError: request error: code=2 reason=Request timed out"
+  ...
+  [FAIL] namespace-discovery: Failed: MOQTRequestError: request error: code=2 reason=Request timed out
+  [FAIL] publish-track-only: Failed: TimeoutError
+not ok 11 - publish-track-only
+  ---
+  duration_ms: 5004
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "b00ab2726a53662f"
+  message: "Failed: TimeoutError"
+  expected: "PUBLISH_OK"
+  received: "TimeoutError"
+  ...
+not ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 1315
+  implementation_version: "0.14.0"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "2341132e0f5fb2a4"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-14"
+      alpn: "moq-00"
+      quic_initial_destination_connection_id: "1530ac8f3d6cbce7"
+  message: "Failed: MOQTRequestError: request error: code=4 reason=not found: Track not found [error:d8852def-0f90-4112-86ed-fd265f6a5217]"
+  expected: "SUBSCRIBE_OK and 5 objects"
+  received: "MOQTRequestError: request error: code=4 reason=not found: Track not found [error:d8852def-0f90-4112-86ed-fd265f6a5217]"
+  ...
+  [FAIL] publish-track-subscribe: Failed: MOQTRequestError: request error: code=4 reason=not found: Track not found [error:d8852def-0f90-4112-86ed-fd265f6a5217]
+# ended: 2026-11-03T00:15:48Z
+make: *** [Makefile:122: test-external] Error 1
