@@ -29,6 +29,8 @@ as participants revisit them; adding a label does not change their behavior.
 
 - [Data-plane tests](./data-plane/README.md) define shared publisher-first
   conventions for new end-to-end object-delivery scenarios.
+- [MPEG-TS media tests](./media/mpeg-ts.md) define a self-checking transport
+  stream fixture and oracle for end-to-end media carriage.
 
 ## Specification Layout
 
