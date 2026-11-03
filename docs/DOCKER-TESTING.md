@@ -189,6 +189,26 @@ healthcheck:
   retries: 10
 ```
 
+#### Relay URL and transports
+
+Clients reach a docker relay at `https://relay:4443` unless its registration sets
+`roles.relay.docker.url`; the URL scheme selects the client's transport. A relay
+that serves raw QUIC and WebTransport on one port can list both under
+`roles.relay.docker.endpoints`. Each endpoint becomes its own run, with mode
+`docker-<transport>`, in the relay's one column:
+
+```json
+"docker": {
+  "image": "example-relay:latest",
+  "endpoints": [
+    { "url": "moqt://relay:4443", "transport": "quic" },
+    { "url": "https://relay:4443", "transport": "webtransport" }
+  ]
+}
+```
+
+`endpoints` takes precedence over `url`.
+
 ### Test Client Image
 
 ```yaml

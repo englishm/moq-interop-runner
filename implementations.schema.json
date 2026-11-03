@@ -112,7 +112,33 @@
         "url": {
           "type": "string",
           "pattern": "^(https://|moqt://)[a-zA-Z0-9][a-zA-Z0-9.-]*(:[0-9]+)?(/.*)?$",
-          "description": "Optional relay URL to pass to clients for docker-compose tests (overrides default RELAY_URL)"
+          "description": "Optional relay URL to pass to clients for docker-compose tests (overrides default RELAY_URL). Ignored when endpoints is set."
+        },
+        "endpoints": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Test this docker relay over several URLs, one run per endpoint in the same relay column (e.g. one listener serving raw QUIC and WebTransport). Each run passes its url as RELAY_URL; its mode is docker-<transport>.",
+          "items": {
+            "type": "object",
+            "required": ["url", "transport"],
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "type": "string",
+                "pattern": "^(https://|moqt://)[a-zA-Z0-9][a-zA-Z0-9.-]*(:[0-9]+)?(/.*)?$",
+                "description": "Relay URL passed to clients for this run"
+              },
+              "transport": {
+                "type": "string",
+                "enum": ["quic", "webtransport"],
+                "description": "Transport this URL selects"
+              },
+              "notes": {
+                "type": "string",
+                "description": "Additional notes about this endpoint"
+              }
+            }
+          }
         },
         "build": {
           "type": "object",
