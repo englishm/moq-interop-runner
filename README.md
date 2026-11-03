@@ -57,8 +57,8 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 | moq-rs | Cloudflare | 14 | relay, client | `https://draft-14.cloudflare.mediaoverquic.com:443/moq` |
 | moq-rs (draft-16) | Cloudflare | 16 | relay, client | |
 | moxygen | Meta | 16, 18 | relay, client | `https://fb.mvfst.net:9448/moq-relay` |
-| moq (moq-dev) | Luke Curley | 14-17 | relay, client | `https://cdn.moq.dev/anon` |
-| moq (moq-dev, JS) | Luke Curley | 14-17 | client | |
+| moq (moq-dev) | Luke Curley | 18, 20, 22 | relay, client | `https://cdn.moq.dev/anon` |
+| moq (moq-dev, JS) | Luke Curley | 18, 20, 22 | client | |
 | quiche-moq | Google | 16 | relay | `https://quichemoq.dev:443` |
 | moqtransport | TUM | 13 | relay | (no persistent relay) |
 | MOQtail | OzU | 18-22 | relay | `https://relay.moqtail.dev`, `https://relay.moqtail.dev:8244`  |
