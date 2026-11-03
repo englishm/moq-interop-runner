@@ -72,6 +72,8 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 | quicr-mac (Swift,C++) | Cisco | 18 | client | |
 | laps (C++) | Cisco | 18 | Relay | `https://relay.quicr.org:33437/relay` |
 | moqlivemock | Eyevinn | 18, 22 | relay, client, publisher | `https://moqlivemock.demo.osaas.io:443/moq`, `moqt://moqlivemock.demo.osaas.io:443` (publisher) |
+| stitcher-moq | Paramount | 18-22 | relay, client | `https://34-72-6-160.sslip.io:443`, `moqt://34-72-6-160.sslip.io:443` |
+| stitcher-moq-media | Paramount | 18-22 | client (media area: `cmsf-live-join`, `cmsf-late-join-idle-catalog`) | |
 
 
 
