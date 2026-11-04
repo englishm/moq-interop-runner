@@ -1,0 +1,213 @@
+rm -rf mlog/
+mkdir -p mlog/relay mlog/client
+Running interop tests...
+  Relay:  aiomoqt-interop-relay:latest
+  Client: ghcr.io/englishm/moq-interop-runner-moq-test-client:latest
+  URL:    moqt://relay:4443
+time="2026-11-04T00:22:08Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-04T00:22:08Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-04T00:22:08Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-04T00:22:08Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+time="2026-11-04T00:22:08Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+ Container main-test-client-1 Recreate 
+ Container main-test-client-1 Recreated 
+Attaching to relay-1, test-client-1
+ Container main-relay-1 Starting 
+ Container main-relay-1 Started 
+ Container main-relay-1 Waiting 
+relay-1  | 2026-11-04 00:22:09.223 INFO : relay: start aiomoqt 0.14.0 aiopquic 0.7.0 pid 7
+relay-1  | 2026-11-04 00:22:09.223 INFO : Starting dual-stack MOQT server on all interfaces, UDP port 4443
+relay-1  | ================================================================
+relay-1  |  aiomoqt-relay: a MoQT relay in Python.
+relay-1  |  No authentication or rate limiting.
+relay-1  | ================================================================
+relay-1  | Listening on all interfaces, UDP port 4443 (dual raw QUIC + H3/WebTransport, draft-[22, 20, 18, 16, 14])
+ Container main-relay-1 Healthy 
+ Container main-test-client-1 Starting 
+ Container main-test-client-1 Started 
+test-client-1  | TAP version 14
+test-client-1  | # moq-test-client v0.1.15
+test-client-1  | # Relay: moqt://relay:4443
+test-client-1  | 1..8
+test-client-1  | [2m2026-11-04T00:22:14.558941Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:48429 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | 2026-11-04 00:22:14.561 INFO : MOQT event: control message parsed: ClientSetup(versions=[], parameters={MAX_REQUEST_ID=100, AUTHORITY="relay:4443"}))
+relay-1        | 2026-11-04 00:22:14.561 INFO : MOQT send: ServerSetup(selected_version=None, parameters={IMPLEMENTATION="aiomoqt/0.14.0", MAX_REQUEST_ID=10000}) draft-16
+relay-1        | 2026-11-04 00:22:14.562 INFO : MOQT session: setup complete: draft-16 (raw QUIC)
+test-client-1  | [2m2026-11-04T00:22:14.562092Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m SETUP exchange completed successfully
+test-client-1  | ok 1 - setup-only
+test-client-1  |   ---
+relay-1        | 2026-11-04 00:22:14.562 ERROR: MOQT: closing: PROTOCOL_VIOLATION (0x3) to 172.18.0.3:48429; reason: peer closed its control stream 0
+test-client-1  |   duration_ms: 3
+test-client-1  |   connection_id: 37f2eaa655222ef082118ae625aad330
+test-client-1  |   ...
+test-client-1  | [2m2026-11-04T00:22:14.562867Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:49694 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | 2026-11-04 00:22:14.564 INFO : MOQT event: control message parsed: ClientSetup(versions=[], parameters={MAX_REQUEST_ID=100, AUTHORITY="relay:4443"}))
+relay-1        | 2026-11-04 00:22:14.564 INFO : MOQT send: ServerSetup(selected_version=None, parameters={IMPLEMENTATION="aiomoqt/0.14.0", MAX_REQUEST_ID=10000}) draft-16
+relay-1        | 2026-11-04 00:22:14.564 INFO : MOQT session: setup complete: draft-16 (raw QUIC)
+test-client-1  | [2m2026-11-04T00:22:14.564430Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Sending PUBLISH_NAMESPACE for: moq-test/interop
+relay-1        | 2026-11-04 00:22:14.564 INFO : MOQT event: control message parsed: PublishNamespace(request_id=0, namespace=["moq-test", "interop"], parameters={}))
+relay-1        | 2026-11-04 00:22:14.564 INFO : relay: announce ns=(b'moq-test', b'interop') -> 1 publisher(s)
+relay-1        | 2026-11-04 00:22:14.564 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None)
+relay-1        | 2026-11-04 00:22:14.565 INFO : relay: session quic d16 from 172.18.0.3:49694
+test-client-1  | ok 2 - publish-namespace-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 2003
+test-client-1  |   connection_id: a01efe1a997d0a88eeb01b4e025b9c69
+test-client-1  |   ...
+test-client-1  | [2m2026-11-04T00:22:16.565442Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH_NAMESPACE succeeded (REQUEST_OK received, waiting for subscribers)
+relay-1        | 2026-11-04 00:22:16.565 ERROR: MOQT: closing: PROTOCOL_VIOLATION (0x3) to 172.18.0.3:49694; reason: peer closed its control stream 0
+test-client-1  | [2m2026-11-04T00:22:16.566097Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:58781 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | 2026-11-04 00:22:16.567 INFO : MOQT event: control message parsed: ClientSetup(versions=[], parameters={MAX_REQUEST_ID=100, AUTHORITY="relay:4443"}))
+relay-1        | 2026-11-04 00:22:16.567 INFO : MOQT send: ServerSetup(selected_version=None, parameters={IMPLEMENTATION="aiomoqt/0.14.0", MAX_REQUEST_ID=10000}) draft-16
+relay-1        | 2026-11-04 00:22:16.567 INFO : MOQT session: setup complete: draft-16 (raw QUIC)
+test-client-1  | [2m2026-11-04T00:22:16.568029Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Subscribing to non-existent track: nonexistent/namespace/test-track
+relay-1        | 2026-11-04 00:22:16.568 INFO : MOQT event: control message parsed: Subscribe(request_id=0, track_namespace=["nonexistent", "namespace"], track_name="test-track", priority=None, group_order=None, forward=None, filter_type=None, start_group=None, start_object=None, end_group=None, parameters={}, location_filter=None, track_alias=None, libquicr_compat=False))
+relay-1        | 2026-11-04 00:22:16.568 INFO : relay: subscribe ns=(b'nonexistent', b'namespace') track=b'test-track' -> DOES_NOT_EXIST (not announced)
+relay-1        | 2026-11-04 00:22:16.568 INFO : MOQT send: RequestError(request_id=0, error_code=16, retry_interval=0, reason=track does not exist, redirect=None)
+test-client-1  | [2m2026-11-04T00:22:16.568545Z[0m [33m WARN[0m [2mmoq_test_client::scenarios[0m[2m:[0m Got error but not clearly 'not found': closed, code=16. Relay may use different error text.
+relay-1        | 2026-11-04 00:22:16.568 ERROR: MOQT: closing: PROTOCOL_VIOLATION (0x3) to 172.18.0.3:58781; reason: peer closed its control stream 0
+test-client-1  | ok 3 - subscribe-error
+test-client-1  |   ---
+test-client-1  |   duration_ms: 3
+test-client-1  |   connection_id: 363b562cc1c87ffa4b19fb8fcd6a4be2
+test-client-1  |   ...
+test-client-1  | [2m2026-11-04T00:22:16.569092Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:51382 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | 2026-11-04 00:22:16.570 INFO : MOQT event: control message parsed: ClientSetup(versions=[], parameters={MAX_REQUEST_ID=100, AUTHORITY="relay:4443"}))
+relay-1        | 2026-11-04 00:22:16.570 INFO : MOQT send: ServerSetup(selected_version=None, parameters={IMPLEMENTATION="aiomoqt/0.14.0", MAX_REQUEST_ID=10000}) draft-16
+relay-1        | 2026-11-04 00:22:16.570 INFO : MOQT session: setup complete: draft-16 (raw QUIC)
+test-client-1  | [2m2026-11-04T00:22:16.570759Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:48315 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | 2026-11-04 00:22:16.571 INFO : MOQT event: control message parsed: ClientSetup(versions=[], parameters={MAX_REQUEST_ID=100, AUTHORITY="relay:4443"}))
+relay-1        | 2026-11-04 00:22:16.571 INFO : MOQT send: ServerSetup(selected_version=None, parameters={IMPLEMENTATION="aiomoqt/0.14.0", MAX_REQUEST_ID=10000}) draft-16
+relay-1        | 2026-11-04 00:22:16.571 INFO : MOQT session: setup complete: draft-16 (raw QUIC)
+test-client-1  | [2m2026-11-04T00:22:16.571978Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Publisher sending PUBLISH_NAMESPACE: moq-test/interop
+test-client-1  | [2m2026-11-04T00:22:16.571988Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Subscriber subscribing to track: moq-test/interop/test-track
+relay-1        | 2026-11-04 00:22:16.572 INFO : MOQT event: control message parsed: PublishNamespace(request_id=0, namespace=["moq-test", "interop"], parameters={}))
+relay-1        | 2026-11-04 00:22:16.572 INFO : MOQT event: control message parsed: Subscribe(request_id=0, track_namespace=["moq-test", "interop"], track_name="test-track", priority=None, group_order=None, forward=None, filter_type=None, start_group=None, start_object=None, end_group=None, parameters={}, location_filter=None, track_alias=None, libquicr_compat=False))
+relay-1        | 2026-11-04 00:22:16.572 INFO : relay: announce ns=(b'moq-test', b'interop') -> 1 publisher(s)
+relay-1        | 2026-11-04 00:22:16.572 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None)
+relay-1        | 2026-11-04 00:22:16.572 INFO : relay: session quic d16 from 172.18.0.3:51382
+relay-1        | 2026-11-04 00:22:16.572 INFO : MOQT send: Subscribe(request_id=1, track_namespace=["moq-test", "interop"], track_name="test-track", priority=None, group_order=None, forward=1, filter_type=None, start_group=0, start_object=0, end_group=0, parameters={}, location_filter=None, track_alias=None, libquicr_compat=False)
+relay-1        | 2026-11-04 00:22:16.572 INFO : MOQT event: control message parsed: SubscribeOk(request_id=1, track_alias=1, expires=None, group_order=1, content_exists=0, largest_group_id=None, largest_object_id=None, parameters={}, track_extensions=None))
+relay-1        | 2026-11-04 00:22:16.573 INFO : Track: subscribed (direct) to (b'moq-test', b'interop')/test-track
+relay-1        | 2026-11-04 00:22:16.573 INFO : relay: upstream established ns=(b'moq-test', b'interop') track=test-track alias=1
+relay-1        | 2026-11-04 00:22:16.573 INFO : MOQT send: SubscribeOk(request_id=0, track_alias=0, expires=0, group_order=1, content_exists=0, largest_group_id=None, largest_object_id=None, parameters={}, track_extensions={})
+relay-1        | 2026-11-04 00:22:16.573 INFO : relay: subscribe ns=(b'moq-test', b'interop') track=b'test-track' -> SUBSCRIBE_OK (fanout=1)
+relay-1        | 2026-11-04 00:22:16.573 INFO : relay: session quic d16 from 172.18.0.3:48315
+test-client-1  | [2m2026-11-04T00:22:19.573394Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Test timeout reached - subscription routing may still be in progress
+test-client-1  | ok 4 - publish-namespace-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 3004
+test-client-1  |   publisher_connection_id: b264269fc7ec836d50535820284697a5
+test-client-1  |   subscriber_connection_id: 5ae53718050b3e0cd8ca40a31baf2258
+test-client-1  |   ...
+relay-1        | 2026-11-04 00:22:19.573 ERROR: MOQT: closing: PROTOCOL_VIOLATION (0x3) to 172.18.0.3:51382; reason: peer closed its control stream 0
+relay-1        | 2026-11-04 00:22:19.573 INFO : MOQT: connection closed: NO_ERROR (0x0) peer 172.18.0.3:48315
+test-client-1  | [2m2026-11-04T00:22:19.574138Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:53328 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | 2026-11-04 00:22:19.574 INFO : MOQT send: SubscribeDone(request_id=0, status_code=2, stream_count=0, reason=track ended)
+relay-1        | 2026-11-04 00:22:19.575 INFO : MOQT event: control message parsed: ClientSetup(versions=[], parameters={MAX_REQUEST_ID=100, AUTHORITY="relay:4443"}))
+relay-1        | 2026-11-04 00:22:19.575 INFO : MOQT send: ServerSetup(selected_version=None, parameters={IMPLEMENTATION="aiomoqt/0.14.0", MAX_REQUEST_ID=10000}) draft-16
+relay-1        | 2026-11-04 00:22:19.575 INFO : MOQT session: setup complete: draft-16 (raw QUIC)
+test-client-1  | [2m2026-11-04T00:22:19.575923Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Subscriber subscribing BEFORE PUBLISH_NAMESPACE: moq-test/interop/test-track
+relay-1        | 2026-11-04 00:22:19.576 INFO : MOQT event: control message parsed: Subscribe(request_id=0, track_namespace=["moq-test", "interop"], track_name="test-track", priority=None, group_order=None, forward=None, filter_type=None, start_group=None, start_object=None, end_group=None, parameters={}, location_filter=None, track_alias=None, libquicr_compat=False))
+relay-1        | 2026-11-04 00:22:19.576 INFO : relay: subscribe ns=(b'moq-test', b'interop') track=b'test-track' -> DOES_NOT_EXIST (not announced)
+relay-1        | 2026-11-04 00:22:19.576 INFO : MOQT send: RequestError(request_id=0, error_code=16, retry_interval=0, reason=track does not exist, redirect=None)
+relay-1        | 2026-11-04 00:22:19.576 INFO : MOQT: connection closed: NO_ERROR (0x0) peer 172.18.0.3:53328
+test-client-1  | [2m2026-11-04T00:22:20.077028Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:40529 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | 2026-11-04 00:22:20.079 INFO : MOQT event: control message parsed: ClientSetup(versions=[], parameters={MAX_REQUEST_ID=100, AUTHORITY="relay:4443"}))
+relay-1        | 2026-11-04 00:22:20.079 INFO : MOQT send: ServerSetup(selected_version=None, parameters={IMPLEMENTATION="aiomoqt/0.14.0", MAX_REQUEST_ID=10000}) draft-16
+relay-1        | 2026-11-04 00:22:20.079 INFO : MOQT session: setup complete: draft-16 (raw QUIC)
+test-client-1  | [2m2026-11-04T00:22:20.080047Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Publisher sending PUBLISH_NAMESPACE (after subscriber): moq-test/interop
+relay-1        | 2026-11-04 00:22:20.080 INFO : MOQT event: control message parsed: PublishNamespace(request_id=0, namespace=["moq-test", "interop"], parameters={}))
+relay-1        | 2026-11-04 00:22:20.080 INFO : relay: announce ns=(b'moq-test', b'interop') -> 1 publisher(s)
+relay-1        | 2026-11-04 00:22:20.080 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None)
+relay-1        | 2026-11-04 00:22:20.080 INFO : relay: session quic d16 from 172.18.0.3:40529
+test-client-1  | ok 5 - subscribe-before-publish-namespace
+test-client-1  |   ---
+test-client-1  |   duration_ms: 3507
+test-client-1  |   subscriber_connection_id: 965b161f6c077fe3d13d75653d2266b1
+test-client-1  |   publisher_connection_id: 7037dc6af167c98360e9b73d6afde321
+test-client-1  |   ...
+test-client-1  | [2m2026-11-04T00:22:23.081004Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Publisher PUBLISH_NAMESPACE timeout (expected)
+test-client-1  | [2m2026-11-04T00:22:23.081023Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Subscriber got error: closed, code=16 (may be expected)
+relay-1        | 2026-11-04 00:22:23.081 ERROR: MOQT: closing: PROTOCOL_VIOLATION (0x3) to 172.18.0.3:40529; reason: peer closed its control stream 0
+test-client-1  | [2m2026-11-04T00:22:23.081560Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:59275 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | 2026-11-04 00:22:23.082 INFO : MOQT event: control message parsed: ClientSetup(versions=[], parameters={MAX_REQUEST_ID=100, AUTHORITY="relay:4443"}))
+relay-1        | 2026-11-04 00:22:23.083 INFO : MOQT send: ServerSetup(selected_version=None, parameters={IMPLEMENTATION="aiomoqt/0.14.0", MAX_REQUEST_ID=10000}) draft-16
+relay-1        | 2026-11-04 00:22:23.083 INFO : MOQT session: setup complete: draft-16 (raw QUIC)
+test-client-1  | [2m2026-11-04T00:22:23.083342Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Sending PUBLISH_NAMESPACE: moq-test/interop
+relay-1        | 2026-11-04 00:22:23.083 INFO : MOQT event: control message parsed: PublishNamespace(request_id=0, namespace=["moq-test", "interop"], parameters={}))
+relay-1        | 2026-11-04 00:22:23.083 INFO : relay: announce ns=(b'moq-test', b'interop') -> 1 publisher(s)
+relay-1        | 2026-11-04 00:22:23.083 INFO : MOQT send: RequestOk(request_id=0, parameters=None, track_properties=None)
+relay-1        | 2026-11-04 00:22:23.083 INFO : relay: session quic d16 from 172.18.0.3:59275
+test-client-1  | [2m2026-11-04T00:22:25.083945Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH_NAMESPACE active; sending PUBLISH_NAMESPACE_DONE
+relay-1        | 2026-11-04 00:22:25.084 ERROR: MOQT: closing: PROTOCOL_VIOLATION (0x3) to 172.18.0.3:59275; reason: peer closed its control stream 0
+test-client-1  | [2m2026-11-04T00:22:25.184923Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH_NAMESPACE_DONE sent successfully
+test-client-1  | ok 6 - publish-namespace-done
+test-client-1  |   ---
+test-client-1  |   duration_ms: 2104
+test-client-1  |   connection_id: 4c265be620708f25bf03117715f9984e
+test-client-1  |   ...
+test-client-1  | [2m2026-11-04T00:22:25.185592Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:46296 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | 2026-11-04 00:22:25.188 INFO : MOQT event: control message parsed: ClientSetup(versions=[], parameters={MAX_REQUEST_ID=100, AUTHORITY="relay:4443"}))
+relay-1        | 2026-11-04 00:22:25.188 INFO : MOQT send: ServerSetup(selected_version=None, parameters={IMPLEMENTATION="aiomoqt/0.14.0", MAX_REQUEST_ID=10000}) draft-16
+relay-1        | 2026-11-04 00:22:25.188 INFO : MOQT session: setup complete: draft-16 (raw QUIC)
+test-client-1  | [2m2026-11-04T00:22:25.188642Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Publisher sending direct PUBLISH [3mnamespace[0m[2m=[0m/moq-test/publish [3mtrack[0m[2m=[0m"published-track"
+relay-1        | 2026-11-04 00:22:25.188 INFO : MOQT event: control message parsed: Publish(request_id=0, track_namespace=["moq-test", "publish"], track_name="published-track", track_alias=0, group_order=1, content_exists=0, largest_group_id=None, largest_object_id=None, forward=None, parameters={}, track_extensions=None))
+relay-1        | 2026-11-04 00:22:25.188 INFO : relay: publish ns=(b'moq-test', b'publish') track=b'published-track' alias=0
+relay-1        | 2026-11-04 00:22:25.189 INFO : MOQT send: PublishOk(request_id=0, forward=0, priority=128, group_order=1, filter_type=2, start_group=None, start_object=None, end_group=None, parameters={}, expires=None, location_filter=None)
+relay-1        | 2026-11-04 00:22:25.189 INFO : relay: PUBLISH_OK forward=0 alias=0 — paused until a subscriber forwards
+relay-1        | 2026-11-04 00:22:25.189 INFO : relay: session quic d16 from 172.18.0.3:46296
+test-client-1  | [2m2026-11-04T00:22:25.189209Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH accepted [3mnamespace[0m[2m=[0m/moq-test/publish [3mtrack[0m[2m=[0m"published-track"
+test-client-1  | [2m2026-11-04T00:22:25.189257Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH completed [3mnamespace[0m[2m=[0m/moq-test/publish [3mtrack[0m[2m=[0m"published-track"
+test-client-1  | ok 7 - publish-track-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 4
+test-client-1  |   connection_id: a391def0d69d9aa80b7f1a25365fc2a7
+test-client-1  |   ...
+relay-1        | 2026-11-04 00:22:25.189 INFO : MOQT: connection closed: NO_ERROR (0x0) peer 172.18.0.3:46296
+test-client-1  | [2m2026-11-04T00:22:25.189748Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:35885 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | 2026-11-04 00:22:25.191 INFO : MOQT event: control message parsed: ClientSetup(versions=[], parameters={MAX_REQUEST_ID=100, AUTHORITY="relay:4443"}))
+relay-1        | 2026-11-04 00:22:25.191 INFO : MOQT send: ServerSetup(selected_version=None, parameters={IMPLEMENTATION="aiomoqt/0.14.0", MAX_REQUEST_ID=10000}) draft-16
+relay-1        | 2026-11-04 00:22:25.191 INFO : MOQT session: setup complete: draft-16 (raw QUIC)
+test-client-1  | [2m2026-11-04T00:22:25.192331Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:48304 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | 2026-11-04 00:22:25.193 INFO : MOQT event: control message parsed: ClientSetup(versions=[], parameters={MAX_REQUEST_ID=100, AUTHORITY="relay:4443"}))
+relay-1        | 2026-11-04 00:22:25.193 INFO : MOQT send: ServerSetup(selected_version=None, parameters={IMPLEMENTATION="aiomoqt/0.14.0", MAX_REQUEST_ID=10000}) draft-16
+relay-1        | 2026-11-04 00:22:25.193 INFO : MOQT session: setup complete: draft-16 (raw QUIC)
+test-client-1  | [2m2026-11-04T00:22:25.193683Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Publisher sending direct PUBLISH before subscriber subscribes [3mnamespace[0m[2m=[0m/moq-test/publish [3mtrack[0m[2m=[0m"published-track"
+relay-1        | 2026-11-04 00:22:25.193 INFO : MOQT event: control message parsed: Publish(request_id=0, track_namespace=["moq-test", "publish"], track_name="published-track", track_alias=0, group_order=1, content_exists=0, largest_group_id=None, largest_object_id=None, forward=None, parameters={}, track_extensions=None))
+relay-1        | 2026-11-04 00:22:25.193 INFO : relay: publish ns=(b'moq-test', b'publish') track=b'published-track' alias=0
+relay-1        | 2026-11-04 00:22:25.194 INFO : MOQT send: PublishOk(request_id=0, forward=0, priority=128, group_order=1, filter_type=2, start_group=None, start_object=None, end_group=None, parameters={}, expires=None, location_filter=None)
+relay-1        | 2026-11-04 00:22:25.194 INFO : relay: PUBLISH_OK forward=0 alias=0 — paused until a subscriber forwards
+relay-1        | 2026-11-04 00:22:25.194 INFO : relay: session quic d16 from 172.18.0.3:35885
+test-client-1  | [2m2026-11-04T00:22:25.194177Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH accepted; starting subscriber [3mnamespace[0m[2m=[0m/moq-test/publish [3mtrack[0m[2m=[0m"published-track"
+relay-1        | 2026-11-04 00:22:25.194 INFO : MOQT event: control message parsed: Subscribe(request_id=0, track_namespace=["moq-test", "publish"], track_name="published-track", priority=None, group_order=None, forward=None, filter_type=None, start_group=None, start_object=None, end_group=None, parameters={}, location_filter=None, track_alias=None, libquicr_compat=False))
+relay-1        | 2026-11-04 00:22:25.194 INFO : MOQT send: RequestUpdate(request_id=1, existing_request_id=0, parameters={FORWARD=1})
+relay-1        | 2026-11-04 00:22:25.194 INFO : relay: resumed ((b'moq-test', b'publish'), b'published-track') upstream: REQUEST_UPDATE forward=1 request 0
+relay-1        | 2026-11-04 00:22:25.194 INFO : MOQT event: control message parsed: RequestError(request_id=1, error_code=3, retry_interval=0, reason=not supported, redirect=None))
+relay-1        | 2026-11-04 00:22:25.194 INFO : relay: resume ((b'moq-test', b'publish'), b'published-track'): upstream refused the update: request error: code=3 reason=not supported
+relay-1        | 2026-11-04 00:22:25.195 INFO : MOQT send: SubscribeOk(request_id=0, track_alias=0, expires=0, group_order=1, content_exists=0, largest_group_id=None, largest_object_id=None, parameters={}, track_extensions={})
+relay-1        | 2026-11-04 00:22:25.195 INFO : relay: subscribe ns=(b'moq-test', b'publish') track=b'published-track' -> SUBSCRIBE_OK (published track, fanout=1)
+relay-1        | 2026-11-04 00:22:25.195 INFO : relay: session quic d16 from 172.18.0.3:48304
+relay-1        | 2026-11-04 00:22:25.295 INFO : MOQT event: control message parsed: SubscribeDone(request_id=0, status_code=2, stream_count=0, reason=publish ended))
+relay-1        | 2026-11-04 00:22:25.295 INFO : relay: publisher PUBLISH_DONE ((b'moq-test', b'publish'), b'published-track') status=2 streams=0 -> 1 subscriber(s), objects in=0 out=0
+relay-1        | 2026-11-04 00:22:25.295 INFO : MOQT send: SubscribeDone(request_id=0, status_code=2, stream_count=0, reason=publish ended)
+test-client-1  | not ok 8 - publish-track-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 106
+test-client-1  |   message: "subscriber track mode failed: done"
+test-client-1  |   ...
+relay-1        | 2026-11-04 00:22:25.296 ERROR: MOQT: closing: PROTOCOL_VIOLATION (0x3) to 172.18.0.3:35885; reason: peer closed its control stream 0
+relay-1        | 2026-11-04 00:22:25.296 ERROR: MOQT: closing: PROTOCOL_VIOLATION (0x3) to 172.18.0.3:48304; reason: peer closed its control stream 0
+[Ktest-client-1 exited with code 1
+ Compose Stopping Aborting on container exit...
+ Container main-test-client-1 Stopping 
+ Container main-test-client-1 Stopped 
+ Container main-relay-1 Stopping 
+relay-1        | 2026-11-04 00:22:25.373 INFO : relay: refusing new connections
+relay-1        | 2026-11-04 00:22:25.373 INFO : relay: SIGTERM: draining 0 sessions, GOAWAY to this address, up to 2s
+relay-1        | 2026-11-04 00:22:25.373 INFO : relay: drained, all sessions gone
+relay-1        | 2026-11-04 00:22:25.374 INFO : relay: exit
+ Container main-relay-1 Stopped 
+[Krelay-1 exited with code 0
+
+make: *** [Makefile:86: test] Error 1
