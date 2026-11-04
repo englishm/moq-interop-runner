@@ -24,9 +24,11 @@ services:
     volumes:
       - ./certs:/certs:ro
       - ./mlog/relay:/mlog
+      - ./keylogs/relay:/keylogs
     environment:
       - MOQT_ROLE=relay
       - MOQT_PORT=4443
+      - SSLKEYLOGFILE=/keylogs/keys.log
     healthcheck:
       # Check if relay is listening on UDP port. Try multiple methods for compatibility:
       # 1. ss (iproute2) - most common on modern systems
@@ -44,6 +46,19 @@ services:
           memory: 512M
           cpus: '1.0'
 
+  capture:
+    build: ./capture
+    network_mode: "service:relay"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./pcap:/captures
+    command: ["-i", "any", "-p", "-s", "0", "-F", "pcap", "-w", "/captures/trace.pcap"]
+    depends_on:
+      relay:
+        condition: service_started
+
   test-client:
     image: ${CLIENT_IMAGE:-moq-test-client:latest}
     init: true
@@ -52,6 +67,8 @@ services:
     depends_on:
       relay:
         condition: service_healthy
+      capture:
+        condition: service_started
     environment:
       - RELAY_URL=${RELAY_URL:-https://relay:4443}
       # Bare names: passed through only when set, so a full-suite run leaves them
@@ -61,8 +78,10 @@ services:
       # TLS verification disabled for self-signed test certs
       # In production, use proper certificates and set to 0
       - TLS_DISABLE_VERIFY=1
+      - SSLKEYLOGFILE=/keylogs/keys.log
     volumes:
       - ./mlog/client:/mlog
+      - ./keylogs/client:/keylogs
       # Mount the relay's cert (read-only) so clients can pin a self-signed
       # cert via its hash (e.g. WebTransport serverCertificateHashes) instead of
       # relying on a relay-specific fingerprint endpoint. Ignored by clients
