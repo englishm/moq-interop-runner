@@ -122,6 +122,44 @@ Run the registered Red5 draft-22 endpoints with:
   --client moqxr --target-version draft-22
 ```
 
+## stitcher-moq-media CMSF Media Client
+
+The `stitcher-moq-media` client image drives the media-area scenarios in
+[`docs/tests/media/`](../docs/tests/media/README.md): a CMSF reference
+publisher and a checker subscriber from one process, exposing
+`cmsf-live-join` and `cmsf-late-join-idle-catalog` through the standard TAP
+interface. The fixture is generated at image build time from
+[`lib/media/cmsf/`](../lib/media/cmsf/), so the Docker build context is the
+repository root (the root `.dockerignore` keeps it small), and the runtime
+image carries ffmpeg for the ffprobe decode check.
+
+```bash
+make build-impl IMPL=stitcher-moq-media
+make test-external RELAY_URL=moqt://34-72-6-160.sslip.io:443 CLIENT_IMAGE=stitcher-moq-media-client:latest
+make test-external RELAY_URL=https://cdn.moq.dev/anon CLIENT_IMAGE=stitcher-moq-media-client:latest
+make build-adapters && make test RELAY_IMAGE=moq-dev-rs-interop:latest CLIENT_IMAGE=stitcher-moq-media-client:latest
+```
+
+A full run takes about 100 s: `cmsf-late-join-idle-catalog` idles for
+`MEDIA_IDLE_SECS` (default 70 s) before its late subscriber joins. moq-relay's
+nominal cache window is 30 s, but a quiet catalog group on moq-relay 0.17.3
+was still served after 50 s and gone after 60 s, so the default leaves margin;
+against a relay with a longer window, raise it with
+`EXTRA_DOCKER_RUN_ARGS="-e MEDIA_IDLE_SECS=90"`. `MOQ_CLIENT_VERSION`
+narrows the offered drafts (`moq-transport-18`), and `VERBOSE=1` sends
+moq-net tracing to stderr. The client is registered as its own
+implementation so this run does not share the control-plane client's
+`TEST_TIMEOUT` budget.
+
+To run the scripts outside Docker (ffmpeg, ffprobe and python3 needed):
+
+```bash
+bash lib/media/cmsf/make-fixture.sh /tmp/cmsf-fixture
+bash lib/media/cmsf/test/test-manifest.sh
+cargo run --release --manifest-path builds/stitcher-moq-media/Cargo.toml -- \
+  --relay moqt://cdn.moq.dev:443/anon --fixture-dir /tmp/cmsf-fixture
+```
+
 ## Provenance Tracking
 
 Each build captures metadata for reproducibility:
