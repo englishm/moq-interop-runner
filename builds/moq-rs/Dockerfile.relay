@@ -23,17 +23,9 @@ RUN --mount=type=secret,id=ca_cert,target=/tmp/extra-ca.pem \
 
 WORKDIR /build
 
-# Copy workspace files
-COPY Cargo.toml Cargo.lock ./
-COPY moq-transport ./moq-transport
-COPY moq-relay-ietf ./moq-relay-ietf
-COPY moq-native-ietf ./moq-native-ietf
-COPY moq-api ./moq-api
-COPY moq-pub ./moq-pub
-COPY moq-sub ./moq-sub
-COPY moq-clock-ietf ./moq-clock-ietf
-COPY moq-catalog ./moq-catalog
-COPY moq-test-client ./moq-test-client
+# Copy the whole workspace so every member listed in Cargo.toml is present,
+# whichever ref is being built (.dockerignore in the source repo excludes target/).
+COPY . .
 
 # Build release binary.
 # The auth-cat feature adds CAT (Common Access Token) verification. It only
