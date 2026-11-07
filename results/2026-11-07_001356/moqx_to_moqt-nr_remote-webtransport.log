@@ -1,0 +1,65 @@
+Running tests against https://moqt.nokiaresearch.com:8443/moq...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://moqt.nokiaresearch.com:8443/moq \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://moqt.nokiaresearch.com:8443/moq
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 684
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E1107 00:19:50.920411     7 MoQRelaySession.cpp:1064] PublishNamespaceDone for unknown publishNamespace, sess=0x58de0269b9d0
+ok 2 - announce-only
+  ---
+  duration_ms: 749
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 749
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: Track /nonexistent/no-such-track does not exist
+  ...
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 1773
+  negotiated_version: draft-18
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 748
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1107 00:19:57.712805     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1107 00:19:58.788667     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1107 00:19:58.948480     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1107 00:20:00.148382     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1107 00:20:00.298434     7 MoQRelaySession.cpp:1064] PublishNamespaceDone for unknown publishNamespace, sess=0x58de0262ab00
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 6104
+  negotiated_version: draft-18
+  error: Timed out waiting for target namespace fan-out
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 1901
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Track /moq-test/interop/test-track does not exist
+  ...
+make: *** [Makefile:122: test-external] Error 1
