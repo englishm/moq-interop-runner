@@ -1,0 +1,306 @@
+Running tests against https://draft-14.cloudflare.mediaoverquic.com:443/moq...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://draft-14.cloudflare.mediaoverquic.com:443/moq \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+2026-11-08 00:18:20.521 ERROR: MOQT: closing: 0x817b3dd to 162.159.207.5:443, before MoQT setup; reason: WT-Protocol None not in offer ['moqt-22']
+2026-11-08 00:18:20.566 ERROR: MOQT: closing: 0x817b3dd to 162.159.207.5:443, before MoQT setup; reason: WT-Protocol None not in offer ['moqt-20']
+2026-11-08 00:18:20.603 ERROR: MOQT: closing: 0x817b3dd to 162.159.207.5:443, before MoQT setup; reason: WT-Protocol None not in offer ['moqt-18']
+2026-11-08 00:18:20.642 ERROR: MOQT: closing: 0x817b3dd to 162.159.207.5:443, before MoQT setup; reason: WT-Protocol None not in offer ['moqt-16']
+TAP version 14
+# date: 2026-11-08T00:18:20Z
+# target: https://draft-14.cloudflare.mediaoverquic.com:443/moq
+# version: aiomoqt/0.14.1
+# note: preference probe pinned draft-14
+1..20
+ok 1 - setup-only
+  ---
+  duration_ms: 50
+  implementation_version: "0.14.1"
+  sessions:
+    client:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "34426881c75dda87"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+ok 2 - announce-only
+  ---
+  duration_ms: 320
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "cc43b999bc31ba6a"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 479
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "25a04c82f237a05f"
+  message: "PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent"
+  ...
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  [PASS] subscribe-error: Error received (expected): code=4
+ok 4 - subscribe-error
+  ---
+  duration_ms: 182
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "4f10920b09ee92fd"
+  message: "Error received (expected): code=4"
+  expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+  ...
+  [PASS] rendezvous-timeout: 
+ok 5 - rendezvous-timeout # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-14
+  ---
+  duration_ms: 39
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "e544b75256ed0bf1"
+  ...
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+ok 6 - announce-subscribe
+  ---
+  duration_ms: 359
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "38f4fe0b9833f6bb"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "d717104c2dab08db"
+  message: "SUBSCRIBE_OK received — relay routed subscription"
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 681
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "44c90cf94b94d5c3"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "0c29323cb827611e"
+  message: "Error received (valid: relay didn't buffer): code=4"
+  ...
+  [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=4
+ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 409
+  implementation_version: "0.14.1"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "a4ab0f0418edc7f2"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "e257dadac1a52a9e"
+  message: "15 objects received; Stream Count upstream 3, downstream 0"
+  ...
+  [PASS] data-subgroup-basic: 15 objects received; Stream Count upstream 3, downstream 0
+ok 9 - subscribe-namespace-lifecycle # SKIP NAMESPACE is draft-16; negotiated draft-14
+  ---
+  duration_ms: 38
+  implementation_version: "0.14.1"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "65ca5d450dee1f18"
+  ...
+  [PASS] subscribe-namespace-lifecycle: 
+  [FAIL] namespace-discovery: Failed: MOQTRequestError: request error: code=2 reason=Request timed out
+not ok 10 - namespace-discovery
+  ---
+  duration_ms: 10229
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "e8e0d9a3284e092f"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "ae20456341b19de2"
+  message: "Failed: MOQTRequestError: request error: code=2 reason=Request timed out"
+  expected: "PUBLISH announcing 'track-bfcc'"
+  received: "MOQTRequestError: request error: code=2 reason=Request timed out"
+  ...
+not ok 11 - publish-track-only
+  ---
+  duration_ms: 5008
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "3097342a5d321e68"
+  message: "Failed: TimeoutError"
+  expected: "PUBLISH_OK"
+  received: "TimeoutError"
+  ...
+  [FAIL] publish-track-only: Failed: TimeoutError
+  [FAIL] publish-track-subscribe: Failed: MOQTRequestError: request error: code=4 reason=not found: Track not found [error:ed8694b8-6e8c-4d64-9255-b251b844372f]
+not ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 1316
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "9ba259203d4e0869"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "06898416936bfc09"
+  message: "Failed: MOQTRequestError: request error: code=4 reason=not found: Track not found [error:ed8694b8-6e8c-4d64-9255-b251b844372f]"
+  expected: "SUBSCRIBE_OK and 5 objects"
+  received: "MOQTRequestError: request error: code=4 reason=not found: Track not found [error:ed8694b8-6e8c-4d64-9255-b251b844372f]"
+  ...
+ok 13 - moq-test-subgroup-per-group-eog # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-14
+  ---
+  duration_ms: 38
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "112436641a51d5ab"
+  ...
+  [PASS] moq-test-subgroup-per-group-eog: 
+ok 14 - moq-test-subgroup-per-object # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-14
+  ---
+  duration_ms: 47
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "4f12a48ce0c554d1"
+  ...
+  [PASS] moq-test-subgroup-per-object: 
+  [PASS] moq-test-two-subgroups-eog: 
+ok 15 - moq-test-two-subgroups-eog # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-14
+  ---
+  duration_ms: 36
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "ccff00b82e7984e4"
+  ...
+ok 16 - moq-test-datagram # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-14
+  ---
+  duration_ms: 41
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "a66d15583f06c543"
+  ...
+  [PASS] moq-test-datagram: 
+  [PASS] moq-test-datagram-eog: 
+ok 17 - moq-test-datagram-eog # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-14
+  ---
+  duration_ms: 43
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "0d884220d5dc3e9a"
+  ...
+  [PASS] moq-test-extensions: 
+ok 18 - moq-test-extensions # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-14
+  ---
+  duration_ms: 45
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "8a773b612827ee14"
+  ...
+  [PASS] moq-test-increments: 
+ok 19 - moq-test-increments # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-14
+  ---
+  duration_ms: 49
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "628e8b20615c04b0"
+  ...
+ok 20 - moq-test-forward-zero # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-14
+  ---
+  duration_ms: 51
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-14"
+      alpn: "h3"
+      quic_initial_destination_connection_id: "e1d393edba21b87a"
+  ...
+  [PASS] moq-test-forward-zero: 
+# ended: 2026-11-08T00:18:40Z
+make: *** [Makefile:122: test-external] Error 1
