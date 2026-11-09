@@ -1,0 +1,395 @@
+Running tests against https://us-west-2.relay.quicr.org:33437/relay...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://us-west-2.relay.quicr.org:33437/relay \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=1 \
+	ghcr.io/gmarzot/aiomoqt:latest
+2026-11-09 00:17:17.719 ERROR: MOQT: closing: 0x817b3dd to 35.95.73.240:33437, before MoQT setup; reason: WT-Protocol None not in offer ['moqt-22']
+2026-11-09 00:17:18.383 ERROR: MOQT: closing: 0x817b3dd to 35.95.73.240:33437, before MoQT setup; reason: WT-Protocol None not in offer ['moqt-20']
+TAP version 14
+# date: 2026-11-09T00:17:17Z
+# target: https://us-west-2.relay.quicr.org:33437/relay
+# version: aiomoqt/0.14.1
+# note: preference probe pinned draft-18
+1..20
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+ok 1 - setup-only
+  ---
+  duration_ms: 1219
+  implementation_version: "0.14.1"
+  sessions:
+    client:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "8d06c8f66818aed2"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+ok 2 - announce-only
+  ---
+  duration_ms: 1198
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "b4f01fb578b39837"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 1374
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "20ebf059a0c659be"
+  message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+  ...
+not ok 4 - subscribe-error
+  ---
+  duration_ms: 330
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "7bf425654f5ce485"
+  message: "Unexpected SUBSCRIBE_OK for non-existent track"
+  expected: "error response"
+  received: "SUBSCRIBE_OK"
+  ...
+  [FAIL] subscribe-error: Unexpected SUBSCRIBE_OK for non-existent track
+not ok 5 - rendezvous-timeout
+  ---
+  duration_ms: 1177
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "014e96fb90d969f1"
+  message: "SUBSCRIBE_OK for a track nobody publishes"
+  expected: "REQUEST_ERROR TIMEOUT"
+  ...
+  [FAIL] rendezvous-timeout: SUBSCRIBE_OK for a track nobody publishes
+ok 6 - announce-subscribe
+  ---
+  duration_ms: 2644
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "9b772bcdb8d8693f"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "e992e940e2986781"
+  message: "SUBSCRIBE_OK received — relay routed subscription"
+  ...
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 2903
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "5d19385e715d2813"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "9d5cb3ff66c1abf4"
+  message: "SUBSCRIBE_OK received after delayed announce (relay buffered)"
+  ...
+  [PASS] subscribe-before-announce: SUBSCRIBE_OK received after delayed announce (relay buffered)
+  [FAIL] data-subgroup-basic: timed out waiting for object delivery
+not ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 12319
+  implementation_version: "0.14.1"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "d07839d2cdf46d19"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "344372f85de098da"
+  message: "timed out waiting for object delivery"
+  ...
+  [PASS] subscribe-namespace-lifecycle: NAMESPACE then NAMESPACE_DONE received
+ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 2399
+  implementation_version: "0.14.1"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "8ea5162eb392833c"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "31c286b10c1cebd9"
+  message: "NAMESPACE then NAMESPACE_DONE received"
+  ...
+2026-11-09 00:17:47.011 ERROR: MOQT error: control task failed with exception: no request stream bound for request_id=5: cannot send RequestOk (1)
+  [PASS] namespace-discovery: discovered 'track-110d'
+  Discovered: moq-test/110d/interop/namespace-discovery/track-110d
+ok 10 - namespace-discovery
+  ---
+  duration_ms: 2404
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "a3f157f5b973c19a"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "8b255d86445d002a"
+  message: "discovered 'track-110d'"
+  expected: "PUBLISH announcing 'track-110d'"
+  received: "track-110d"
+  ...
+ok 11 - publish-track-only
+  ---
+  duration_ms: 1278
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "45068c90b441e31e"
+  message: "PUBLISH_OK received, PUBLISH_DONE sent"
+  ...
+  [PASS] publish-track-only: PUBLISH_OK received, PUBLISH_DONE sent
+  [PASS] publish-track-subscribe: 5 objects received from the published track
+ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 2459
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "7080e69bd7511063"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "d8daea0e215448b9"
+  message: "5 objects received from the published track"
+  expected: "5 objects"
+  received: "5 objects"
+  ...
+not ok 13 - moq-test-subgroup-per-group-eog
+  ---
+  duration_ms: 10086
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "e90ca71867acd5ef"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "0c9c72724215db5c"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-subgroup-per-group-eog: timed out waiting for object delivery
+not ok 14 - moq-test-subgroup-per-object
+  ---
+  duration_ms: 10085
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "004184acc3c5335e"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "2dd30304796fb1f1"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-subgroup-per-object: timed out waiting for object delivery
+not ok 15 - moq-test-two-subgroups-eog
+  ---
+  duration_ms: 10085
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "866545aca52c7d2c"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "68d43e3da3d98d8b"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-two-subgroups-eog: timed out waiting for object delivery
+  [FAIL] moq-test-datagram: timed out waiting for object delivery
+not ok 16 - moq-test-datagram
+  ---
+  duration_ms: 10084
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "f348efcdd032493a"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "13ad2be10d9d9cb9"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-datagram-eog: timed out waiting for object delivery
+not ok 17 - moq-test-datagram-eog
+  ---
+  duration_ms: 10084
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "77ec1911ed5a8035"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "a633f970a4ad6fd7"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-extensions: timed out waiting for object delivery
+not ok 18 - moq-test-extensions
+  ---
+  duration_ms: 10088
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "9cadeb6c4b240314"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "cda92babae827547"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-increments: timed out waiting for object delivery
+not ok 19 - moq-test-increments
+  ---
+  duration_ms: 10088
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "51c66f7b184d2829"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "61482219831c8448"
+  message: "timed out waiting for object delivery"
+  ...
+not ok 20 - moq-test-forward-zero
+  ---
+  duration_ms: 10088
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "318d2c7130e8b854"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-18"
+      alpn: "h3"
+      webtransport_protocol: "moqt-18"
+      quic_initial_destination_connection_id: "de628134574a4b10"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-forward-zero: timed out waiting for object delivery
+# ended: 2026-11-09T00:19:13Z
+make: *** [Makefile:122: test-external] Error 1
