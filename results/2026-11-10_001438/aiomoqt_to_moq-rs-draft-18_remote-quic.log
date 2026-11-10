@@ -1,0 +1,360 @@
+Running tests against moqt://draft-18-interop.cloudflare.mediaoverquic.com:443...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://draft-18-interop.cloudflare.mediaoverquic.com:443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+2026-11-10 00:14:55.582 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup; reason: peer doesn't support any known protocol
+2026-11-10 00:14:55.743 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup; reason: peer doesn't support any known protocol
+TAP version 14
+# date: 2026-11-10T00:14:55Z
+# target: moqt://draft-18-interop.cloudflare.mediaoverquic.com:443
+# version: aiomoqt/0.14.1
+# note: preference probe pinned draft-18
+1..20
+ok 1 - setup-only
+  ---
+  duration_ms: 337
+  implementation_version: "0.14.1"
+  sessions:
+    client:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "1c34e4b5f1883aae"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+ok 2 - announce-only
+  ---
+  duration_ms: 398
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "1c75c567af43c4a3"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+2026-11-10 00:14:57.170 ERROR: MOQT: closing: PROTOCOL_VIOLATION (0x3) to 8.228.3.228:443; reason: peer closed its control stream 3
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 398
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "b2d59cd779aff70b"
+  message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+  ...
+ok 4 - subscribe-error
+  ---
+  duration_ms: 307
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "dfed5a8123ad5693"
+  message: "Error received (expected): code=16"
+  expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+  ...
+  [PASS] subscribe-error: Error received (expected): code=16
+ok 5 - rendezvous-timeout
+  ---
+  duration_ms: 909
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "25e4151bbced3c24"
+  message: "REQUEST_ERROR TIMEOUT received"
+  expected: "REQUEST_ERROR TIMEOUT"
+  ...
+  [PASS] rendezvous-timeout: REQUEST_ERROR TIMEOUT received
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+ok 6 - announce-subscribe
+  ---
+  duration_ms: 842
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "8648670e53a61237"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "ef22ab7b63600b24"
+  message: "SUBSCRIBE_OK received — relay routed subscription"
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 1219
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "776b1d5cd93a7ed4"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "78142ffe342e9e5d"
+  message: "Error received (valid: relay didn't buffer): code=16"
+  ...
+  [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=16
+  [PASS] data-subgroup-basic: 15 objects received; Stream Count upstream 3, downstream 3
+ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 1057
+  implementation_version: "0.14.1"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "a9bdc11baefaeb0d"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "be616c34fcdab17b"
+  message: "15 objects received; Stream Count upstream 3, downstream 3"
+  ...
+2026-11-10 00:15:02.277 ERROR: MOQT: closing: PROTOCOL_VIOLATION (0x3) to 8.228.3.228:443; reason: peer closed its control stream 3
+  [PASS] subscribe-namespace-lifecycle: NAMESPACE then NAMESPACE_DONE received
+ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 738
+  implementation_version: "0.14.1"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "bb76186e78362a58"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "ea7ba531a90790ac"
+  message: "NAMESPACE then NAMESPACE_DONE received"
+  ...
+  Discovered: moq-test/61ff/interop/namespace-discovery/track-61ff
+ok 10 - namespace-discovery
+  ---
+  duration_ms: 815
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "2712c0683ffb0e0e"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d785705af9b2d646"
+  message: "discovered 'track-61ff'"
+  expected: "PUBLISH announcing 'track-61ff'"
+  received: "track-61ff"
+  ...
+  [PASS] namespace-discovery: discovered 'track-61ff'
+  [PASS] publish-track-only: PUBLISH_OK received, PUBLISH_DONE sent
+ok 11 - publish-track-only
+  ---
+  duration_ms: 433
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "adfde9c95804cf01"
+  message: "PUBLISH_OK received, PUBLISH_DONE sent"
+  ...
+ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 788
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "010edc550530523c"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "7b0d5a3223b4c8ba"
+  message: "5 objects received from the published track"
+  expected: "5 objects"
+  received: "5 objects"
+  ...
+  [PASS] publish-track-subscribe: 5 objects received from the published track
+  [PASS] moq-test-subgroup-per-group-eog: objects 15/15, End of Group 3/3, Stream Count 3/3
+ok 13 - moq-test-subgroup-per-group-eog
+  ---
+  duration_ms: 935
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "e73636a19b24e8ad"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "70528524c903ef27"
+  message: "objects 15/15, End of Group 3/3, Stream Count 3/3"
+  ...
+  [PASS] moq-test-subgroup-per-object: objects 8/8, End of Group 0/0, Stream Count 8/8
+ok 14 - moq-test-subgroup-per-object
+  ---
+  duration_ms: 958
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "8b29f81bb6ace607"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "0571ae51f3c14405"
+  message: "objects 8/8, End of Group 0/0, Stream Count 8/8"
+  ...
+ok 15 - moq-test-two-subgroups-eog
+  ---
+  duration_ms: 939
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "4c77fc47655e240b"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "a0ca0a2379a0a3bb"
+  message: "objects 18/18, End of Group 3/3, Stream Count 6/6"
+  ...
+  [PASS] moq-test-two-subgroups-eog: objects 18/18, End of Group 3/3, Stream Count 6/6
+ok 16 - moq-test-datagram
+  ---
+  duration_ms: 1415
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "c38415922c4e53ed"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "ff4d6289de0692bb"
+  message: "objects 15/15, End of Group 0/0, Stream Count 0/0"
+  ...
+  [PASS] moq-test-datagram: objects 15/15, End of Group 0/0, Stream Count 0/0
+  [PASS] moq-test-datagram-eog: objects 15/15, End of Group 3/3, Stream Count 0/0
+ok 17 - moq-test-datagram-eog
+  ---
+  duration_ms: 1501
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "a18dabd9d27d95e9"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "c38944c6c39e7ee0"
+  message: "objects 15/15, End of Group 3/3, Stream Count 0/0"
+  ...
+  [PASS] moq-test-extensions: objects 15/15, End of Group 3/3, Stream Count 3/3
+ok 18 - moq-test-extensions
+  ---
+  duration_ms: 972
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "6ce07635502599d9"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "00d42dbe1561c13f"
+  message: "objects 15/15, End of Group 3/3, Stream Count 3/3"
+  ...
+  [PASS] moq-test-increments: objects 9/9, End of Group 0/0, Stream Count 3/3
+ok 19 - moq-test-increments
+  ---
+  duration_ms: 911
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d7ea138c148acfe5"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "18ecbfb13d76ade9"
+  message: "objects 9/9, End of Group 0/0, Stream Count 3/3"
+  ...
+  [PASS] moq-test-forward-zero: 0 objects with Forward State 0; Stream Count 0; relay took the PUBLISH at Forward State 1
+ok 20 - moq-test-forward-zero
+  ---
+  duration_ms: 1112
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "b0c4e9a7267a2b9b"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "f8234a6592bac644"
+  message: "0 objects with Forward State 0; Stream Count 0; relay took the PUBLISH at Forward State 1"
+  ...
+# ended: 2026-11-10T00:15:13Z

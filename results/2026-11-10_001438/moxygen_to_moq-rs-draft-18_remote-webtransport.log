@@ -1,0 +1,66 @@
+Running tests against https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16, moqt-22-meta-00
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 235
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E20261110 00:18:44.783635     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=fd384af6adb0ab2f, local=10.1.0.32:44191, 8.228.3.228:443=upstream, drain=done
+E1110 00:18:45.009948     7 MoQRelaySession.cpp:1064] PublishNamespaceDone for unknown publishNamespace, sess=0x5bc95eea43b0
+ok 2 - announce-only
+  ---
+  duration_ms: 288
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 301
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: not found: Track not found [error:faf6ac21-71a2-4683-92f4-a23c779335f7]
+  ...
+E20261110 00:18:45.376937     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=901ab6a04c557ef1, local=10.1.0.32:38526, 8.228.3.228:443=upstream, drain=done
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 578
+  negotiated_version: draft-18
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+E20261110 00:18:45.951552     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=b0f0fe74c9a554de, local=10.1.0.32:40506, 8.228.3.228:443=upstream, drain=done
+E20261110 00:18:45.951761     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=ee57ab0fe7aacc55, local=10.1.0.32:41075, 8.228.3.228:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 306
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1110 00:18:47.006190     7 MoQRelaySession.cpp:986] Invalid publishNamespace cancel requestID=0
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 808
+  negotiated_version: draft-18
+  error: PUBLISH_NAMESPACE failed: peer stopped reading the request stream
+  ...
+E20261110 00:18:47.068974     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=dc23a6058a4eba16, local=10.1.0.32:33834, 8.228.3.228:443=upstream, drain=done
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 947
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): not found: Track not found [error:42f7b60f-295c-45ec-8fdc-91dc6f347ca4]
+  ...
+make: *** [Makefile:122: test-external] Error 1
