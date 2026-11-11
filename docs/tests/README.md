@@ -24,11 +24,16 @@ as participants revisit them; adding a label does not change their behavior.
 | `announce-subscribe` | Subscription | [TEST-CASES.md](./TEST-CASES.md#announce-subscribe) |
 | `subscribe-before-announce` | Subscription | [TEST-CASES.md](./TEST-CASES.md#subscribe-before-announce) |
 | `publish-subscribe-media` | Media delivery | [TEST-CASES.md](./TEST-CASES.md#publish-subscribe-media) |
+| `cmsf-live-join` | Media | [media/cmsf-live-join.md](./media/cmsf-live-join.md) |
+| `cmsf-late-join-idle-catalog` | Media | [media/cmsf-late-join-idle-catalog.md](./media/cmsf-late-join-idle-catalog.md) |
 
 ## Test Areas
 
 - [Data-plane tests](./data-plane/README.md) define shared publisher-first
   conventions for new end-to-end object-delivery scenarios.
+- [Media tests](./media/README.md) define shared conventions for carrying a
+  streaming format through a relay and checking the reassembled media against
+  a fixture generated at image build time.
 
 ## Specification Layout
 
