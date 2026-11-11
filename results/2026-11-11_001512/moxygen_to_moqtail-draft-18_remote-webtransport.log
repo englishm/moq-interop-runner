@@ -1,0 +1,76 @@
+Running tests against https://relay.moqtail.dev...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://relay.moqtail.dev \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://relay.moqtail.dev
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16, moqt-22
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 197
+  negotiated_version: draft-22
+  info: SETUP exchange completed successfully
+  ...
+E20261111 00:17:04.892679     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=a324371ecb862d00, local=10.1.1.244:44520, 172.232.23.42:443=upstream, drain=done
+E1111 00:17:05.059747     7 MoQRelaySession.cpp:1044] PublishNamespaceDone for unknown publishNamespace, sess=0x5d8ff0291020
+ok 2 - announce-only
+  ---
+  duration_ms: 201
+  negotiated_version: draft-22
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 208
+  negotiated_version: draft-22
+  info: Subscribe correctly returned error: Unknown track namespace
+  ...
+E1111 00:17:05.669898     7 MoQFramer.cpp:1999] parseSubscribeRequest: error in parseTrackRequestParams: 4294967295
+E1111 00:17:05.669922     7 MoQCodec.cpp:95] Frame underflow -> parse error
+E1111 00:17:05.669925     7 MoQCodec.cpp:126] Conn error=3
+E1111 00:17:05.669927     7 MoQSession.cpp:4168] Parse error=3
+E20261111 00:17:05.716069     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=d47ede428a659178, local=10.1.1.244:45832, 172.232.23.42:443=upstream, drain=done
+E1111 00:17:05.717289     7 MoQRelaySession.cpp:1044] PublishNamespaceDone for unknown publishNamespace, sess=0x5d8ff02ae6f0
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 448
+  negotiated_version: draft-22
+  error: Subscribe failed: Upstream subscription failed
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 187
+  negotiated_version: draft-22
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E20261111 00:17:05.950680     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=996f5e727835f7ab, local=10.1.1.244:50371, 172.232.23.42:443=upstream, drain=done
+E1111 00:17:08.298225     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E20261111 00:17:08.342926     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=93be4373b570c94f, local=10.1.1.244:59923, 172.232.23.42:443=upstream, drain=done
+E1111 00:17:08.548462     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1111 00:17:08.599489     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1111 00:17:08.960071     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: ingress timeout, streamID=0, timeout=2000ms
+E1111 00:17:08.996483     7 MoQRelaySession.cpp:1044] PublishNamespaceDone for unknown publishNamespace, sess=0x5d8ff02d5ba0
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 3091
+  negotiated_version: draft-22
+  error: Timed out waiting for target namespace fan-out
+  ...
+E20261111 00:17:09.005474     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=8560776fead7d66f, local=10.1.1.244:48785, 172.232.23.42:443=upstream, drain=done
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 841
+  negotiated_version: draft-22
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): Unknown track namespace
+  ...
+E20261111 00:17:09.884001     7 HQSession.cpp:583] Connection closed with error err=1 msg=Client closed by peer reason=Error in control stream handler proto=h3, client CID=, server CID=02be5280a66bc109, local=10.1.1.244:54815, 172.232.23.42:443=upstream, drain=done
+make: *** [Makefile:122: test-external] Error 1
