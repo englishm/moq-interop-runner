@@ -21,12 +21,12 @@ checks in a notes file beside this README:
 
 - [CMSF](./cmsf.md): CMAF fragments described by an MSF catalog (the IETF
   media-over-QUIC streaming format).
+- [MPEG-TS](./mpeg-ts.md): an MPEG-2 transport stream, in a TS packaging the
+  client names (MSF `mpeg2ts` or an implementation's own).
 
-Other formats add their own notes file in the same layout; MPEG-TS
-(`mpeg-ts.md`, with `ts-carriage-integrity` and `ts-late-subscriber`) is
-proposed separately. A scenario names the format it uses; its identifier
-carries the format as a prefix (`cmsf-`, `ts-`) so a client can expose several
-formats without ambiguity.
+Other formats add their own notes file in the same layout. A scenario names
+the format it uses; its identifier carries the format as a prefix (`cmsf-`,
+`ts-`) so a client can expose several formats without ambiguity.
 
 Formats differ in who sets the object boundaries. In CMSF the fixture does:
 each CMAF fragment is one object, so the expected objects are known before
