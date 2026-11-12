@@ -75,6 +75,7 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 | moqlivemock | Eyevinn | 18, 22 | relay, client, publisher | `https://moqlivemock.demo.osaas.io:443/moq`, `moqt://moqlivemock.demo.osaas.io:443` (publisher) |
 | stitcher-moq | Paramount | 18-22 | relay, client | `https://34-72-6-160.sslip.io:443`, `moqt://34-72-6-160.sslip.io:443` |
 | stitcher-moq-media | Paramount | 18-22 | client (media area: `cmsf-live-join`, `cmsf-late-join-idle-catalog`) | |
+| moq-net-media-ts | t0ms | 18-22 | client (media area: `ts-carriage-integrity`, `ts-late-subscriber`) | |
 
 
 
