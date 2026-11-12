@@ -1,0 +1,86 @@
+rm -rf mlog/
+mkdir -p mlog/relay mlog/client
+Running interop tests...
+  Relay:  ghcr.io/englishm/moq-interop-runner-moq-go-relay:latest
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+  URL:    https://relay:4443
+time="2026-11-12T00:16:56Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-12T00:16:56Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-12T00:16:56Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-12T00:16:56Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+time="2026-11-12T00:16:56Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+ Container main-test-client-1 Recreate 
+ Container main-test-client-1 Recreated 
+Attaching to relay-1, test-client-1
+ Container main-relay-1 Starting 
+relay-1  | Starting moq relay: port=4443 cert=/certs/cert.pem wt-path=/ (serving raw QUIC and WebTransport; MOQT_TRANSPORT=webtransport is informational)
+ Container main-relay-1 Started 
+ Container main-relay-1 Waiting 
+relay-1  | [2m00:16:57[0m [92mINF[0m failed to sufficiently increase receive buffer size (was: 1024 kiB, wanted: 7168 kiB, got: 2048 kiB). See https://github.com/quic-go/quic-go/wiki/UDP-Buffer-Sizes for details.
+relay-1  | [2m00:16:57[0m [92mINF[0m relay listening on [::]:4443 (raw QUIC as moqt://0.0.0.0:4443, WebTransport as https://0.0.0.0:4443/)
+relay-1  | [2m00:16:57[0m [92mINF[0m WebTransport server cert SHA-256: f043ebd42f985fd094a0ecbfa05574076f6cbd464ec2694a3d012b100c2f254c
+relay-1  | [2m00:16:57[0m [92mINF[0m   → new WebTransport("https://0.0.0.0:4443/", {serverCertificateHashes: [{algorithm: "sha-256", value: new Uint8Array([240,67,235,212,47,152,95,208,148,160,236,191,160,85,116,7,111,108,189,70,78,194,105,74,61,1,43,16,12,47,37,76])}]})
+relay-1  | [2m00:16:57[0m [92mINF[0m relay accept loop starting [2mcomponent=[0mrelay [2maddr=[0m[::]:4443
+ Container main-relay-1 Healthy 
+ Container main-test-client-1 Starting 
+ Container main-test-client-1 Started 
+test-client-1  | TAP version 14
+test-client-1  | # moxygen interop test client
+test-client-1  | # Relay: https://relay:4443
+test-client-1  | # Transport: WebTransport
+test-client-1  | # Offered ALPNs: moqt-18, moqt-16, moqt-22
+test-client-1  | 1..7
+relay-1        | [2m00:17:02[0m [92mINF[0m tls: ClientHello from 172.18.0.3:32967 sni="relay" alpn=[h3] versions=[772]
+relay-1        | [2m00:17:02[0m DBG wtconn: upgrade request [2mremote=[0m172.18.0.3:32967 [2mmethod=[0mCONNECT [2mpath=[0m/ [2mproto=[0mwebtransport [2morigin=[0m""
+relay-1        | [2m00:17:02[0m DBG wtconn: upgrade ok [2mremote=[0m172.18.0.3:32967 [2mwt_protocol=[0mmoqt-22
+relay-1        | [2m00:17:02[0m [93mWRN[0m relay SETUP failed [2mcomponent=[0mrelay [2merr=[0m"open send control: moqt/session: no bidirectional stream credit"
+test-client-1  | E1112 00:17:02.869212     7 MoQWebTransportClient.cpp:183] proxygen::HTTPException: Got error=386759528
+test-client-1  | *** Aborted at 1794442623 (Unix time, try 'date -d @1794442623') ***
+test-client-1  | *** Signal 11 (SIGSEGV) (0x6465686da) received by PID 7 (pthread TID 0x7fe307daf2c0) (linux TID 7) (code: address not mapped to object), stack trace: ***
+test-client-1  |     @ 00000000006c2b30 folly::symbolizer::(anonymous namespace)::signalHandler(int, siginfo_t*, void*)
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/debugging/symbolizer/SignalHandler.cpp:599
+test-client-1  |     @ 000000000004532f (unknown)
+test-client-1  |     @ 00000000001e8d38 moxygen::MoQSession::getTransportInfo() const
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebookexperimental-moxygen.git/moxygen/MoQSession.h:370
+test-client-1  |                        -> /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebookexperimental-moxygen.git/moxygen/MoQSession.cpp
+test-client-1  |     @ 000000000018e205 moxygen::MoQSession::onControlStreamLossTimeoutExpired()
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebookexperimental-moxygen.git/moxygen/MoQSession.cpp:3547
+test-client-1  |     @ 00000000001f600b void folly::detail::function::call_<moxygen::MoQSession::ControlStreamLossTimeoutCallback::timeoutExpired()::{lambda()#1}, true, false, void>(, folly::detail::function::Data&)
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebookexperimental-moxygen.git/moxygen/MoQSession.cpp:3298
+test-client-1  |     @ 0000000000644c3e folly::EventBase::FunctionLoopCallback::runLoopCallback()
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/Function.h:371
+test-client-1  |                        -> /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/io/async/EventBase.cpp
+test-client-1  |     @ 000000000063d727 folly::EventBase::swapAndRunLoopCallbackList(folly::detail::IntrusiveListImpl<folly::EventBase::LoopCallback, &folly::EventBase::LoopCallback::loopCallbackHook_, false>&, folly::detail::IntrusiveListImpl<folly::EventBase::LoopCallback, &folly::EventBase::LoopCallback::loopCallbackHook_, false>&, bool)
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/io/async/EventBase.cpp:1095
+test-client-1  |     @ 000000000063d8ac folly::EventBase::runLoopCallbacks()
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/io/async/EventBase.cpp:1110
+test-client-1  |     @ 000000000063fb33 folly::EventBase::loopMain(int, folly::EventBase::LoopOptions)
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/io/async/EventBase.cpp:681
+test-client-1  |     @ 0000000000640621 folly::EventBase::loopBody(int, folly::EventBase::LoopOptions)
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/io/async/EventBase.cpp:562
+test-client-1  |     @ 0000000000648570 non-virtual thunk to folly::EventBase::drive()
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/io/async/EventBase.h:954
+test-client-1  |                        -> /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebook-folly.git/folly/io/async/EventBase.cpp
+test-client-1  |     @ 000000000013d1d8 folly::coro::detail::BlockingWaitTask<moxygen::InteropTestResult&>::getVia(folly::DrivableExecutor*, folly::AsyncStackFrame&) &&
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/installed/folly/include/folly/coro/BlockingWait.h:224
+test-client-1  |                        -> /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebookexperimental-moxygen.git/moxygen/moqtest/interop/MoQInteropClientMain.cpp
+test-client-1  |     @ 0000000000138080 folly::coro::detail::decay_rvalue_reference<folly::coro::await_result<decltype (folly::coro::folly_cpo__::co_viaIfAsync((static_cast<folly::ExecutorKeepAlive<folly::Executor> (*)() noexcept>(decltype(nullptr)))(), (static_cast<folly::coro::TaskWithExecutor<moxygen::InteropTestResult> (*)() noexcept>(decltype(nullptr)))())), void>::type>::type folly::coro::blocking_wait_fn::operator()<folly::coro::TaskWithExecutor<moxygen::InteropTestResult> >(folly::coro::TaskWithExecutor<moxygen::InteropTestResult>&&, folly::DrivableExecutor*) const [clone .isra.0]
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/installed/folly/include/folly/coro/BlockingWait.h:395
+test-client-1  |                        -> /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebookexperimental-moxygen.git/moxygen/moqtest/interop/MoQInteropClientMain.cpp
+test-client-1  |     @ 0000000000106e64 main
+test-client-1  |                        /tmp/fbcode_builder_getdeps-ZappZbuildZfbcode_builder-root/repos/github.com-facebookexperimental-moxygen.git/moxygen/moqtest/interop/MoQInteropClientMain.cpp:232
+test-client-1  |     @ 000000000002a1c9 (unknown)
+test-client-1  |     @ 000000000002a28a __libc_start_main
+test-client-1  |     @ 000000000010e344 _start
+[Ktest-client-1 exited with code 139
+ Compose Stopping Aborting on container exit...
+ Container main-test-client-1 Stopping 
+ Container main-test-client-1 Stopped 
+ Container main-relay-1 Stopping 
+relay-1        | [2m00:17:03[0m [92mINF[0m relay stopping [2mcomponent=[0mrelay
+relay-1        | [2m00:17:03[0m [92mINF[0m relay accept loop stopped [2mcomponent=[0mrelay
+relay-1        | [2m00:17:03[0m [92mINF[0m relay stopped [2mcomponent=[0mrelay
+ Container main-relay-1 Stopped 
+[Krelay-1 exited with code 0
+
+make: *** [Makefile:86: test] Error 139

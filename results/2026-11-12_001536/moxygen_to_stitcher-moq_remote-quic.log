@@ -1,0 +1,65 @@
+Running tests against moqt://34-72-6-160.sslip.io:443...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://34-72-6-160.sslip.io:443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: moqt://34-72-6-160.sslip.io:443
+# Transport: QUIC
+# Offered ALPNs: moqt-18, moqt-16, moqt-22
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 120
+  negotiated_version: draft-22
+  info: SETUP exchange completed successfully
+  ...
+E1112 00:18:22.966036     7 MoQRelaySession.cpp:1044] PublishNamespaceDone for unknown publishNamespace, sess=0x57556e7b4600
+ok 2 - announce-only
+  ---
+  duration_ms: 180
+  negotiated_version: draft-22
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+ok 3 - subscribe-error
+  ---
+  duration_ms: 156
+  negotiated_version: draft-22
+  info: Subscribe correctly returned error: unroutable
+  ...
+E1112 00:18:23.423281     7 MoQFramer.cpp:964] parseFillParameters: parameter 1 is not allowed inside FILL_PARAMETERS
+E1112 00:18:23.423304     7 MoQFramer.cpp:2097] parseSubscribeRequest: error in parseTrackRequestParams: 3
+E1112 00:18:23.423308     7 MoQCodec.cpp:126] Conn error=3
+E1112 00:18:23.423311     7 MoQSession.cpp:4294] Parse error=3
+E1112 00:18:23.470513     7 MoQRelaySession.cpp:1044] PublishNamespaceDone for unknown publishNamespace, sess=0x57556e747450
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 347
+  negotiated_version: draft-22
+  error: Subscribe failed: dropped
+  ...
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 149
+  negotiated_version: draft-22
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 957
+  negotiated_version: draft-22
+  info: Retained namespace and withdrawal reached both subscribers
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 902
+  negotiated_version: draft-22
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): unroutable
+  ...
+make: *** [Makefile:122: test-external] Error 1
