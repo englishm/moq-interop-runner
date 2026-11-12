@@ -42,6 +42,8 @@ packaging, a scenario requires that:
   run of whole 188-byte packets of the fixture, in fixture order, from which
   null packets may have been removed;
 - a group starts at a random access point, or at PSI immediately before it;
+- Group IDs increase by one from each group to the next, and Object IDs start
+  at 0 in each group and increase by one;
 - the publisher sends the fixture once, paced to its PCR as a live source
   arrives, then ends the track as the packaging does.
 
@@ -109,14 +111,16 @@ a late join at or part-way through a group, and adjacent groups interleaving.
 
 ## Diagnostics
 
-Beside the area's shared fields, a TS client reports `ts_packaging`.
-`groups_received`, `objects_received`, `bytes_received`, `first_group` and
-`last_group` come from the object log, so `bytes_received` counts what the
-objects added to `received.ts`. `check-ts.py` prints these, with the
-format's own, as `# key: value` lines a client can lift into its YAML block:
+Beside the area's shared fields, a TS client reports `ts_packaging` and
+`track_end`. `groups_received`, `objects_received`, `bytes_received`,
+`first_group` and `last_group` come from the object log, so `bytes_received`
+counts what the objects added to `received.ts`. `check-ts.py` prints these,
+with the format's own, as `# key: value` lines a client can lift into its
+YAML block; `track_end` is the client's:
 
 | Field | Meaning |
 |-------|---------|
+| `track_end` | how the TS track ended for the subscriber: `finished`, the error that ended it, or that it had not ended by the deadline; a diagnostic, not graded |
 | `ts_packets_received`, `ts_null_packets_received` | packets in `received.ts`, and how many of them are null |
 | `ts_tail_start_packet` | the fixture packet `received.ts` starts at, when it is a tail of the fixture |
 | `ts_first_object` | the Object ID at which the first received group starts |

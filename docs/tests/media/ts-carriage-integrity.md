@@ -43,8 +43,12 @@ Names are the packaging's.
 3. Begin publishing the fixture at time T0, as the
    [packaging](./mpeg-ts.md#packaging) requires; it ends at T0 + 20 s, and
    the publisher then ends the track.
-4. Record every object received on the TS track until the track ends, or
-   until the deadline, and [reassemble](./mpeg-ts.md#reassembly) them.
+4. Record every object received on the TS track until the track has ended
+   and its data streams have drained (the end of the track may arrive
+   before the last of them), or until T0 + 30 s, whichever comes first, and
+   [reassemble](./mpeg-ts.md#reassembly) them. Then close the subscriber,
+   then the publisher: a publisher that closes as soon as it has ended the
+   track can cut off the tail itself.
 5. Verify with `check-ts.py --fixture fixture.ts --received received.ts
    --objects objects.txt`, adding `--catalog-expected` and
    `--catalog-received` where the packaging has a description track.
@@ -70,8 +74,13 @@ interleaving in time; and timing within the deadlines.
 
 ## Failure And Timeout Behavior
 
-A request error, a session failure, or delivery that has not completed by
-T0 + 30 s (fixture end plus 10 s) fails the test. A stream that loses,
+A request error or session failure before delivery is complete, or delivery
+not complete by T0 + 30 s (fixture end plus 10 s), fails the test. Delivery
+is complete when `received.ts` runs to the fixture's end, as
+`byte-identical` requires. How the track ended (an end of track, an error,
+or nothing by T0 + 30 s) is reported as `track_end` and not graded: relays
+pass on the end of a track differently by implementation and draft. A
+stream that loses,
 duplicates, reorders or corrupts packets fails on the corresponding check.
 The test takes about 30 s.
 
@@ -81,8 +90,8 @@ The client reports one test point, `ts-carriage-integrity`, preceded by a
 subtest block with the checks in the order the [format
 notes](./mpeg-ts.md#oracle) list them, in the area's [TAP
 output](./README.md#tap-output) shape. The TAP YAML should carry
-`media_format`, `ts_packaging`, `join_offset_ms`, the shared counts,
-`first_group` and `last_group`, `publisher` and `subscriber` session
+`media_format`, `ts_packaging`, `join_offset_ms`, `track_end`, the shared
+counts, `first_group` and `last_group`, `publisher` and `subscriber` session
 metadata, the fields `check-ts.py` prints, and `first_mismatch` when a check
 fails.
 

@@ -47,8 +47,12 @@ As [`ts-carriage-integrity`](./ts-carriage-integrity.md), with the namespace
    0.5 s of the join; with a packaging that opens a group at each, the join
    is halfway through one. G′ is G unless the subscription takes that long
    to establish.
-4. Record every object received on the TS track until the track ends, or
-   until the deadline, and [reassemble](./mpeg-ts.md#reassembly) them.
+4. Record every object received on the TS track until the track has ended
+   and its data streams have drained (the end of the track may arrive
+   before the last of them), or until T0 + 30 s, whichever comes first, and
+   [reassemble](./mpeg-ts.md#reassembly) them. Then close the subscriber,
+   then the publisher: a publisher that closes as soon as it has ended the
+   track can cut off the tail itself.
 5. Verify with `check-ts.py --fixture fixture.ts --received received.ts
    --objects objects.txt --late-join`, adding `--catalog-expected` and
    `--catalog-received` where the packaging has a description track.
@@ -80,8 +84,11 @@ interleaving in time; and timing within the deadlines.
 
 ## Failure And Timeout Behavior
 
-A request error, a session failure, or delivery that has not completed by
-T0 + 30 s (fixture end plus 10 s) fails the test. A stream that skips or
+A request error or session failure before delivery is complete, or delivery
+not complete by T0 + 30 s (fixture end plus 10 s), fails the test. Delivery
+is complete as in
+[`ts-carriage-integrity`](./ts-carriage-integrity.md#failure-and-timeout-behavior),
+and `track_end` is likewise a diagnostic. A stream that skips or
 repeats a group fails `ordering` or `byte-identical`, and one that starts
 before G or after G′ + 1 fails `join-point`. The test takes about 30 s.
 
@@ -91,11 +98,10 @@ The client reports one test point, `ts-late-subscriber`, preceded by a
 subtest block with the checks in the order the [format
 notes](./mpeg-ts.md#oracle) list them, then `join-point`, in the area's [TAP
 output](./README.md#tap-output) shape. The TAP YAML should carry
-`media_format`, `ts_packaging`, `join_offset_ms`, `join_group` and
-`join_group_ok` (G and G′), the shared counts,
-`first_group` and `last_group`, `publisher` and `subscriber` session
-metadata, the fields `check-ts.py` prints, and `first_mismatch` when a check
-fails.
+`media_format`, `ts_packaging`, `join_offset_ms`, `track_end`, `join_group`
+and `join_group_ok` (G and G′), the shared counts, `first_group` and
+`last_group`, `publisher` and `subscriber` session metadata, the fields
+`check-ts.py` prints, and `first_mismatch` when a check fails.
 
 ## Revision History
 
