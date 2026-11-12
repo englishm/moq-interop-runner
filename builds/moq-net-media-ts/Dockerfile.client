@@ -1,0 +1,86 @@
+# syntax=docker/dockerfile:1
+# Dockerfile for moq-net-media-ts-client (Rust)
+#
+# Builds the MPEG-TS media test client on the moq-net / moq-tokio crates (moq-net 0.3.15 /
+# moq-tokio 0.19.28) and bakes the MPEG-TS fixture (lib/media/mpeg-ts/) and its reference
+# oracle, check-ts.py, into the image. The oracle needs TSDuck and ffprobe; TSDuck
+# publishes Debian packages for trixie only, so every stage is on trixie.
+#
+# The build context is the runner repository root:
+#   docker build -t moq-net-media-ts-client:latest -f builds/moq-net-media-ts/Dockerfile.client .
+
+FROM rust:trixie AS builder
+
+WORKDIR /build
+
+# Copy project files (build.rs reads Cargo.lock for the TAP header's crate versions)
+COPY builds/moq-net-media-ts/Cargo.toml builds/moq-net-media-ts/Cargo.lock builds/moq-net-media-ts/build.rs ./
+COPY builds/moq-net-media-ts/src ./src
+
+# Build release binary
+RUN cargo build --release --locked
+
+# The tools the fixture generator and the oracle run: ffmpeg, python3 and TSDuck.
+FROM debian:trixie-slim AS tools
+
+ARG TSDUCK_VERSION=3.45-4798
+ARG TSDUCK_SHA256_AMD64=b9960bb4347384342e583f3df7301c1c23489956ad0acf3e8f05703ff36c2259
+ARG TSDUCK_SHA256_ARM64=f529beac3a5b7962d3d1c9be083e013212de03e4eba55d6d5288c64126f166fc
+
+RUN set -eu; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl ffmpeg python3; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+        amd64) sum="$TSDUCK_SHA256_AMD64" ;; \
+        arm64) sum="$TSDUCK_SHA256_ARM64" ;; \
+        *) echo "no TSDuck package for $arch" >&2; exit 1 ;; \
+    esac; \
+    deb="/tmp/tsduck_${TSDUCK_VERSION}.debian13_${arch}.deb"; \
+    curl -fsSL -o "$deb" "https://github.com/tsduck/tsduck/releases/download/v${TSDUCK_VERSION}/tsduck_${TSDUCK_VERSION}.debian13_${arch}.deb"; \
+    echo "$sum  $deb" | sha256sum -c -; \
+    apt-get install -y --no-install-recommends "$deb"; \
+    rm -f "$deb"; \
+    apt-get purge -y curl; \
+    apt-get autoremove -y; \
+    rm -rf /var/lib/apt/lists/*; \
+    tsp --version
+
+# Fixture: generated here and checked against the oracle's own sensitivity tests.
+FROM tools AS fixture
+
+COPY lib/media/mpeg-ts /src/lib/media/mpeg-ts
+RUN mkdir -p /fixture \
+    && bash /src/lib/media/mpeg-ts/make-fixture.sh /fixture/fixture.ts \
+    && bash /src/lib/media/mpeg-ts/test/test-check-ts.sh
+
+# Runtime image: the client runs the oracle after each scenario, so it keeps the tools.
+FROM tools AS runtime
+
+WORKDIR /app
+
+# Copy binary
+COPY --from=builder /build/target/release/moq-net-media-ts-client /app/moq-net-media-ts-client
+
+# Copy the fixture and the oracle
+COPY --from=fixture /fixture /app/fixture
+COPY lib/media/mpeg-ts/check-ts.py /app/check-ts.py
+
+# Copy entrypoint script
+COPY builds/moq-net-media-ts/entrypoint-client.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Create mlog directory
+RUN mkdir -p /mlog
+
+# Environment variables with defaults. TLS_DISABLE_VERIFY deliberately has no
+# default here: the entrypoint translates 1/true into the CLI flag, and an unset
+# var means verification stays on.
+ENV RELAY_URL=https://relay:4443
+ENV MEDIA_FIXTURE_DIR=/app/fixture
+ENV MEDIA_TS_CHECKER=/app/check-ts.py
+
+RUN useradd -r -u 1000 -g nogroup moq
+USER moq
+
+ENTRYPOINT ["/app/entrypoint.sh"]
