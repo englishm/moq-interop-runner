@@ -106,6 +106,30 @@ Its local image is `xquic-moq-relay-draft-18:latest`; the registered image is
 `ghcr.io/englishm/moq-interop-runner-xquic-moq-relay-draft-18:latest`. The
 relay listens on UDP/4443 and supports the same six core cases.
 
+## Draft-22 endpoint preview
+
+Build the endpoint client and direct server from the same XQUIC checkout:
+
+```bash
+./builds/xquic/build.sh --local /path/to/xquic --target client-draft-22
+docker run --rm -e RELAY_URL=moqt://relay:4443 -e TLS_DISABLE_VERIFY=1 \
+  xquic-moq-client-draft-22:latest
+docker run --rm xquic-moq-client-draft-22:latest --list
+```
+
+The source branch is `dev/moqt-interop`, based on `dev/moqt-22-base`.
+Without a local checkout, pass `--ref dev/moqt-interop` explicitly. The image
+also starts a direct endpoint with `--server`, `MOQT_PORT` (4443 by default),
+and test certificates at `/certs/cert.pem` and `/certs/priv.key`.
+It performs no relay routing or forwarding and has no registry relay role.
+Do not count direct-origin probes as relay case passes.
+
+The preview registers a locally built client image only; GHCR publication is
+deferred until review. Existing draft-14/18 registrations and images are
+unchanged. `--list` exposes the integrated case set. Unsupported
+SUBSCRIBE_TRACKS, multi-publisher retention, WebTransport, and media cases
+return 127/SKIP; attempted peer failures remain failures.
+
 ## Pushing to GHCR
 
 ```bash

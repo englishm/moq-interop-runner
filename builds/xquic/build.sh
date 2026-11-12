@@ -92,7 +92,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --ref REF       Git ref to checkout (branch/tag/commit)"
             echo "  --repo URL      Clone from a different repository (fork)"
             echo "  --local PATH    Use local xquic checkout instead of cloning"
-            echo "  --target NAME   Build only specific target (relay, client, client-draft-18, or relay-draft-18)"
+            echo "  --target NAME   Build relay, client, client-draft-18, relay-draft-18, or client-draft-22"
             echo "  --help          Show this help"
             echo ""
             echo "Examples:"
@@ -193,6 +193,10 @@ build_target() {
             dockerfile="${BUILD_DIR}/Dockerfile.relay.draft18"
             image_name="xquic-moq-relay-draft-18"
             entrypoint_script="${BUILD_DIR}/entrypoint-relay-draft18.sh"
+            ;;
+        client-draft-22)
+            dockerfile="${BUILD_DIR}/Dockerfile.client.draft22"
+            image_name="xquic-moq-client-draft-22"
             ;;
         *)
             error "Unknown target: $target (supported: relay, client, client-draft-18, relay-draft-18)"
