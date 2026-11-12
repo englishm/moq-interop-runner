@@ -19,16 +19,16 @@ for tool in ffmpeg ffprobe tsp python3; do
     fi
 done
 
-TMPDIR=$(mktemp -d)
-trap 'rm -rf "$TMPDIR"' EXIT
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
 
-DURATION=6 bash "$SCRIPT_DIR/../make-fixture.sh" "$TMPDIR/fixture.ts" >/dev/null
+DURATION=6 bash "$SCRIPT_DIR/../make-fixture.sh" "$WORK/fixture.ts" >/dev/null
 
 # mutate <name> <python expression over pk, the fixture's packets; raps, the indices of its
 # video random access points; and pid(p), flip(p, at) and frame(i), the packets of the video
 # frame that starts at index i>
 mutate() {
-    python3 - "$TMPDIR/fixture.ts" "$TMPDIR/$1.ts" "$2" <<'EOF'
+    python3 - "$WORK/fixture.ts" "$WORK/$1.ts" "$2" <<'EOF'
 import sys
 src, dst, expr = sys.argv[1:]
 data = open(src, "rb").read()
@@ -52,7 +52,7 @@ EOF
 # simulated packaging drops null packets, opens a group at each video random access point and
 # cuts objects of up to 64 packets; packets before the first random access point are not placed.
 package() {
-    python3 - "$TMPDIR/fixture.ts" "$TMPDIR/$1" "$2" <<'EOF'
+    python3 - "$WORK/fixture.ts" "$WORK/$1" "$2" <<'EOF'
 import sys
 src, dst, expr = sys.argv[1:]
 data = open(src, "rb").read()
@@ -101,7 +101,7 @@ expect() {
     local desc="$1" want="$2" decider="$3"
     shift 3
     local out rc=0
-    out=$(python3 "$CHECK" --fixture "$TMPDIR/fixture.ts" "$@") || rc=$?
+    out=$(python3 "$CHECK" --fixture "$WORK/fixture.ts" "$@") || rc=$?
     TESTS=$((TESTS + 1))
     local got=pass
     [ "$rc" -eq 0 ] || got=fail
@@ -124,7 +124,7 @@ expect_ok() {
     local desc="$1" check="$2"
     shift 2
     local out
-    out=$(python3 "$CHECK" --fixture "$TMPDIR/fixture.ts" "$@") || true
+    out=$(python3 "$CHECK" --fixture "$WORK/fixture.ts" "$@") || true
     TESTS=$((TESTS + 1))
     if echo "$out" | grep -q "^ok [0-9]* - $check "; then
         echo "ok $TESTS - $desc"
@@ -162,68 +162,68 @@ package nonadjacent 'move(objs, at(1, len([x for x in objs if x[0] == 1]) - 1), 
 package off-rap 'regroup(3)'
 package late-off-rap '[x for x in regroup(3) if x[0] >= 3]'
 # One packet cut across two objects of a group: the stream and the logged total are unchanged.
-cp "$TMPDIR/whole.ts" "$TMPDIR/split.ts"
+cp "$WORK/whole.ts" "$WORK/split.ts"
 awk '$1 == 1 && $2 == 0 { $3 -= 1 } $1 == 1 && $2 == 1 { $3 += 1 } 1' \
-    "$TMPDIR/whole.objects" >"$TMPDIR/split.objects"
+    "$WORK/whole.objects" >"$WORK/split.objects"
 
-printf '{"m2ts":{"track":"0.m2ts","randomAccess":true}}' >"$TMPDIR/catalog.json"
-printf '{"m2ts":{"track":"0.m2ts","randomAccess":false}}' >"$TMPDIR/catalog-changed.json"
+printf '{"m2ts":{"track":"0.m2ts","randomAccess":true}}' >"$WORK/catalog.json"
+printf '{"m2ts":{"track":"0.m2ts","randomAccess":false}}' >"$WORK/catalog-changed.json"
 
-expect "the fixture itself passes" pass - --received "$TMPDIR/identity.ts"
+expect "the fixture itself passes" pass - --received "$WORK/identity.ts"
 expect "the fixture packaged from its first random access point passes, nulls dropped" pass - \
-    --received "$TMPDIR/whole.ts" --objects "$TMPDIR/whole.objects"
-expect "500 dropped packets fail continuity" fail continuity --received "$TMPDIR/dropped.ts"
-expect "a duplicated 20-packet run fails continuity" fail continuity --received "$TMPDIR/duplicated.ts"
-expect "two transposed blocks fail continuity" fail continuity --received "$TMPDIR/transposed.ts"
-expect_ok "continuity alone misses one corrupted payload byte" continuity --received "$TMPDIR/flipped.ts"
-expect "one corrupted payload byte fails byte identity" fail byte-identical --received "$TMPDIR/flipped.ts"
-expect "a changed null packet fails byte identity" fail byte-identical --received "$TMPDIR/null-changed.ts"
-expect "a null packet moved past its neighbour fails byte identity" fail byte-identical --received "$TMPDIR/null-moved.ts"
-expect "a truncated stream fails byte identity" fail byte-identical --received "$TMPDIR/truncated.ts"
-expect "a transport error indicator fails transport-errors" fail transport-errors --received "$TMPDIR/tei.ts"
-expect "a changed PMT fails psi-unchanged" fail psi-unchanged --received "$TMPDIR/pmt-changed.ts"
-expect "a lost video frame fails decode" fail decode --received "$TMPDIR/frame-lost.ts"
+    --received "$WORK/whole.ts" --objects "$WORK/whole.objects"
+expect "500 dropped packets fail continuity" fail continuity --received "$WORK/dropped.ts"
+expect "a duplicated 20-packet run fails continuity" fail continuity --received "$WORK/duplicated.ts"
+expect "two transposed blocks fail continuity" fail continuity --received "$WORK/transposed.ts"
+expect_ok "continuity alone misses one corrupted payload byte" continuity --received "$WORK/flipped.ts"
+expect "one corrupted payload byte fails byte identity" fail byte-identical --received "$WORK/flipped.ts"
+expect "a changed null packet fails byte identity" fail byte-identical --received "$WORK/null-changed.ts"
+expect "a null packet moved past its neighbour fails byte identity" fail byte-identical --received "$WORK/null-moved.ts"
+expect "a truncated stream fails byte identity" fail byte-identical --received "$WORK/truncated.ts"
+expect "a transport error indicator fails transport-errors" fail transport-errors --received "$WORK/tei.ts"
+expect "a changed PMT fails psi-unchanged" fail psi-unchanged --received "$WORK/pmt-changed.ts"
+expect "a lost video frame fails decode" fail decode --received "$WORK/frame-lost.ts"
 expect "a stream not cut on packet boundaries fails packet-alignment" fail packet-alignment \
-    --received "$TMPDIR/unaligned.ts"
+    --received "$WORK/unaligned.ts"
 expect "an object that is not whole packets fails packet-alignment" fail packet-alignment \
-    --received "$TMPDIR/split.ts" --objects "$TMPDIR/split.objects"
+    --received "$WORK/split.ts" --objects "$WORK/split.objects"
 expect "a late join is not the whole stream" fail byte-identical \
-    --received "$TMPDIR/late.ts" --objects "$TMPDIR/late.objects"
+    --received "$WORK/late.ts" --objects "$WORK/late.objects"
 expect "a late join part-way through a group passes, decoding from the next group" pass - \
-    --received "$TMPDIR/late.ts" --objects "$TMPDIR/late.objects" --late-join
+    --received "$WORK/late.ts" --objects "$WORK/late.objects" --late-join
 expect "a late join at a group boundary passes" pass - \
-    --received "$TMPDIR/late-at-group.ts" --objects "$TMPDIR/late-at-group.objects" --late-join
+    --received "$WORK/late-at-group.ts" --objects "$WORK/late-at-group.objects" --late-join
 expect "a late join that skips a group fails ordering" fail ordering \
-    --received "$TMPDIR/skipped-group.ts" --objects "$TMPDIR/skipped-group.objects" --late-join
+    --received "$WORK/skipped-group.ts" --objects "$WORK/skipped-group.objects" --late-join
 expect_ok "byte identity alone misses objects that arrive out of order" byte-identical \
-    --received "$TMPDIR/swapped-objects.ts" --objects "$TMPDIR/swapped-objects.objects"
+    --received "$WORK/swapped-objects.ts" --objects "$WORK/swapped-objects.objects"
 expect "objects out of order within a group fail ordering" fail ordering \
-    --received "$TMPDIR/swapped-objects.ts" --objects "$TMPDIR/swapped-objects.objects"
+    --received "$WORK/swapped-objects.ts" --objects "$WORK/swapped-objects.objects"
 expect "a group opened before the one ahead of it fails ordering" fail ordering \
-    --received "$TMPDIR/group-opened-early.ts" --objects "$TMPDIR/group-opened-early.objects"
+    --received "$WORK/group-opened-early.ts" --objects "$WORK/group-opened-early.objects"
 expect "adjacent groups interleaving in time is a permitted variation" pass - \
-    --received "$TMPDIR/interleaved.ts" --objects "$TMPDIR/interleaved.objects"
+    --received "$WORK/interleaved.ts" --objects "$WORK/interleaved.objects"
 expect "an object received twice fails ordering" fail ordering \
-    --received "$TMPDIR/repeated.ts" --objects "$TMPDIR/repeated.objects"
+    --received "$WORK/repeated.ts" --objects "$WORK/repeated.objects"
 expect "a group after the first that starts part-way fails ordering" fail ordering \
-    --received "$TMPDIR/group-part-way.ts" --objects "$TMPDIR/group-part-way.objects"
+    --received "$WORK/group-part-way.ts" --objects "$WORK/group-part-way.objects"
 expect "a Group ID far past the last fails ordering without enumerating the gap" fail ordering \
-    --received "$TMPDIR/far-group.ts" --objects "$TMPDIR/far-group.objects"
+    --received "$WORK/far-group.ts" --objects "$WORK/far-group.objects"
 expect "an object arriving once a group two later has opened fails ordering" fail ordering \
-    --received "$TMPDIR/nonadjacent.ts" --objects "$TMPDIR/nonadjacent.objects"
+    --received "$WORK/nonadjacent.ts" --objects "$WORK/nonadjacent.objects"
 expect "a group that starts between random access points fails group-starts" fail group-starts \
-    --received "$TMPDIR/off-rap.ts" --objects "$TMPDIR/off-rap.objects"
+    --received "$WORK/off-rap.ts" --objects "$WORK/off-rap.objects"
 expect_ok "a group that starts between random access points still passes ordering" ordering \
-    --received "$TMPDIR/off-rap.ts" --objects "$TMPDIR/off-rap.objects"
+    --received "$WORK/off-rap.ts" --objects "$WORK/off-rap.objects"
 expect "a late join's first group, whole but between random access points, fails group-starts" \
     fail group-starts --late-join \
-    --received "$TMPDIR/late-off-rap.ts" --objects "$TMPDIR/late-off-rap.objects"
+    --received "$WORK/late-off-rap.ts" --objects "$WORK/late-off-rap.objects"
 expect_ok "a catalog received as published passes the catalog check" catalog \
-    --received "$TMPDIR/identity.ts" \
-    --catalog-expected "$TMPDIR/catalog.json" --catalog-received "$TMPDIR/catalog.json"
+    --received "$WORK/identity.ts" \
+    --catalog-expected "$WORK/catalog.json" --catalog-received "$WORK/catalog.json"
 expect "a catalog changed in transit fails the catalog check" fail catalog \
-    --received "$TMPDIR/identity.ts" \
-    --catalog-expected "$TMPDIR/catalog.json" --catalog-received "$TMPDIR/catalog-changed.json"
+    --received "$WORK/identity.ts" \
+    --catalog-expected "$WORK/catalog.json" --catalog-received "$WORK/catalog-changed.json"
 
 echo "1..$TESTS"
 if [ "$FAILURES" -gt 0 ]; then
