@@ -26,6 +26,7 @@ as participants revisit them; adding a label does not change their behavior.
 | `publish-subscribe-media` | Media delivery | [TEST-CASES.md](./TEST-CASES.md#publish-subscribe-media) |
 | `cmsf-live-join` | Media | [media/cmsf-live-join.md](./media/cmsf-live-join.md) |
 | `cmsf-late-join-idle-catalog` | Media | [media/cmsf-late-join-idle-catalog.md](./media/cmsf-late-join-idle-catalog.md) |
+| `ts-carriage-integrity` | Media | [media/ts-carriage-integrity.md](./media/ts-carriage-integrity.md) |
 
 ## Test Areas
 
