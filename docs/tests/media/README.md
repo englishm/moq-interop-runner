@@ -149,7 +149,7 @@ subtests and discussion can refer to them:
 | Check | Passes when |
 |-------|-------------|
 | `catalog` | the received description track equals the expected one (for formats that have one) |
-| `byte-identical` | the received bytes are the fixture's: when the fixture sets the objects, every received object payload matches the manifest's hash for its (track, group, object); when the packaging sets them, the stream reassembled from the received payloads in (group, object) order equals the fixture, or a contiguous tail of it from a random access point when the scenario permits a late join |
+| `byte-identical` | the received bytes are the fixture's: when the fixture sets the objects, every received object payload matches the manifest's hash for its (track, group, object); when the packaging sets them, the stream reassembled from the received payloads in (group, object) order equals the fixture, or, when the scenario permits a late join, a contiguous tail of it that contains a random access point and may begin part-way through the group in progress |
 | `ordering` | groups are opened with increasing Group ID, within each group the objects are contiguous and in order, and the set between the first and last received group has no gap or duplicate; objects of adjacent groups may interleave in time |
 | `decode` | the media reassembled from the received objects decodes with the frame counts the fixture predicts |
 
