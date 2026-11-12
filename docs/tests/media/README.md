@@ -43,6 +43,10 @@ where that distinction matters.
 - [`cmsf-late-join-idle-catalog`](./cmsf-late-join-idle-catalog.md) verifies
   that a subscriber joining after the catalog has been idle longer than the
   relay's cache window still receives the catalog and the media that follows.
+- [`ts-carriage-integrity`](./ts-carriage-integrity.md) verifies that a
+  subscriber present from the start receives the published transport stream
+  from its first random access point, every non-null packet byte for byte, in
+  order and decodable.
 
 ## Roles
 
