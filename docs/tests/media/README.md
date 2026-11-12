@@ -47,6 +47,9 @@ where that distinction matters.
   subscriber present from the start receives the published transport stream
   from its first random access point, every non-null packet byte for byte, in
   order and decodable.
+- [`ts-late-subscriber`](./ts-late-subscriber.md) verifies that a subscriber
+  joining part-way through receives, from the group in progress or the next,
+  an unbroken tail a decoder can start on.
 
 ## Roles
 
