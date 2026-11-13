@@ -185,7 +185,7 @@ build_target() {
     log "Building ${target} -> ${image_name}:latest"
     local args=(build --target "$target" -f "$dockerfile"
         -t "${image_name}:latest")
-    # The registered client also gets its registry tag for local runner use.
+    # Registered roles also receive their registry tag for local runner use.
     if [[ -n "$registry_image" ]]; then
         args+=(-t "${registry_image}:latest")
     fi
