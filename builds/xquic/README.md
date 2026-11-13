@@ -49,7 +49,7 @@ docker run --rm -e RELAY_URL=moqt://relay:4443 -e TLS_DISABLE_VERIFY=1 \
 The client uses `RELAY_URL`, `TESTCASE`, `TLS_DISABLE_VERIFY` and `VERBOSE`
 and writes TAP v14 to stdout. Exit codes are 0 (pass), 1 (failure) and
 127 (unsupported/SKIP). `--list` is the implemented case set. Unsupported
-SUBSCRIBE_TRACKS, multi-publisher retention, WebTransport and media cases
+SUBSCRIBE_TRACKS, WebTransport and media cases
 return SKIP; attempted peer failures remain failures.
 
 ## Run the direct server
@@ -68,9 +68,13 @@ cross-connection routing or forwarding; it has no registry relay role.
 Direct-origin probes must be recorded separately from runner relay cases.
 
 The current local peer regression uses aiomoqt 0.14.1 (draft-22, aiopquic):
-19 client cases against its relay, 5 peer control cases against the XQUIC
-server, and 8 independent direct-origin data probes. The probe scripts and
-results are local evidence rather than shared runner modifications.
+22 client cases against its relay, including multi-publisher retention,
+standalone FETCH and Join/Fill. Reverse-direction validation includes five
+control cases, eight direct-origin data vectors, ascending/descending FETCH
+and invalid-range recovery. aiomoqt's default Join sender uses a counted Fill
+parameter block and is rejected by XQUIC's unchanged inner-sequence codec;
+record this mismatch separately from diagnostic wire variants. The probe
+scripts and results are local evidence rather than shared runner changes.
 
 ## Build regression checks
 
