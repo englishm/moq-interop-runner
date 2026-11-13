@@ -1,11 +1,12 @@
 #!/bin/bash
-# build.sh - Build the draft-22 xquic client/server endpoint image
+# build.sh - Build draft-22 xquic client/server endpoint images
 #
 # Usage:
 #   ./build.sh                              # Clone dev/moqt-interop
 #   ./build.sh --ref dev/moqt-interop        # Select branch/tag/commit
 #   ./build.sh --local ~/github_xquic/xquic # Use local checkout
-#   ./build.sh --target endpoint             # The only supported target
+#   ./build.sh --target client               # Build xquic-client only
+#   ./build.sh --target relay                # Build xquic-relay only
 
 set -euo pipefail
 
@@ -63,7 +64,7 @@ get_runner_commit() {
 
 REF=""
 LOCAL_PATH=""
-TARGET="endpoint"
+TARGET=""
 CUSTOM_REPO=""
 
 while [[ $# -gt 0 ]]; do
@@ -87,25 +88,26 @@ while [[ $# -gt 0 ]]; do
             echo "  --ref REF       Git ref to checkout (branch/tag/commit)"
             echo "  --repo URL      Clone from a different repository (fork)"
             echo "  --local PATH    Use local xquic checkout instead of cloning"
-            echo "  --target NAME   Build endpoint (client and direct server)"
+            echo "  --target NAME   Build client or relay (default: both)"
             echo "  --help          Show this help"
             echo ""
             echo "Examples:"
             echo "  $0                                           # Clone dev/moqt-interop"
             echo "  $0 --local ~/github_xquic/xquic             # Use local checkout"
-            echo "  $0 --local ~/github_xquic/xquic --target endpoint"
+            echo "  $0 --local ~/github_xquic/xquic --target client"
+            echo "  $0 --local ~/github_xquic/xquic --target relay"
             exit 0
             ;;
         *) error "Unknown option: $1" ;;
     esac
 done
 
-[[ "$TARGET" == "endpoint" ]] || error "Unknown target: $TARGET (supported: endpoint)"
+case "$TARGET" in
+    ""|client|relay) ;;
+    *) error "Unknown target: $TARGET (supported: client, relay)" ;;
+esac
 command -v jq >/dev/null 2>&1 || error "jq is required"
 DEFAULT_REF=$(jq -er '.default_ref' "$CONFIG")
-DOCKERFILE="${BUILD_DIR}/$(jq -er '.targets.endpoint.dockerfile' "$CONFIG")"
-IMAGE_NAME=$(jq -er '.targets.endpoint.image_name' "$CONFIG")
-REGISTRY_IMAGE=$(jq -er '.targets.endpoint.registry_image' "$CONFIG")
 
 if [[ -n "$CUSTOM_REPO" ]]; then
     REPO_URL="$CUSTOM_REPO"
@@ -168,17 +170,35 @@ SOURCE_DIRTY=$(is_git_dirty "$SOURCE_DIR")
 # Docker Builds
 #############################################################################
 
-log "Building endpoint -> ${IMAGE_NAME}:latest"
-log "  Dockerfile: ${DOCKERFILE}"
-log "  Context: ${SOURCE_DIR}"
+BUILT_IMAGES=()
 
-# Both tags refer to one image; tagging the registry name also lets the local
-# runner use implementations.json without pulling an unpublished preview.
-docker build -f "$DOCKERFILE" \
-    -t "${IMAGE_NAME}:latest" -t "${REGISTRY_IMAGE}:latest" \
-    "$SOURCE_DIR" || error "Docker build failed for endpoint"
+build_target() {
+    local target="$1"
+    local dockerfile image_name registry_image
+    dockerfile="${BUILD_DIR}/$(jq -er --arg target "$target" \
+        '.targets[$target].dockerfile' "$CONFIG")"
+    image_name=$(jq -er --arg target "$target" \
+        '.targets[$target].image_name' "$CONFIG")
+    registry_image=$(jq -r --arg target "$target" \
+        '.targets[$target].registry_image // empty' "$CONFIG")
 
-BUILT_IMAGES=("{\"target\": \"endpoint\", \"image\": \"${IMAGE_NAME}:latest\"}")
+    log "Building ${target} -> ${image_name}:latest"
+    local args=(build --target "$target" -f "$dockerfile"
+        -t "${image_name}:latest")
+    # The registered client also gets its registry tag for local runner use.
+    if [[ -n "$registry_image" ]]; then
+        args+=(-t "${registry_image}:latest")
+    fi
+    docker "${args[@]}" "$SOURCE_DIR" || error "Docker build failed for ${target}"
+    BUILT_IMAGES+=("{\"target\": \"${target}\", \"image\": \"${image_name}:latest\"}")
+}
+
+if [[ -n "$TARGET" ]]; then
+    build_target "$TARGET"
+else
+    build_target client
+    build_target relay
+fi
 
 #############################################################################
 # Provenance Output

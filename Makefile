@@ -244,7 +244,7 @@ xquic-build:
 		echo "Usage: make xquic-build XQUIC_SOURCE=/absolute/path/to/xquic"; \
 		exit 1; \
 	fi
-	@./builds/xquic/build.sh --local "$(XQUIC_SOURCE)" --target endpoint
+	@./builds/xquic/build.sh --local "$(XQUIC_SOURCE)"
 
 #############################################################################
 # Report Generation

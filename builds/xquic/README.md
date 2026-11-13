@@ -1,9 +1,15 @@
 # xquic draft-22 endpoint
 
-XQUIC has one current image, `xquic-moq:latest`, for the Native QUIC
-(`moqt://`, ALPN `moqt-22`) client and direct server. The registry key is
-`xquic`; only draft-22 is registered. Legacy draft-14/18 images and build
-targets have been removed.
+XQUIC provides two role images for the current draft-22 Native QUIC
+(`moqt://`, ALPN `moqt-22`) endpoint:
+
+| Image | Default process |
+|-------|-----------------|
+| `xquic-client:latest` | TAP interop client |
+| `xquic-relay:latest` | Direct test server |
+
+The registry key is `xquic`; only draft-22 is registered. Legacy draft-14/18
+images and build targets have been removed.
 
 ## Build
 
@@ -11,29 +17,32 @@ targets have been removed.
 # Defaults to alibaba/xquic dev/moqt-interop, based on dev/moqt-22-base.
 ./builds/xquic/build.sh
 
-# Local development uses the same endpoint image.
+# Local development builds both role images.
 make xquic-build XQUIC_SOURCE=/absolute/path/to/xquic
 
 # A branch, tag or commit can be selected explicitly.
-./builds/xquic/build.sh --ref dev/moqt-interop --target endpoint
+./builds/xquic/build.sh --ref dev/moqt-interop --target client
+./builds/xquic/build.sh --ref dev/moqt-interop --target relay
 ```
 
 `config.json` owns the default source ref and image names. The multi-stage
 `Dockerfile.endpoint` builds Tongsuo 8.4.0 and XQUIC with MoQT enabled, then
-copies `moqt_interop` into an Ubuntu 22.04 runtime. Source provenance is
+copies `moqt_interop` into Ubuntu 22.04 runtimes with separate client/relay
+entrypoints. Source provenance is
 written to `.last-build.json`. Local builds do not modify the source checkout.
 
-The build also tags the same image as
-`ghcr.io/englishm/moq-interop-runner-xquic-moq:latest` so the registry works
-locally. This preview does not publish to GHCR. After review, the `xquic`
-image workflow is the single publication entry in both manual and bulk builds.
+The client build also tags
+`ghcr.io/englishm/moq-interop-runner-xquic-client:latest` for local registry
+use. The `xquic` image workflow builds both images and publishes only the
+registered client; `xquic-relay` remains a local direct-server image. This
+preview does not publish to GHCR.
 
 ## Run the client
 
 ```bash
-docker run --rm xquic-moq:latest --list
+docker run --rm xquic-client:latest --list
 docker run --rm -e RELAY_URL=moqt://relay:4443 -e TLS_DISABLE_VERIFY=1 \
-  xquic-moq:latest
+  xquic-client:latest
 ./run-interop-tests.sh --client xquic --target-version draft-22 --dry-run
 ```
 
@@ -48,12 +57,13 @@ return SKIP; attempted peer failures remain failures.
 ```bash
 # /path/to/test-certs contains disposable cert.pem and priv.key files.
 docker run --rm -p 4443:4443/udp \
-  -v /path/to/test-certs:/certs:ro xquic-moq:latest --server
+  -v /path/to/test-certs:/certs:ro xquic-relay:latest
 ```
 
 The server accepts `MOQT_PORT` (default 4443), or explicit `--port`, `--cert`
 and `--key` flags. Certificate paths default to `/certs/cert.pem` and
-`/certs/priv.key`. It is a direct endpoint/origin, with no
+`/certs/priv.key`. The image starts server mode without an extra flag.
+It is a direct endpoint/origin, with no
 cross-connection routing or forwarding; it has no registry relay role.
 Direct-origin probes must be recorded separately from runner relay cases.
 
@@ -69,5 +79,5 @@ python3 builds/xquic/test_build.py
 ```
 
 These checks stub Git/Docker in a temporary runner tree to verify source-ref
-selection, a single image build with both local tags, provenance and rejected
+selection, both role builds, individual role selection, provenance and rejected
 inputs/build failures. They do not replace real peer interoperability runs.

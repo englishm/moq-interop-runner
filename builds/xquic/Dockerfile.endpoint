@@ -15,10 +15,15 @@ RUN XQC_SSL_TYPE=babassl XQC_SSL_PATH=/opt/babassl \
     XQC_SSL_LIBS='/opt/babassl/libssl.a;/opt/babassl/libcrypto.a' \
     XQC_BUILD_JOBS=4 ./scripts/validate.sh build --feature moqt
 
-FROM ubuntu:22.04
+FROM ubuntu:22.04 AS runtime
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     --no-install-recommends libevent-2.1-7 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=builder /src/build/validation/tests/moqt_interop /app/moqt_interop
-EXPOSE 4443/udp
+
+FROM runtime AS client
 ENTRYPOINT ["/app/moqt_interop"]
+
+FROM runtime AS relay
+EXPOSE 4443/udp
+ENTRYPOINT ["/app/moqt_interop", "--server"]

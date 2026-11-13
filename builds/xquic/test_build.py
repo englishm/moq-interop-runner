@@ -38,6 +38,8 @@ args = sys.argv[1:]
 with open(os.environ["BUILD_TEST_TRACE"], "a") as trace:
     trace.write(json.dumps([tool, *args]) + "\\n")
 if tool == "docker":
+    if os.environ.get("BUILD_TEST_FAIL_TARGET") in ("client", "relay"):
+        sys.exit(1 if os.environ["BUILD_TEST_FAIL_TARGET"] in args else 0)
     sys.exit(int(os.environ["BUILD_TEST_FAIL"]))
 if args[0] == "clone":
     (pathlib.Path(args[-1]) / ".git").mkdir(parents=True)
@@ -63,26 +65,29 @@ elif "get-url" in args:
     def provenance(self):
         return json.loads((self.build / ".last-build.json").read_text())
 
-    def test_default_ref_and_single_image(self):
+    def test_default_ref_and_both_role_images(self):
         result = self.run_build()
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.calls()
         checkouts = [call[-1] for call in calls if "checkout" in call]
         self.assertEqual(checkouts, ["dev/moqt-interop"])
         builds = [call for call in calls if call[0] == "docker"]
-        target = self.config["targets"]["endpoint"]
-        self.assertEqual(builds, [["docker", "build", "-f",
-            str(self.build / "Dockerfile.endpoint"), "-t",
-            target["image_name"] + ":latest", "-t",
-            target["registry_image"] + ":latest",
-            str(self.build / ".sources/xquic")]])
+        self.assertEqual(len(builds), 2)
+        self.assertEqual([call[3] for call in builds], ["client", "relay"])
+        self.assertEqual(builds[0][6:10], ["-t", "xquic-client:latest", "-t",
+            "ghcr.io/englishm/moq-interop-runner-xquic-client:latest"])
+        self.assertEqual(builds[1][6:8], ["-t", "xquic-relay:latest"])
+        for call in builds:
+            self.assertEqual(call[-1], str(self.build / ".sources/xquic"))
         self.assertEqual(self.provenance()["source"]["ref"], "dev/moqt-interop")
-        self.assertEqual(len(self.provenance()["images"]), 1)
+        self.assertEqual(self.provenance()["images"], [
+            {"target": "client", "image": "xquic-client:latest"},
+            {"target": "relay", "image": "xquic-relay:latest"}])
 
     def test_local_source_is_preserved(self):
         before = {p.name: p.read_bytes() for p in self.source.iterdir()}
         result = self.run_build("--local", str(self.source),
-                                "--target", "endpoint")
+                                "--target", "relay")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse(any("clone" in call or "checkout" in call
                              for call in self.calls()))
@@ -93,6 +98,19 @@ elif "get-url" in args:
         self.assertEqual(source["local_path"], str(self.source))
         self.assertFalse(source["dirty"])
 
+    def test_single_target_does_not_build_the_other_role(self):
+        for role in ("client", "relay"):
+            with self.subTest(role=role):
+                result = self.run_build("--local", str(self.source),
+                                        "--target", role)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                builds = [call for call in self.calls() if call[0] == "docker"]
+                self.assertEqual(len(builds), 1)
+                self.assertEqual(builds[0][2:4], ["--target", role])
+                self.assertEqual(self.provenance()["images"], [
+                    {"target": role, "image": f"xquic-{role}:latest"}])
+                self.trace.unlink()
+
     def test_ref_and_repository_override(self):
         result = self.run_build("--ref", "test-pinned-ref", "--repo",
                                 "https://example.test/xquic.git")
@@ -102,12 +120,12 @@ elif "get-url" in args:
                          "https://example.test/xquic.git")
 
     def test_removed_targets_fail_before_side_effects(self):
-        for target in ("client", "relay", "client-draft-18", "relay-draft-18",
+        for target in ("endpoint", "client-draft-18", "relay-draft-18",
                        "client-draft-22", "unknown"):
             with self.subTest(target=target):
                 result = self.run_build("--target", target)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("supported: endpoint", result.stderr)
+                self.assertIn("supported: client, relay", result.stderr)
         self.assertEqual(self.calls(), [])
 
     def test_invalid_arguments_fail_before_side_effects(self):
@@ -122,14 +140,19 @@ elif "get-url" in args:
         self.assertEqual(self.calls(), [])
 
     def test_failed_build_does_not_report_success(self):
-        self.env["BUILD_TEST_FAIL"] = "1"
-        result = self.run_build("--local", str(self.source))
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("Docker build failed for endpoint", result.stderr)
-        self.assertNotIn("Build complete!", result.stderr)
-        self.assertFalse((self.build / ".last-build.json").exists())
-        self.assertEqual((self.source / "keep.txt").read_text(),
-                         "local checkout stays unchanged\n")
+        for role, count in (("client", 1), ("relay", 2)):
+            with self.subTest(role=role):
+                self.env["BUILD_TEST_FAIL_TARGET"] = role
+                result = self.run_build("--local", str(self.source))
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f"Docker build failed for {role}", result.stderr)
+                self.assertEqual(len([call for call in self.calls()
+                                      if call[0] == "docker"]), count)
+                self.assertNotIn("Build complete!", result.stderr)
+                self.assertFalse((self.build / ".last-build.json").exists())
+                self.assertEqual((self.source / "keep.txt").read_text(),
+                                 "local checkout stays unchanged\n")
+                self.trace.unlink()
 
 
 if __name__ == "__main__":
