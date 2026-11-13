@@ -1,0 +1,625 @@
+rm -rf mlog/
+mkdir -p mlog/relay mlog/client
+Running interop tests...
+  Relay:  ghcr.io/endel/quic-zig-moq-relay:latest
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+  URL:    moqt://relay:4443
+time="2026-11-13T00:15:21Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-13T00:15:21Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-13T00:15:21Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-13T00:15:21Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+time="2026-11-13T00:15:21Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+ Network main_default Creating 
+ Network main_default Created 
+ Container main-relay-1 Creating 
+ Container main-relay-1 Created 
+ Container main-test-client-1 Creating 
+ Container main-test-client-1 Created 
+Attaching to relay-1, test-client-1
+ Container main-relay-1 Starting 
+ Container main-relay-1 Started 
+ Container main-relay-1 Waiting 
+relay-1  | 
+relay-1  | === MoQ Relay (drafts 17, 18, 22; WebTransport + QUIC) ===
+relay-1  | Certificate SHA-256: 6fd531e24a07b25b189fff03923e4bac45d01798229d160b93637ee65b1f6b9b
+relay-1  | 
+relay-1  | Listening on https://0.0.0.0:4443
+relay-1  | Video demo: https://127.0.0.1:4443/moq_video.html
+relay-1  | Clock demo: https://127.0.0.1:4443/moq.html
+relay-1  | 
+ Container main-relay-1 Healthy 
+ Container main-test-client-1 Starting 
+ Container main-test-client-1 Started 
+relay-1  | [relay] client 0 connected (QUIC, moqt-22)
+relay-1  | [relay] client 0 gone
+test-client-1  | TAP version 14
+test-client-1  | # date: 2026-11-13T00:15:32Z
+test-client-1  | # target: moqt://relay:4443
+test-client-1  | # version: aiomoqt/0.14.1
+test-client-1  | # note: preference probe pinned draft-22
+test-client-1  | 1..20
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] setup-only: SERVER_SETUP received with compatible version
+test-client-1  | ok 1 - setup-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 83
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     client:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "23a89e4b4fe0d6c1"
+test-client-1  |   message: "SERVER_SETUP received with compatible version"
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/56a4/interop/announce-only/"
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+test-client-1  | ok 2 - announce-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 83
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "025ae23471a758ad"
+test-client-1  |   message: "PUBLISH_NAMESPACE_OK received"
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/56a4/interop/publish-namespace-done/"
+relay-1        | [relay] namespace "moq-test/56a4/interop/publish-namespace-done/" withdrawn by client 0
+relay-1        | [relay] client 0 gone
+test-client-1  | ok 3 - publish-namespace-done
+test-client-1  |   ---
+test-client-1  |   duration_ms: 184
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "b5d97d233ff8ee6c"
+test-client-1  |   message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+test-client-1  |   ...
+test-client-1  |   [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="nonexistent/namespace/" track="test-track"
+relay-1        | [relay] REQUEST_ERROR → client: code=16 no such namespace
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] subscribe-error: Error received (expected): code=16
+test-client-1  | ok 4 - subscribe-error
+test-client-1  |   ---
+test-client-1  |   duration_ms: 4
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "e947508006ca61cd"
+test-client-1  |   message: "Error received (expected): code=16"
+test-client-1  |   expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] SUBSCRIBE client=0 ns="nonexistent/rendezvous/" track="test-track"
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] rendezvous timeout → client 0
+relay-1        | [relay] client 0 gone
+test-client-1  | ok 5 - rendezvous-timeout
+test-client-1  |   ---
+test-client-1  |   duration_ms: 595
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "d323dc3c16a6843d"
+test-client-1  |   message: "REQUEST_ERROR TIMEOUT received"
+test-client-1  |   expected: "REQUEST_ERROR TIMEOUT"
+test-client-1  |   ...
+test-client-1  |   [PASS] rendezvous-timeout: REQUEST_ERROR TIMEOUT received
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/56a4/interop/announce-subscribe/"
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] SUBSCRIBE client=1 ns="moq-test/56a4/interop/announce-subscribe/" track="track-56a4"
+relay-1        | [relay] SUBSCRIBE → publisher client 0 ns="moq-test/56a4/interop/announce-subscribe/" track="track-56a4"
+relay-1        | [relay] SUBSCRIBE_OK ← publisher client 0 alias=0
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] client 1 gone
+test-client-1  | WARNING aiopquic.quic.connection: stream 1 reset by peer: error=1
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+test-client-1  | ok 6 - announce-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 165
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "15a60f7128e7a8cf"
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "829998f750df7896"
+test-client-1  |   message: "SUBSCRIBE_OK received — relay routed subscription"
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test/56a4/interop/subscribe-before-announce/" track="track-56a4"
+relay-1        | [relay] REQUEST_ERROR → client: code=16 no such namespace
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=1 ns="moq-test/56a4/interop/subscribe-before-announce/"
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=16
+test-client-1  | ok 7 - subscribe-before-announce
+test-client-1  |   ---
+test-client-1  |   duration_ms: 667
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "cd7500aa1d746c64"
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "319d79dc2274b960"
+test-client-1  |   message: "Error received (valid: relay didn't buffer): code=16"
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/data-subgroup-basic/3b5ca07b058b5454545577284b6ed6eb/"
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] SUBSCRIBE client=1 ns="moq-test/data-subgroup-basic/3b5ca07b058b5454545577284b6ed6eb/moq-test-00/0/0/0/2/4/5/64/32/2/1/1/0/-1/-1/0/" track="track"
+relay-1        | [relay] SUBSCRIBE → publisher client 0 ns="moq-test/data-subgroup-basic/3b5ca07b058b5454545577284b6ed6eb/moq-test-00/0/0/0/2/4/5/64/32/2/1/1/0/-1/-1/0/" track="track"
+relay-1        | [relay] SUBSCRIBE_OK ← publisher client 0 alias=0
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (202 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (202 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=2)
+relay-1        | [relay] cached group 2 for track 0 (202 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 1 status=2 streams=3
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] data-subgroup-basic: 15 objects received; Stream Count upstream 3, downstream 3
+test-client-1  | ok 8 - data-subgroup-basic
+test-client-1  |   ---
+test-client-1  |   duration_ms: 196
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   test_spec_revision: 2
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "0486ba8268a94cda"
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "cce9a92dbab656c3"
+test-client-1  |   message: "15 objects received; Stream Count upstream 3, downstream 3"
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE_NAMESPACE client=0 prefix="moq-test/56a4/interop/subscribe-namespace-lifecycle/7ad4bebb921bfc28e8e52496c7aaa007/"
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=1 ns="moq-test/56a4/interop/subscribe-namespace-lifecycle/7ad4bebb921bfc28e8e52496c7aaa007/"
+relay-1        | [relay] namespace "moq-test/56a4/interop/subscribe-namespace-lifecycle/7ad4bebb921bfc28e8e52496c7aaa007/" withdrawn by client 1
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] subscribe-namespace-lifecycle: NAMESPACE then NAMESPACE_DONE received
+test-client-1  | ok 9 - subscribe-namespace-lifecycle
+test-client-1  |   ---
+test-client-1  |   duration_ms: 165
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   test_spec_revision: 1
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "9c2b0e05e6f77a0b"
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "f382a7dcf55b7f17"
+test-client-1  |   message: "NAMESPACE then NAMESPACE_DONE received"
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/56a4/interop/namespace-discovery/"
+relay-1        | [relay] PUBLISH client=0 ns="moq-test/56a4/interop/namespace-discovery/" track="track-56a4" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] SUBSCRIBE_NAMESPACE client=1 prefix="moq-test/56a4/interop/namespace-discovery/"
+relay-1        | [relay] → 1 NAMESPACE to client 1
+relay-1        | [relay] SUBSCRIBE_TRACKS client=1 prefix="moq-test/56a4/interop/namespace-discovery/"
+relay-1        | [relay] PUBLISH → client 1 ns="moq-test/56a4/interop/namespace-discovery/" track="track-56a4" alias=1
+relay-1        | [relay] PUBLISH accepted by client 1 alias=1
+relay-1        | [relay] REQUEST_UPDATE forward=1 → publisher client 0
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] namespace-discovery: discovered 'track-56a4'
+test-client-1  |   Discovered: moq-test/56a4/interop/namespace-discovery/track-56a4
+test-client-1  | ok 10 - namespace-discovery
+test-client-1  |   ---
+test-client-1  |   duration_ms: 165
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "72ee0199b72c49f5"
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "dbfd3fedd03c14a3"
+test-client-1  |   message: "discovered 'track-56a4'"
+test-client-1  |   expected: "PUBLISH announcing 'track-56a4'"
+test-client-1  |   received: "track-56a4"
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH client=0 ns="moq-test/56a4/interop/publish-track-only/" track="track-56a4" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] publish-track-only: PUBLISH_OK received, PUBLISH_DONE sent
+test-client-1  | ok 11 - publish-track-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 184
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "f3d52941c47f5156"
+test-client-1  |   message: "PUBLISH_OK received, PUBLISH_DONE sent"
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH client=0 ns="moq-test/56a4/interop/publish-track-subscribe/" track="track-56a4" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] SUBSCRIBE client=1 ns="moq-test/56a4/interop/publish-track-subscribe/" track="track-56a4"
+relay-1        | [relay] SUBSCRIBE_OK → client 1 alias=1 (track 0, 1 subs, pub=0)
+relay-1        | [relay] REQUEST_UPDATE forward=1 → publisher client 0
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 0 gone
+test-client-1  | ok 12 - publish-track-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 245
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "45163f78a61503b2"
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "c4e9fb1b065e518e"
+test-client-1  |   message: "5 objects received from the published track"
+test-client-1  |   expected: "5 objects"
+test-client-1  |   received: "5 objects"
+test-client-1  |   ...
+test-client-1  |   [PASS] publish-track-subscribe: 5 objects received from the published track
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test-00/0/0/0/2/5/5/64/32/2/1/1/1/-1/-1/0/" track="moq-test-828a0c18ac5c2998"
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH client=1 ns="moq-test-00/0/0/0/2/5/5/64/32/2/1/1/1/-1/-1/0/" track="moq-test-828a0c18ac5c2998" alias=0
+relay-1        | [relay] PUBLISH_OK → client 1 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 0 alias=1 (track 0, 1 subs, pub=1)
+relay-1        | [relay] stream from client 1 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (211 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (211 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=2)
+relay-1        | [relay] cached group 2 for track 0 (211 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 0 status=2 streams=3
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+test-client-1  | ok 13 - moq-test-subgroup-per-group-eog
+test-client-1  |   ---
+test-client-1  |   duration_ms: 330
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "cfbc1000b4a6affa"
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "5643887a13e3d7a7"
+test-client-1  |   message: "objects 15/15, End of Group 3/3, Stream Count 3/3"
+test-client-1  |   ...
+test-client-1  |   [PASS] moq-test-subgroup-per-group-eog: objects 15/15, End of Group 3/3, Stream Count 3/3
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test-00/1/0/0/1/3/4/64/32/2/1/1/0/-1/-1/0/" track="moq-test-94d0686f207e6922"
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH client=1 ns="moq-test-00/1/0/0/1/3/4/64/32/2/1/1/0/-1/-1/0/" track="moq-test-94d0686f207e6922" alias=0
+relay-1        | [relay] PUBLISH_OK → client 1 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 0 alias=1 (track 0, 1 subs, pub=1)
+relay-1        | [relay] stream from client 1 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (67 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (35 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (35 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (35 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (67 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (35 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (35 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (35 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 0 status=2 streams=8
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+test-client-1  | ok 14 - moq-test-subgroup-per-object
+test-client-1  |   ---
+test-client-1  |   duration_ms: 308
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "f6dca15ed0f1a604"
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "1d5344be1bcc2d3d"
+test-client-1  |   message: "objects 8/8, End of Group 0/0, Stream Count 8/8"
+test-client-1  |   ...
+test-client-1  |   [PASS] moq-test-subgroup-per-object: objects 8/8, End of Group 0/0, Stream Count 8/8
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test-00/2/0/0/2/6/6/64/32/2/1/1/1/-1/-1/0/" track="moq-test-c4ea0a56f8323cf0"
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH client=1 ns="moq-test-00/2/0/0/2/6/6/64/32/2/1/1/1/-1/-1/0/" track="moq-test-c4ea0a56f8323cf0" alias=0
+relay-1        | [relay] PUBLISH_OK → client 1 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 0 alias=1 (track 0, 1 subs, pub=1)
+relay-1        | [relay] stream from client 1 → 1 subs (group=0)
+relay-1        | [relay] stream from client 1 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (105 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=1)
+relay-1        | [relay] stream from client 1 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (105 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=2)
+relay-1        | [relay] stream from client 1 → 1 subs (group=2)
+relay-1        | [relay] cached group 2 for track 0 (141 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 0 status=2 streams=6
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+test-client-1  |   [PASS] moq-test-two-subgroups-eog: objects 18/18, End of Group 3/3, Stream Count 6/6
+test-client-1  | ok 15 - moq-test-two-subgroups-eog
+test-client-1  |   ---
+test-client-1  |   duration_ms: 337
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "a4a7edc7cfab6e9e"
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "4ffac7c82634ea3b"
+test-client-1  |   message: "objects 18/18, End of Group 3/3, Stream Count 6/6"
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test-00/3/0/0/2/4/5/64/32/20/1/1/0/-1/-1/0/" track="moq-test-1c053562aeb9eb2c"
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH client=1 ns="moq-test-00/3/0/0/2/4/5/64/32/20/1/1/0/-1/-1/0/" track="moq-test-1c053562aeb9eb2c" alias=0
+relay-1        | [relay] PUBLISH_OK → client 1 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 0 alias=1 (track 0, 1 subs, pub=1)
+relay-1        | [relay] PUBLISH_DONE → client 0 status=2 streams=0
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+test-client-1  |   [PASS] moq-test-datagram: objects 15/15, End of Group 0/0, Stream Count 0/0
+test-client-1  | ok 16 - moq-test-datagram
+test-client-1  |   ---
+test-client-1  |   duration_ms: 851
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "28424b5134b3a4d2"
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "91dda124cddd8169"
+test-client-1  |   message: "objects 15/15, End of Group 0/0, Stream Count 0/0"
+test-client-1  |   ...
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test-00/3/0/0/2/5/5/64/32/20/1/1/1/-1/-1/0/" track="moq-test-26deeebf3ab893c7"
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH client=1 ns="moq-test-00/3/0/0/2/5/5/64/32/20/1/1/1/-1/-1/0/" track="moq-test-26deeebf3ab893c7" alias=0
+relay-1        | [relay] PUBLISH_OK → client 1 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 0 alias=1 (track 0, 1 subs, pub=1)
+relay-1        | [relay] PUBLISH_DONE → client 0 status=2 streams=0
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+test-client-1  | ok 17 - moq-test-datagram-eog
+test-client-1  |   ---
+test-client-1  |   duration_ms: 916
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "a70126b0472442db"
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "2d4498cae11b0974"
+test-client-1  |   message: "objects 15/15, End of Group 3/3, Stream Count 0/0"
+test-client-1  |   ...
+test-client-1  |   [PASS] moq-test-datagram-eog: objects 15/15, End of Group 3/3, Stream Count 0/0
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test-00/0/0/0/2/5/5/64/32/2/1/1/1/1/2/0/" track="moq-test-f76e718c96791caf"
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH client=1 ns="moq-test-00/0/0/0/2/5/5/64/32/2/1/1/1/1/2/0/" track="moq-test-f76e718c96791caf" alias=0
+relay-1        | [relay] PUBLISH_OK → client 1 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 0 alias=1 (track 0, 1 subs, pub=1)
+relay-1        | [relay] stream from client 1 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (315 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (284 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=2)
+relay-1        | [relay] cached group 2 for track 0 (309 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 0 status=2 streams=3
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+test-client-1  | ok 18 - moq-test-extensions
+test-client-1  |   ---
+test-client-1  |   duration_ms: 330
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "8b48dfa7d603acaf"
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "41d4b0f764b0aa1a"
+test-client-1  |   message: "objects 15/15, End of Group 3/3, Stream Count 3/3"
+test-client-1  |   ...
+test-client-1  |   [PASS] moq-test-extensions: objects 15/15, End of Group 3/3, Stream Count 3/3
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test-00/0/10/3/24/7/3/40/24/2/7/2/0/-1/-1/0/" track="moq-test-6fb34bad5a589ecf"
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH client=1 ns="moq-test-00/0/10/3/24/7/3/40/24/2/7/2/0/-1/-1/0/" track="moq-test-6fb34bad5a589ecf" alias=0
+relay-1        | [relay] PUBLISH_OK → client 1 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 0 alias=1 (track 0, 1 subs, pub=1)
+relay-1        | [relay] stream from client 1 → 1 subs (group=10)
+relay-1        | [relay] cached group 10 for track 0 (97 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=17)
+relay-1        | [relay] cached group 17 for track 0 (97 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=24)
+relay-1        | [relay] cached group 24 for track 0 (97 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 0 status=2 streams=3
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+test-client-1  | ok 19 - moq-test-increments
+test-client-1  |   ---
+test-client-1  |   duration_ms: 309
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "5d698768ab4df7b4"
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "7056f53087d9ea6d"
+test-client-1  |   message: "objects 9/9, End of Group 0/0, Stream Count 3/3"
+test-client-1  |   ...
+test-client-1  |   [PASS] moq-test-increments: objects 9/9, End of Group 0/0, Stream Count 3/3
+relay-1        | [relay] client 0 connected (QUIC, moqt-22)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test-00/0/0/0/1/2/3/64/32/2/1/1/0/-1/-1/0/" track="moq-test-66ee504e5bacad06"
+relay-1        | [relay] client 1 connected (QUIC, moqt-22)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH client=1 ns="moq-test-00/0/0/0/1/2/3/64/32/2/1/1/0/-1/-1/0/" track="moq-test-66ee504e5bacad06" alias=0
+relay-1        | [relay] PUBLISH_OK → client 1 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 0 alias=1 (track 0, 1 subs, pub=1)
+relay-1        | [relay] stream from client 1 → 0 subs (group=0)
+relay-1        | [relay] stream from client 1 → 0 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (137 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 0 status=2 streams=0
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 0 gone
+test-client-1  |   [PASS] moq-test-forward-zero: 0 objects with Forward State 0; Stream Count 0; relay took the PUBLISH at Forward State 1
+test-client-1  | ok 20 - moq-test-forward-zero
+test-client-1  |   ---
+test-client-1  |   duration_ms: 574
+test-client-1  |   implementation_version: "0.14.1"
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "b9195793cc8118b8"
+test-client-1  |     publisher:
+test-client-1  |       transport: "quic"
+test-client-1  |       moqt_version: "moqt-22"
+test-client-1  |       alpn: "moqt-22"
+test-client-1  |       quic_initial_destination_connection_id: "73f58e9e61acd6a7"
+test-client-1  |   message: "0 objects with Forward State 0; Stream Count 0; relay took the PUBLISH at Forward State 1"
+test-client-1  |   ...
+test-client-1  | # ended: 2026-11-13T00:15:38Z
+[Ktest-client-1 exited with code 0
+ Compose Stopping Aborting on container exit...
+ Container main-test-client-1 Stopping 
+ Container main-test-client-1 Stopped 
+ Container main-relay-1 Stopping 
+ Container main-relay-1 Stopped 
+[Krelay-1 exited with code 143
+
+Test results in mlog/

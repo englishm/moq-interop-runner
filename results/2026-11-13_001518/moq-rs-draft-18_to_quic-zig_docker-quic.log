@@ -1,0 +1,442 @@
+rm -rf mlog/
+mkdir -p mlog/relay mlog/client
+Running interop tests...
+  Relay:  ghcr.io/endel/quic-zig-moq-relay:latest
+  Client: ghcr.io/englishm/moq-interop-runner-moq-test-client-draft-18:latest
+  URL:    moqt://relay:4443
+time="2026-11-13T00:17:10Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-13T00:17:10Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-13T00:17:10Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-13T00:17:10Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+time="2026-11-13T00:17:10Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+ Container main-test-client-1 Recreate 
+ Container main-test-client-1 Recreated 
+Attaching to relay-1, test-client-1
+ Container main-relay-1 Starting 
+ Container main-relay-1 Started 
+ Container main-relay-1 Waiting 
+relay-1  | 
+relay-1  | === MoQ Relay (drafts 17, 18, 22; WebTransport + QUIC) ===
+relay-1  | Certificate SHA-256: 6fd531e24a07b25b189fff03923e4bac45d01798229d160b93637ee65b1f6b9b
+relay-1  | 
+relay-1  | Listening on https://0.0.0.0:4443
+relay-1  | Video demo: https://127.0.0.1:4443/moq_video.html
+relay-1  | Clock demo: https://127.0.0.1:4443/moq.html
+relay-1  | 
+ Container main-relay-1 Healthy 
+ Container main-test-client-1 Starting 
+ Container main-test-client-1 Started 
+test-client-1  | TAP version 14
+test-client-1  | # moq-test-client v0.1.15
+test-client-1  | # Relay: moqt://relay:4443
+test-client-1  | 1..18
+test-client-1  | [2m2026-11-13T00:17:16.277229Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:57731 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+test-client-1  | ok 1 - setup-only
+test-client-1  |   ---
+relay-1        | [relay] client 0 SETUP received
+test-client-1  |   duration_ms: 4
+test-client-1  |   connection_id: a23c907007464dd1de40dec2b4a86f08
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:16.280827Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m SETUP exchange completed successfully
+test-client-1  | [2m2026-11-13T00:17:16.281637Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:52204 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 1 connected (QUIC, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+test-client-1  | [2m2026-11-13T00:17:16.283446Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Sending PUBLISH_NAMESPACE for: moq-test/interop
+relay-1        | [relay] PUBLISH_NAMESPACE client=1 ns="moq-test/interop/"
+relay-1        | [relay] client 0 gone
+test-client-1  | [2m2026-11-13T00:17:18.284247Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH_NAMESPACE succeeded (REQUEST_OK received, waiting for subscribers)
+test-client-1  | ok 2 - publish-namespace-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 2003
+test-client-1  |   connection_id: e02cdfd688b3142324e84e0d9a845a74
+test-client-1  |   ...
+relay-1        | [relay] namespace "moq-test/interop/" withdrawn by client 1
+test-client-1  | [2m2026-11-13T00:17:18.285198Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:34479 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+test-client-1  | [2m2026-11-13T00:17:18.287301Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Subscribing to non-existent track: nonexistent/namespace/test-track
+relay-1        | [relay] SUBSCRIBE client=0 ns="nonexistent/namespace/" track="test-track"
+relay-1        | [relay] REQUEST_ERROR → client: code=16 no such namespace
+test-client-1  | [2m2026-11-13T00:17:18.287637Z[0m [33m WARN[0m [1mmoq_session[0m[1m{[0m[3msession_id[0m[2m=[0mffb40d7e81d74b36ad05969345225b5e[1m}[0m[2m:[0m [2mmoq_transport::serve::error[0m[2m:[0m Not found at moq-transport/src/session/subscriber.rs:2205 [3merror_id[0m[2m=[0me68357cf-bb59-4818-b817-00d43704a5d9 [3mcontext[0m[2m=[0m"no such namespace"
+test-client-1  | [2m2026-11-13T00:17:18.287749Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Got expected 'not found' error: not found: Track not found [error:e68357cf-bb59-4818-b817-00d43704a5d9]
+test-client-1  | ok 3 - subscribe-error
+test-client-1  |   ---
+test-client-1  |   duration_ms: 3
+test-client-1  |   connection_id: b1745d84f15e5daf6b4f2b17e6023516
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:18.288685Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:34795 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 2 connected (QUIC, moqt-18)
+relay-1        | [relay] client 2 SETUP received
+test-client-1  | [2m2026-11-13T00:17:18.291298Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:36363 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 3 connected (QUIC, moqt-18)
+relay-1        | [relay] client 3 SETUP received
+test-client-1  | [2m2026-11-13T00:17:18.293242Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Publisher sending PUBLISH_NAMESPACE: moq-test/interop
+test-client-1  | [2m2026-11-13T00:17:18.293259Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Subscriber subscribing to track: moq-test/interop/test-track
+relay-1        | [relay] PUBLISH_NAMESPACE client=2 ns="moq-test/interop/"
+relay-1        | [relay] SUBSCRIBE client=3 ns="moq-test/interop/" track="test-track"
+relay-1        | [relay] SUBSCRIBE → publisher client 2 ns="moq-test/interop/" track="test-track"
+relay-1        | [relay] SUBSCRIBE_OK ← publisher client 2 alias=1
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] PUBLISH_DONE → client 3 status=2 streams=0
+relay-1        | [relay] namespace "moq-test/interop/" withdrawn by client 2
+test-client-1  | [2m2026-11-13T00:17:21.294978Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Test timeout reached - subscription routing may still be in progress
+test-client-1  | ok 4 - publish-namespace-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 3007
+test-client-1  |   publisher_connection_id: a0658f05e39ff4dcfce6458dacfc6d65
+test-client-1  |   subscriber_connection_id: e724324a4567acb22b33e204a5f12fda
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:21.296070Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:39683 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+test-client-1  | [2m2026-11-13T00:17:21.299329Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Subscriber subscribing BEFORE PUBLISH_NAMESPACE: moq-test/interop/test-track
+relay-1        | [relay] SUBSCRIBE client=0 ns="moq-test/interop/" track="test-track"
+relay-1        | [relay] REQUEST_ERROR → client: code=16 no such namespace
+test-client-1  | [2m2026-11-13T00:17:21.299728Z[0m [33m WARN[0m [1mmoq_session[0m[1m{[0m[3msession_id[0m[2m=[0m7e4845db0bc3418e93e451557974082b[1m}[0m[2m:[0m [2mmoq_transport::serve::error[0m[2m:[0m Not found at moq-transport/src/session/subscriber.rs:2205 [3merror_id[0m[2m=[0m89e9891c-8fa5-45c6-82a6-a9d18a8aff06 [3mcontext[0m[2m=[0m"no such namespace"
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 3 gone
+relay-1        | [relay] client 2 gone
+test-client-1  | [2m2026-11-13T00:17:21.802005Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:58531 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+test-client-1  | [2m2026-11-13T00:17:21.805801Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Publisher sending PUBLISH_NAMESPACE (after subscriber): moq-test/interop
+relay-1        | [relay] PUBLISH_NAMESPACE client=0 ns="moq-test/interop/"
+relay-1        | [relay] namespace "moq-test/interop/" withdrawn by client 0
+test-client-1  | [2m2026-11-13T00:17:24.807221Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Publisher PUBLISH_NAMESPACE timeout (expected)
+test-client-1  | [2m2026-11-13T00:17:24.807251Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Subscriber got error: not found: Track not found [error:89e9891c-8fa5-45c6-82a6-a9d18a8aff06] (may be expected)
+test-client-1  | ok 5 - subscribe-before-publish-namespace
+test-client-1  |   ---
+test-client-1  |   duration_ms: 3512
+test-client-1  |   subscriber_connection_id: 25e5f0f438ab79195d0396341225a8cd
+test-client-1  |   publisher_connection_id: e46164421dd39650efe55ece196ef82b
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:24.808312Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:51606 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 1 connected (QUIC, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+test-client-1  | [2m2026-11-13T00:17:24.811867Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Sending PUBLISH_NAMESPACE: moq-test/interop
+relay-1        | [relay] PUBLISH_NAMESPACE client=1 ns="moq-test/interop/"
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] namespace "moq-test/interop/" withdrawn by client 1
+test-client-1  | [2m2026-11-13T00:17:26.813863Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH_NAMESPACE active; sending PUBLISH_NAMESPACE_DONE
+test-client-1  | ok 6 - publish-namespace-done
+test-client-1  |   ---
+test-client-1  |   duration_ms: 2108
+test-client-1  |   connection_id: 2a28394b3298de79307bc67ac9f99e77
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:26.915566Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH_NAMESPACE_DONE sent successfully
+test-client-1  | [2m2026-11-13T00:17:26.916503Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:47138 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+test-client-1  | [2m2026-11-13T00:17:26.918686Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Publisher sending direct PUBLISH [3mnamespace[0m[2m=[0m/moq-test/publish [3mtrack[0m[2m=[0m"published-track"
+relay-1        | [relay] PUBLISH client=0 ns="moq-test/publish/" track="published-track" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+test-client-1  | [2m2026-11-13T00:17:26.919087Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH accepted [3mnamespace[0m[2m=[0m/moq-test/publish [3mtrack[0m[2m=[0m"published-track"
+relay-1        | [relay] stream from client 0 → 0 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (21 bytes)
+test-client-1  | [2m2026-11-13T00:17:26.919516Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH completed [3mnamespace[0m[2m=[0m/moq-test/publish [3mtrack[0m[2m=[0m"published-track"
+test-client-1  | ok 7 - publish-track-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 4
+test-client-1  |   connection_id: 27367718cde1a7439d4b636e06a35787
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:26.920437Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:58670 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 2 connected (QUIC, moqt-18)
+relay-1        | [relay] client 2 SETUP received
+test-client-1  | [2m2026-11-13T00:17:26.922981Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:55315 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 3 connected (QUIC, moqt-18)
+relay-1        | [relay] client 3 SETUP received
+test-client-1  | [2m2026-11-13T00:17:26.924816Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Publisher sending direct PUBLISH before subscriber subscribes [3mnamespace[0m[2m=[0m/moq-test/publish [3mtrack[0m[2m=[0m"published-track"
+relay-1        | [relay] PUBLISH client=2 ns="moq-test/publish/" track="published-track" alias=0
+relay-1        | [relay] PUBLISH_OK → client 2 (track 0, 0 subs)
+test-client-1  | [2m2026-11-13T00:17:26.925219Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m PUBLISH accepted; starting subscriber [3mnamespace[0m[2m=[0m/moq-test/publish [3mtrack[0m[2m=[0m"published-track"
+relay-1        | [relay] SUBSCRIBE client=3 ns="moq-test/publish/" track="published-track"
+relay-1        | [relay] SUBSCRIBE_OK → client 3 alias=1 (track 0, 1 subs, pub=2)
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] stream from client 2 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (26 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 3 status=2 streams=1
+test-client-1  | [2m2026-11-13T00:17:27.051676Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Subscriber received direct PUBLISH track [3mnamespace[0m[2m=[0m/moq-test/publish [3mtrack[0m[2m=[0m"published-track"
+test-client-1  | ok 8 - publish-track-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 132
+test-client-1  |   publisher_connection_id: 9da995e1bbdec7e9504c95c6002e2e9f
+test-client-1  |   subscriber_connection_id: 18f1145c598b93fc102db58cd69684a5
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:27.052777Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:45961 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+test-client-1  | [2m2026-11-13T00:17:27.054983Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Subscribing with RENDEZVOUS_TIMEOUT to a track with no publisher [3mtimeout_ms[0m[2m=[0m500
+relay-1        | [relay] SUBSCRIBE client=0 ns="nonexistent/rendezvous/" track="test-track"
+relay-1        | [relay] client 3 gone
+relay-1        | [relay] client 2 gone
+relay-1        | [relay] rendezvous timeout → client 0
+test-client-1  | [2m2026-11-13T00:17:27.603226Z[0m [32m INFO[0m [2mmoq_test_client::scenarios[0m[2m:[0m Received expected REQUEST_ERROR TIMEOUT
+test-client-1  | [2m2026-11-13T00:17:27.603343Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m data-plane run [3mprefix[0m[2m=[0m/moq-test/data-subgroup-basic/26a6351fb376c1a3dc6e8c4f00e66872 [3mnamespace[0m[2m=[0m/moq-test/data-subgroup-basic/26a6351fb376c1a3dc6e8c4f00e66872/moq-test-00/0/0/0/2/4/5/64/32/2/1/1/0/-1/-1/0
+test-client-1  | ok 9 - rendezvous-timeout
+test-client-1  |   ---
+test-client-1  |   duration_ms: 551
+test-client-1  |   connection_id: 28a1649bfbff47e6e361548b17189b5c
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:27.604204Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:34990 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 1 connected (QUIC, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] PUBLISH_NAMESPACE client=1 ns="moq-test/data-subgroup-basic/26a6351fb376c1a3dc6e8c4f00e66872/"
+test-client-1  | [2m2026-11-13T00:17:27.606658Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH_NAMESPACE accepted
+test-client-1  | [2m2026-11-13T00:17:27.607354Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:34789 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 2 connected (QUIC, moqt-18)
+relay-1        | [relay] client 2 SETUP received
+relay-1        | [relay] SUBSCRIBE client=2 ns="moq-test/data-subgroup-basic/26a6351fb376c1a3dc6e8c4f00e66872/moq-test-00/0/0/0/2/4/5/64/32/2/1/1/0/-1/-1/0/" track="track"
+relay-1        | [relay] SUBSCRIBE → publisher client 1 ns="moq-test/data-subgroup-basic/26a6351fb376c1a3dc6e8c4f00e66872/moq-test-00/0/0/0/2/4/5/64/32/2/1/1/0/-1/-1/0/" track="track"
+test-client-1  | [2m2026-11-13T00:17:27.609554Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m serving moq-test SUBSCRIBE [3mnamespace[0m[2m=[0m/moq-test/data-subgroup-basic/26a6351fb376c1a3dc6e8c4f00e66872/moq-test-00/0/0/0/2/4/5/64/32/2/1/1/0/-1/-1/0
+relay-1        | [relay] SUBSCRIBE_OK ← publisher client 1 alias=1
+relay-1        | [relay] stream from client 1 → 1 subs (group=0)
+test-client-1  | [2m2026-11-13T00:17:27.609922Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m downstream SUBSCRIBE_OK received
+relay-1        | [relay] stream from client 1 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (207 bytes)
+relay-1        | [relay] stream from client 1 → 1 subs (group=2)
+relay-1        | [relay] cached group 2 for track 0 (207 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 2 status=2 streams=3
+test-client-1  | [2m2026-11-13T00:17:27.656023Z[0m [32m INFO[0m [2mmoq_test_client[0m[2m:[0m data-plane test passed: objects 15/15, eog 0/0, streams 3, publish_done status=2 stream_count=3 reason=ReasonPhrase("done")
+test-client-1  | ok 10 - data-subgroup-basic
+test-client-1  |   ---
+test-client-1  |   duration_ms: 52
+test-client-1  |   test_spec_revision: 2
+test-client-1  |   publisher_connection_id: 85e82c3c2ce533db9cd3284b28b346fe
+test-client-1  |   subscriber_connection_id: ca8ad471a6a1ebbfe95b3ebdc34674dc
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:27.656963Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:54078 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 3 connected (QUIC, moqt-18)
+relay-1        | [relay] client 3 SETUP received
+relay-1        | [relay] SUBSCRIBE client=3 ns="moq-test-00/0/0/0/2/5/5/64/32/2/1/1/1/-1/-1/0/" track="moq-test-b65b0193e27595a1"
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 2 gone
+test-client-1  | [2m2026-11-13T00:17:27.861387Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:39690 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH client=0 ns="moq-test-00/0/0/0/2/5/5/64/32/2/1/1/1/-1/-1/0/" track="moq-test-b65b0193e27595a1" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 3 alias=1 (track 0, 1 subs, pub=0)
+test-client-1  | [2m2026-11-13T00:17:27.865377Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH accepted and subscription bound; generating objects [3mobjects[0m[2m=[0m15 [3mstreams[0m[2m=[0m3
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] stream from client 0 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (211 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=2)
+relay-1        | [relay] cached group 2 for track 0 (211 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 3 status=2 streams=3
+test-client-1  | [2m2026-11-13T00:17:27.947569Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH completed
+test-client-1  | [2m2026-11-13T00:17:27.947994Z[0m [32m INFO[0m [2mmoq_test_client[0m[2m:[0m moq-test passed: objects 15/15, eog 3/3, streams 3, publish_done status=2 stream_count=3 reason=ReasonPhrase("publish ended")
+test-client-1  | ok 11 - moq-test-subgroup-per-group-eog
+test-client-1  |   ---
+test-client-1  |   duration_ms: 291
+test-client-1  |   subscriber_connection_id: 85b95c0ea0f6a8311f03fbb9054ff938
+test-client-1  |   publisher_connection_id: 6c3079bcb9375f74fee16588b9ea574f
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:27.948899Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:37024 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 1 connected (QUIC, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] SUBSCRIBE client=1 ns="moq-test-00/1/0/0/1/3/4/64/32/2/1/1/0/-1/-1/0/" track="moq-test-a65fd5d4a8a89573"
+relay-1        | [relay] client 3 gone
+relay-1        | [relay] client 0 gone
+test-client-1  | [2m2026-11-13T00:17:28.153351Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:60485 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH client=0 ns="moq-test-00/1/0/0/1/3/4/64/32/2/1/1/0/-1/-1/0/" track="moq-test-a65fd5d4a8a89573" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 1 alias=1 (track 0, 1 subs, pub=0)
+test-client-1  | [2m2026-11-13T00:17:28.156166Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH accepted and subscription bound; generating objects [3mobjects[0m[2m=[0m8 [3mstreams[0m[2m=[0m8
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (67 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (35 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (35 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (35 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (67 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (35 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (35 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (35 bytes)
+test-client-1  | [2m2026-11-13T00:17:28.202925Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH completed
+relay-1        | [relay] PUBLISH_DONE → client 1 status=2 streams=8
+test-client-1  | [2m2026-11-13T00:17:28.203300Z[0m [32m INFO[0m [2mmoq_test_client[0m[2m:[0m moq-test passed: objects 8/8, eog 0/0, streams 8, publish_done status=2 stream_count=8 reason=ReasonPhrase("publish ended")
+test-client-1  | ok 12 - moq-test-subgroup-per-object
+test-client-1  |   ---
+test-client-1  |   duration_ms: 255
+test-client-1  |   subscriber_connection_id: 4c789ac53fb86eede7db99e6c6597cae
+test-client-1  |   publisher_connection_id: 07a1e7df1eb401c06823b5cc83b063e4
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:28.204114Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:54855 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 2 connected (QUIC, moqt-18)
+relay-1        | [relay] client 2 SETUP received
+relay-1        | [relay] SUBSCRIBE client=2 ns="moq-test-00/2/0/0/2/6/6/64/32/2/1/1/1/-1/-1/0/" track="moq-test-9ab413e7b1fec393"
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+test-client-1  | [2m2026-11-13T00:17:28.408841Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:55667 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH client=0 ns="moq-test-00/2/0/0/2/6/6/64/32/2/1/1/1/-1/-1/0/" track="moq-test-9ab413e7b1fec393" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 2 alias=1 (track 0, 1 subs, pub=0)
+test-client-1  | [2m2026-11-13T00:17:28.411713Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH accepted and subscription bound; generating objects [3mobjects[0m[2m=[0m18 [3mstreams[0m[2m=[0m6
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (105 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=1)
+relay-1        | [relay] stream from client 0 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (105 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=2)
+relay-1        | [relay] stream from client 0 → 1 subs (group=2)
+relay-1        | [relay] cached group 2 for track 0 (105 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 2 status=2 streams=6
+test-client-1  | [2m2026-11-13T00:17:28.501943Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH completed
+test-client-1  | [2m2026-11-13T00:17:28.502302Z[0m [32m INFO[0m [2mmoq_test_client[0m[2m:[0m moq-test passed: objects 18/18, eog 3/3, streams 6, publish_done status=2 stream_count=6 reason=ReasonPhrase("publish ended")
+test-client-1  | ok 13 - moq-test-two-subgroups-eog
+test-client-1  |   ---
+test-client-1  |   duration_ms: 298
+test-client-1  |   subscriber_connection_id: 7df949305edbe9f5f914e899e5e96df6
+test-client-1  |   publisher_connection_id: 67abbd7af08809b3f7b97d3ccf2be948
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:28.503217Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:49614 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 1 connected (QUIC, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] SUBSCRIBE client=1 ns="moq-test-00/3/0/0/2/4/5/64/32/20/1/1/0/-1/-1/0/" track="moq-test-93bd93acabd42e71"
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 2 gone
+test-client-1  | [2m2026-11-13T00:17:28.707608Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:36763 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH client=0 ns="moq-test-00/3/0/0/2/4/5/64/32/20/1/1/0/-1/-1/0/" track="moq-test-93bd93acabd42e71" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 1 alias=1 (track 0, 1 subs, pub=0)
+test-client-1  | [2m2026-11-13T00:17:28.710375Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH accepted and subscription bound; generating objects [3mobjects[0m[2m=[0m15 [3mstreams[0m[2m=[0m0
+test-client-1  | [2m2026-11-13T00:17:29.028332Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH completed
+relay-1        | [relay] PUBLISH_DONE → client 1 status=2 streams=0
+test-client-1  | [2m2026-11-13T00:17:29.028907Z[0m [32m INFO[0m [2mmoq_test_client[0m[2m:[0m moq-test passed: objects 15/15, eog 0/0, streams 0, publish_done status=2 stream_count=0 reason=ReasonPhrase("publish ended")
+test-client-1  | ok 14 - moq-test-datagram
+test-client-1  |   ---
+test-client-1  |   duration_ms: 526
+test-client-1  |   subscriber_connection_id: 3b48eddf1778dc28483eabf7b9709ebc
+test-client-1  |   publisher_connection_id: 71ec1e8cd61dd4927ace1b0168027f24
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:29.029775Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:44307 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 2 connected (QUIC, moqt-18)
+relay-1        | [relay] client 2 SETUP received
+relay-1        | [relay] SUBSCRIBE client=2 ns="moq-test-00/3/0/0/2/5/5/64/32/20/1/1/1/-1/-1/0/" track="moq-test-316c376b01bb122c"
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 1 gone
+test-client-1  | [2m2026-11-13T00:17:29.234367Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:42003 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH client=0 ns="moq-test-00/3/0/0/2/5/5/64/32/20/1/1/1/-1/-1/0/" track="moq-test-316c376b01bb122c" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 2 alias=1 (track 0, 1 subs, pub=0)
+test-client-1  | [2m2026-11-13T00:17:29.237228Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH accepted and subscription bound; generating objects [3mobjects[0m[2m=[0m15 [3mstreams[0m[2m=[0m0
+test-client-1  | [2m2026-11-13T00:17:29.618838Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH completed
+relay-1        | [relay] PUBLISH_DONE → client 2 status=2 streams=0
+test-client-1  | [2m2026-11-13T00:17:29.619279Z[0m [32m INFO[0m [2mmoq_test_client[0m[2m:[0m moq-test passed: objects 15/15, eog 3/3, streams 0, publish_done status=2 stream_count=0 reason=ReasonPhrase("publish ended")
+test-client-1  | ok 15 - moq-test-datagram-eog
+test-client-1  |   ---
+test-client-1  |   duration_ms: 590
+test-client-1  |   subscriber_connection_id: 74a0447ed4d215ce20a97bd307325202
+test-client-1  |   publisher_connection_id: 4a081d2a542161dc9925ba7d75feadd4
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:29.620108Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:49500 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 1 connected (QUIC, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] SUBSCRIBE client=1 ns="moq-test-00/0/0/0/2/5/5/64/32/2/1/1/1/1/2/0/" track="moq-test-1899c2e204eb0a37"
+relay-1        | [relay] client 0 gone
+relay-1        | [relay] client 2 gone
+test-client-1  | [2m2026-11-13T00:17:29.824521Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:54276 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH client=0 ns="moq-test-00/0/0/0/2/5/5/64/32/2/1/1/1/1/2/0/" track="moq-test-1899c2e204eb0a37" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 1 alias=1 (track 0, 1 subs, pub=0)
+test-client-1  | [2m2026-11-13T00:17:29.827326Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH accepted and subscription bound; generating objects [3mobjects[0m[2m=[0m15 [3mstreams[0m[2m=[0m3
+relay-1        | [relay] stream from client 0 → 1 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (327 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (321 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=2)
+relay-1        | [relay] cached group 2 for track 0 (331 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 1 status=2 streams=3
+test-client-1  | [2m2026-11-13T00:17:29.883369Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH completed
+test-client-1  | ok 16 - moq-test-extensions
+test-client-1  |   ---
+test-client-1  |   duration_ms: 264
+test-client-1  |   subscriber_connection_id: 2e66f8636a03bfaa85d08949410f81d1
+test-client-1  |   publisher_connection_id: bda070f3e3b847822a349b2253c51952
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:29.883731Z[0m [32m INFO[0m [2mmoq_test_client[0m[2m:[0m moq-test passed: objects 15/15, eog 3/3, streams 3, publish_done status=2 stream_count=3 reason=ReasonPhrase("publish ended")
+test-client-1  | [2m2026-11-13T00:17:29.884558Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:58464 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 2 connected (QUIC, moqt-18)
+relay-1        | [relay] client 2 SETUP received
+relay-1        | [relay] SUBSCRIBE client=2 ns="moq-test-00/0/10/3/24/7/3/40/24/2/7/2/0/-1/-1/0/" track="moq-test-603df993ac0d4082"
+relay-1        | [relay] client 1 gone
+relay-1        | [relay] client 0 gone
+test-client-1  | [2m2026-11-13T00:17:30.089707Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:55491 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH client=0 ns="moq-test-00/0/10/3/24/7/3/40/24/2/7/2/0/-1/-1/0/" track="moq-test-603df993ac0d4082" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 2 alias=1 (track 0, 1 subs, pub=0)
+test-client-1  | [2m2026-11-13T00:17:30.092566Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH accepted and subscription bound; generating objects [3mobjects[0m[2m=[0m9 [3mstreams[0m[2m=[0m3
+relay-1        | [relay] stream from client 0 → 1 subs (group=10)
+relay-1        | [relay] cached group 10 for track 0 (97 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=17)
+relay-1        | [relay] cached group 17 for track 0 (97 bytes)
+relay-1        | [relay] stream from client 0 → 1 subs (group=24)
+relay-1        | [relay] cached group 24 for track 0 (97 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 2 status=2 streams=3
+test-client-1  | [2m2026-11-13T00:17:30.119926Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH completed
+test-client-1  | [2m2026-11-13T00:17:30.120127Z[0m [32m INFO[0m [2mmoq_test_client[0m[2m:[0m moq-test passed: objects 9/9, eog 0/0, streams 3, publish_done status=2 stream_count=3 reason=ReasonPhrase("publish ended")
+test-client-1  | ok 17 - moq-test-increments
+test-client-1  |   ---
+test-client-1  |   duration_ms: 236
+test-client-1  |   subscriber_connection_id: c528ae27c04a6d3fc97505912e3f16eb
+test-client-1  |   publisher_connection_id: 60a925f383e5fa9ab264b804ba4581d3
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:30.120958Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:42943 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 1 connected (QUIC, moqt-18)
+relay-1        | [relay] client 1 SETUP received
+relay-1        | [relay] SUBSCRIBE client=1 ns="moq-test-00/0/0/0/1/2/3/64/32/2/1/1/0/-1/-1/0/" track="moq-test-5917904a9f45c50e"
+relay-1        | [relay] client 2 gone
+relay-1        | [relay] client 0 gone
+test-client-1  | [2m2026-11-13T00:17:30.325555Z[0m [32m INFO[0m [2mmoq_native_ietf::quic[0m[2m:[0m UDP socket bound [3mbind[0m[2m=[0m[::]:0 [3mlocal[0m[2m=[0m[::]:53862 [3mdual_stack[0m[2m=[0mtrue
+relay-1        | [relay] client 0 connected (QUIC, moqt-18)
+relay-1        | [relay] client 0 SETUP received
+relay-1        | [relay] PUBLISH client=0 ns="moq-test-00/0/0/0/1/2/3/64/32/2/1/1/0/-1/-1/0/" track="moq-test-5917904a9f45c50e" alias=0
+relay-1        | [relay] PUBLISH_OK → client 0 (track 0, 0 subs)
+relay-1        | [relay] SUBSCRIBE_OK → client 1 alias=1 (track 0, 1 subs, pub=0)
+test-client-1  | [2m2026-11-13T00:17:30.328308Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH accepted and subscription bound; generating objects [3mobjects[0m[2m=[0m6 [3mstreams[0m[2m=[0m2
+relay-1        | [relay] stream from client 0 → 0 subs (group=0)
+relay-1        | [relay] cached group 0 for track 0 (137 bytes)
+relay-1        | [relay] stream from client 0 → 0 subs (group=1)
+relay-1        | [relay] cached group 1 for track 0 (137 bytes)
+relay-1        | [relay] PUBLISH_DONE → client 1 status=2 streams=0
+test-client-1  | [2m2026-11-13T00:17:30.370651Z[0m [32m INFO[0m [2mmoq_test_client::moqtest[0m[2m:[0m PUBLISH completed
+test-client-1  | ok 18 - moq-test-forward-zero
+test-client-1  |   ---
+test-client-1  |   duration_ms: 250
+test-client-1  |   subscriber_connection_id: 8510dc8d1381970be4c3e033144d84e9
+test-client-1  |   publisher_connection_id: 140e5963c3b2d429cd1e017363fb7731
+test-client-1  |   ...
+test-client-1  | [2m2026-11-13T00:17:30.371131Z[0m [32m INFO[0m [2mmoq_test_client[0m[2m:[0m moq-test passed: objects 0/0, eog 0/0, streams 0, publish_done status=2 stream_count=0 reason=ReasonPhrase("publish ended")
+relay-1        | [relay] client 0 gone
+[Ktest-client-1 exited with code 0
+ Compose Stopping Aborting on container exit...
+ Container main-test-client-1 Stopping 
+ Container main-test-client-1 Stopped 
+ Container main-relay-1 Stopping 
+ Container main-relay-1 Stopped 
+[Krelay-1 exited with code 143
+
+Test results in mlog/
