@@ -9,8 +9,9 @@ application protocol) interop application:
 | `xquic-client:latest` | TAP interop client |
 | `xquic-relay:latest` | Bounded relay, both transports on one UDP port |
 
-The registry key is `xquic`; only draft-22 is registered. Legacy draft-14/18
-images and build targets have been removed.
+The registry keys are `xquic-client` and `xquic-relay`, so reports show the
+client and relay roles separately. Only draft-22 is registered. Legacy
+draft-14/18 images and build targets have been removed.
 
 ## Build
 
@@ -46,7 +47,8 @@ docker run --rm -e RELAY_URL=moqt://relay:4443 -e TLS_DISABLE_VERIFY=1 \
   xquic-client:latest
 docker run --rm -e RELAY_URL=https://relay:4443 -e TLS_DISABLE_VERIFY=1 \
   xquic-client:latest
-./run-interop-tests.sh --client xquic --target-version draft-22 --dry-run
+./run-interop-tests.sh --client xquic-client --relay xquic-relay \
+  --target-version draft-22 --docker-only --dry-run
 ```
 
 The client uses `RELAY_URL`, `TESTCASE`, `TLS_DISABLE_VERIFY` and `VERBOSE`
