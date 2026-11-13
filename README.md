@@ -67,7 +67,7 @@ Filter a single relay: `make interop-remote RELAY=moxygen`. See [Getting Started
 | imquic | Meetecho | 16-18 | relay, client | `https://lminiero.it:9000` |
 | moq-go | Vsevolod Strukchinsky | 22 | relay, client |  |
 | moqtopus | Kota Yatagai | 18 | client |  |
-| xquic | Alibaba | 14, 18 | relay, client |  |
+| xquic | Alibaba | 22 | client (same image provides a direct server) |  |
 | moq-web (Typescript) | Cisco | 18-22 | client | |
 | qdroid (Kotlin,C++) | Cisco | 18 | client | |
 | quicr-mac (Swift,C++) | Cisco | 18 | client | |
