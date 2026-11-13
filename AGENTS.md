@@ -40,6 +40,8 @@ This is a framework for testing interoperability between MoQT (Media over QUIC T
 | See test catalog and definitions | `docs/tests/README.md` |
 | Build a test client | `docs/IMPLEMENTING-A-TEST-CLIENT.md` |
 | Test client interface contract | `docs/TEST-CLIENT-INTERFACE.md` |
+| Build a test relay | `docs/IMPLEMENTING-A-TEST-RELAY.md` |
+| Test relay interface contract | `docs/TEST-RELAY-INTERFACE.md` |
 | Docker testing workflows | `docs/DOCKER-TESTING.md` |
 | Version matching logic | `docs/VERSION-MATCHING.md` |
 | Adapter conventions | `adapters/README.md` |
