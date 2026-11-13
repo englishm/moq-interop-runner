@@ -1,16 +1,12 @@
 #!/bin/bash
-# build.sh - Build xquic MoQ Docker images from source
+# build.sh - Build draft-22 xquic client/server endpoint images
 #
 # Usage:
-#   ./build.sh                              # Clone from GitHub (main branch)
-#   ./build.sh --ref moq-interop            # Clone specific branch/tag/commit
+#   ./build.sh                              # Clone dev/moqt-interop
+#   ./build.sh --ref dev/moqt-interop        # Select branch/tag/commit
 #   ./build.sh --local ~/github_xquic/xquic # Use local checkout
-#   ./build.sh --target relay               # Build only relay image
-#   ./build.sh --target client-draft-18      # Build only draft-18 client image
-#   ./build.sh --target relay-draft-18       # Build only draft-18 relay image
-#
-# This builds xquic with MoQ support (-DXQC_ENABLE_MOQ=1) and produces
-# a Docker image containing moq_demo_server as the relay endpoint.
+#   ./build.sh --target client               # Build xquic-client only
+#   ./build.sh --target relay                # Build xquic-relay only
 
 set -euo pipefail
 
@@ -20,11 +16,11 @@ set -euo pipefail
 
 IMPL_NAME="xquic"
 REPO_URL="https://github.com/alibaba/xquic.git"
-DEFAULT_REF="main"
 
 BUILD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCES_DIR="${BUILD_DIR}/.sources"
 RUNNER_ROOT="$(cd "${BUILD_DIR}/../.." && pwd)"
+CONFIG="${BUILD_DIR}/config.json"
 
 #############################################################################
 # Utility Functions
@@ -92,18 +88,26 @@ while [[ $# -gt 0 ]]; do
             echo "  --ref REF       Git ref to checkout (branch/tag/commit)"
             echo "  --repo URL      Clone from a different repository (fork)"
             echo "  --local PATH    Use local xquic checkout instead of cloning"
-            echo "  --target NAME   Build only specific target (relay, client, client-draft-18, or relay-draft-18)"
+            echo "  --target NAME   Build client or relay (default: both)"
             echo "  --help          Show this help"
             echo ""
             echo "Examples:"
-            echo "  $0                                           # Clone main branch"
+            echo "  $0                                           # Clone dev/moqt-interop"
             echo "  $0 --local ~/github_xquic/xquic             # Use local checkout"
+            echo "  $0 --local ~/github_xquic/xquic --target client"
             echo "  $0 --local ~/github_xquic/xquic --target relay"
             exit 0
             ;;
         *) error "Unknown option: $1" ;;
     esac
 done
+
+case "$TARGET" in
+    ""|client|relay) ;;
+    *) error "Unknown target: $TARGET (supported: client, relay)" ;;
+esac
+command -v jq >/dev/null 2>&1 || error "jq is required"
+DEFAULT_REF=$(jq -er '.default_ref' "$CONFIG")
 
 if [[ -n "$CUSTOM_REPO" ]]; then
     REPO_URL="$CUSTOM_REPO"
@@ -170,67 +174,30 @@ BUILT_IMAGES=()
 
 build_target() {
     local target="$1"
-    local dockerfile=""
-    local image_name=""
-    local entrypoint_script=""
-
-    case "$target" in
-        relay)
-            dockerfile="${BUILD_DIR}/Dockerfile.relay"
-            image_name="xquic-moq-relay"
-            entrypoint_script="${BUILD_DIR}/entrypoint-relay.sh"
-            ;;
-        client)
-            dockerfile="${BUILD_DIR}/Dockerfile.client"
-            image_name="xquic-moq-client"
-            entrypoint_script="${BUILD_DIR}/entrypoint-client.sh"
-            ;;
-        client-draft-18)
-            dockerfile="${BUILD_DIR}/Dockerfile.client.draft18"
-            image_name="xquic-moq-client-draft-18"
-            ;;
-        relay-draft-18)
-            dockerfile="${BUILD_DIR}/Dockerfile.relay.draft18"
-            image_name="xquic-moq-relay-draft-18"
-            entrypoint_script="${BUILD_DIR}/entrypoint-relay-draft18.sh"
-            ;;
-        *)
-            error "Unknown target: $target (supported: relay, client, client-draft-18, relay-draft-18)"
-            ;;
-    esac
+    local dockerfile image_name registry_image
+    dockerfile="${BUILD_DIR}/$(jq -er --arg target "$target" \
+        '.targets[$target].dockerfile' "$CONFIG")"
+    image_name=$(jq -er --arg target "$target" \
+        '.targets[$target].image_name' "$CONFIG")
+    registry_image=$(jq -r --arg target "$target" \
+        '.targets[$target].registry_image // empty' "$CONFIG")
 
     log "Building ${target} -> ${image_name}:latest"
-    log "  Dockerfile: ${dockerfile}"
-    log "  Context: ${SOURCE_DIR}"
-
-    local entrypoint_dest=""
-    if [[ -n "$entrypoint_script" ]]; then
-        entrypoint_dest="${SOURCE_DIR}/$(basename "$entrypoint_script")"
-        cp "$entrypoint_script" "$entrypoint_dest"
+    local args=(build --target "$target" -f "$dockerfile"
+        -t "${image_name}:latest")
+    # Registered roles also receive their registry tag for local runner use.
+    if [[ -n "$registry_image" ]]; then
+        args+=(-t "${registry_image}:latest")
     fi
-
-    if docker build \
-        -f "${dockerfile}" \
-        -t "${image_name}:latest" \
-        "$SOURCE_DIR"; then
-        if [[ -n "$entrypoint_dest" ]]; then
-            rm -f "$entrypoint_dest"
-        fi
-    else
-        if [[ -n "$entrypoint_dest" ]]; then
-            rm -f "$entrypoint_dest"
-        fi
-        error "Docker build failed for ${target}"
-    fi
-
+    docker "${args[@]}" "$SOURCE_DIR" || error "Docker build failed for ${target}"
     BUILT_IMAGES+=("{\"target\": \"${target}\", \"image\": \"${image_name}:latest\"}")
 }
 
 if [[ -n "$TARGET" ]]; then
     build_target "$TARGET"
 else
-    build_target "relay"
-    build_target "client"
+    build_target client
+    build_target relay
 fi
 
 #############################################################################

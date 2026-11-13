@@ -748,50 +748,40 @@
         }
       }
     },
-    "xquic": {
-      "name": "xquic",
+    "xquic-client": {
+      "name": "xquic-client",
       "organization": "Alibaba",
       "repository": "https://github.com/alibaba/xquic",
       "draft_versions": [
-        "draft-14"
+        "draft-22"
       ],
-      "notes": "C implementation. Raw QUIC transport only (moqt://).",
+      "notes": "Draft-22 test client on dev/moqt-interop. Supports Native QUIC and WebTransport. Media decoding is outside this adapter.",
       "roles": {
-        "relay": {
-          "docker": {
-            "image": "ghcr.io/englishm/moq-interop-runner-xquic-moq-relay:latest",
-            "url": "moqt://relay:4443",
-            "notes": "Pre-built on GHCR (amd64). To build from source: ./builds/xquic/build.sh --target relay"
-          }
-        },
         "client": {
           "docker": {
-            "image": "ghcr.io/englishm/moq-interop-runner-xquic-moq-client:latest",
-            "notes": "Pre-built on GHCR (amd64). To build from source: ./builds/xquic/build.sh --target client"
+            "image": "ghcr.io/englishm/moq-interop-runner-xquic-client:latest",
+            "notes": "Preview: ./builds/xquic/build.sh builds dev/moqt-interop as xquic-client:latest and its registry tag. GHCR publication is deferred until review."
           }
         }
       }
     },
-    "xquic-draft-18": {
-      "name": "xquic (draft-18)",
+    "xquic-relay": {
+      "name": "xquic-relay",
       "organization": "Alibaba",
       "repository": "https://github.com/alibaba/xquic",
       "draft_versions": [
-        "draft-18"
+        "draft-22"
       ],
-      "notes": "C interop client and relay on the moq/draft_18_dev branch. Raw QUIC transport only (moqt://); both roles support all six core cases.",
+      "notes": "Draft-22 bounded relay and direct test origin on dev/moqt-interop. Native QUIC and WebTransport share one relay listener, with independent session routing through the public relay API. A relay history cache is outside this adapter.",
       "roles": {
         "relay": {
           "docker": {
-            "image": "ghcr.io/englishm/moq-interop-runner-xquic-moq-relay-draft-18:latest",
-            "url": "moqt://relay:4443",
-            "notes": "Build locally from the draft-18 checkout with: make xquic-relay-build XQUIC_SOURCE=/absolute/path/to/xquic"
-          }
-        },
-        "client": {
-          "docker": {
-            "image": "ghcr.io/englishm/moq-interop-runner-xquic-moq-client-draft-18:latest",
-            "notes": "Build locally from the draft-18 checkout with: make xquic-client-build XQUIC_SOURCE=/absolute/path/to/xquic"
+            "image": "ghcr.io/englishm/moq-interop-runner-xquic-relay:latest",
+            "endpoints": [
+              { "url": "moqt://relay:4443", "transport": "quic" },
+              { "url": "https://relay:4443", "transport": "webtransport" }
+            ],
+            "notes": "Preview: xquic-relay:latest starts the bounded relay with both transports. Append --server for separate direct-origin probes. Anonymous local test scope; GHCR publication is deferred until review."
           }
         }
       }
