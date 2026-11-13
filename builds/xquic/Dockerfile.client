@@ -1,4 +1,4 @@
-# Draft-22 QUIC/WT endpoint; context is the XQUIC checkout.
+# Draft-22 QUIC/WT client; context is the XQUIC checkout.
 FROM ubuntu:22.04 AS builder
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     --no-install-recommends build-essential cmake git ca-certificates \
@@ -15,16 +15,9 @@ RUN XQC_SSL_TYPE=babassl XQC_SSL_PATH=/opt/babassl \
     XQC_SSL_LIBS='/opt/babassl/libssl.a;/opt/babassl/libcrypto.a' \
     XQC_BUILD_JOBS=4 ./scripts/validate.sh build --feature moqt_webtransport
 
-FROM ubuntu:22.04 AS runtime
+FROM ubuntu:22.04 AS client
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     --no-install-recommends libevent-2.1-7 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=builder /src/build/validation/tests/moqt_interop /app/moqt_interop
-
-FROM runtime AS client
 ENTRYPOINT ["/app/moqt_interop"]
-
-FROM runtime AS relay
-EXPOSE 4443/udp
-ENV MOQT_TRANSPORT=dual
-ENTRYPOINT ["/app/moqt_interop", "--relay-server"]

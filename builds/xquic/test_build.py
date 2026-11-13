@@ -21,7 +21,8 @@ class BuildTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.build = self.root / "builds/xquic"
         self.build.mkdir(parents=True)
-        for name in ("build.sh", "config.json", "Dockerfile.endpoint"):
+        for name in ("build.sh", "config.json", "Dockerfile.client",
+                     "Dockerfile.relay"):
             shutil.copy2(BUILD / name, self.build / name)
         self.config = json.loads((self.build / "config.json").read_text())
         self.source = self.root / "local source"
@@ -74,6 +75,9 @@ elif "get-url" in args:
         builds = [call for call in calls if call[0] == "docker"]
         self.assertEqual(len(builds), 2)
         self.assertEqual([call[3] for call in builds], ["client", "relay"])
+        self.assertEqual([call[5] for call in builds], [
+            str(self.build / "Dockerfile.client"),
+            str(self.build / "Dockerfile.relay")])
         self.assertEqual(builds[0][6:10], ["-t", "xquic-client:latest", "-t",
             "ghcr.io/englishm/moq-interop-runner-xquic-client:latest"])
         self.assertEqual(builds[1][6:8], ["-t", "xquic-relay:latest"])

@@ -27,7 +27,8 @@ make xquic-build XQUIC_SOURCE=/absolute/path/to/xquic
 ```
 
 `config.json` owns the default source ref and image names. The multi-stage
-`Dockerfile.endpoint` builds Tongsuo 8.4.0 and XQUIC with MoQT and WT enabled, then
+`Dockerfile.client` and `Dockerfile.relay` independently build Tongsuo 8.4.0
+and XQUIC with MoQT and WT enabled, then
 copies `moqt_interop` into Ubuntu 22.04 runtimes with separate client/relay
 entrypoints. Source provenance is
 written to `.last-build.json`. Local builds do not modify the source checkout.

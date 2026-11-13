@@ -1,0 +1,25 @@
+# Draft-22 QUIC/WT relay; context is the XQUIC checkout.
+FROM ubuntu:22.04 AS builder
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    --no-install-recommends build-essential cmake git ca-certificates \
+    libevent-dev libcunit1-dev perl && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 --branch 8.4.0 \
+    https://github.com/Tongsuo-Project/Tongsuo.git /opt/babassl && \
+    cd /opt/babassl && ./Configure --api=1.1.1 no-deprecated && \
+    make -j4
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    --no-install-recommends ruby && rm -rf /var/lib/apt/lists/*
+COPY . /src
+WORKDIR /src
+RUN XQC_SSL_TYPE=babassl XQC_SSL_PATH=/opt/babassl \
+    XQC_SSL_LIBS='/opt/babassl/libssl.a;/opt/babassl/libcrypto.a' \
+    XQC_BUILD_JOBS=4 ./scripts/validate.sh build --feature moqt_webtransport
+
+FROM ubuntu:22.04 AS relay
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    --no-install-recommends libevent-2.1-7 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+COPY --from=builder /src/build/validation/tests/moqt_interop /app/moqt_interop
+EXPOSE 4443/udp
+ENV MOQT_TRANSPORT=dual
+ENTRYPOINT ["/app/moqt_interop", "--relay-server"]
