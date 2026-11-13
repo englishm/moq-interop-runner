@@ -236,7 +236,7 @@ build-moq-go:
 	@./builds/moq-go/build.sh $(BUILD_ARGS)
 
 #############################################################################
-# xquic draft-22 endpoint development
+# xquic draft-22 interop development
 #############################################################################
 
 xquic-build:
@@ -288,7 +288,7 @@ help:
 	@echo "  build-moq-go          Convenience target for moq-go"
 	@echo ""
 	@echo "xquic draft-22 development:"
-	@echo "  xquic-build           Build client/server from XQUIC_SOURCE=/absolute/path/to/xquic"
+	@echo "  xquic-build           Build client/relay from XQUIC_SOURCE=/absolute/path/to/xquic"
 	@echo ""
 	@echo "  BUILD_ARGS examples:"
 	@echo "    --local ~/git/moq-rs    Use local checkout"
