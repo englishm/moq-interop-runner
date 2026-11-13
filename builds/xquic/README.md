@@ -16,7 +16,7 @@ draft-14/18 images and build targets have been removed.
 ## Build
 
 ```bash
-# Defaults to alibaba/xquic dev/moqt-interop, based on dev/moqt-over-webtrans.
+# Defaults to alibaba/xquic dev/moqt-interop, based on dev/loc-msf.
 ./builds/xquic/build.sh
 
 # Local development builds both role images.
@@ -31,7 +31,8 @@ make xquic-build XQUIC_SOURCE=/absolute/path/to/xquic
 `Dockerfile.client` and `Dockerfile.relay` independently build Tongsuo 8.4.0
 and XQUIC with MoQT and WT enabled, then
 copies `moqt_interop` into Ubuntu 22.04 runtimes with separate client/relay
-entrypoints. Source provenance is
+entrypoints. The client runtime includes FFmpeg for media decoding; the relay
+does not require a decoder. Source provenance is
 written to `.last-build.json`. Local builds do not modify the source checkout.
 
 Both roles also receive their
@@ -53,14 +54,24 @@ docker run --rm -e RELAY_URL=https://relay:4443 -e TLS_DISABLE_VERIFY=1 \
 
 The client uses `RELAY_URL`, `TESTCASE`, `TLS_DISABLE_VERIFY` and `VERBOSE`
 and writes TAP v14 to stdout. Exit codes are 0 (pass), 1 (failure) and
-127 (unsupported/SKIP). `--list` is the implemented case set. Unsupported
-media cases return SKIP; attempted peer failures remain failures.
+127 (unsupported/SKIP). `--list` is the implemented case set. Unknown cases
+return SKIP; attempted peer failures remain failures.
 
 HTTPS selects WT. `--transport webtransport` also runs a canonical `moqt://`
-locator over WT. Both paths reuse the same 23 scenario drivers/oracles,
+locator over WT. Both paths reuse the same 26 scenario drivers/oracles,
 including namespace discovery through SUBSCRIBE_TRACKS;
 readiness still requires MoQT SETUP after CONNECT. Transport selection may
 also use `MOQT_TRANSPORT=quic|webtransport`; explicit flags take priority.
+
+The 23 existing scenarios retain their contracts. `publish-subscribe-media`
+adds C22 using an independent MSF-01 catalog, LOC-05 public metadata and three
+16x16 VP8 keyframes. The subscriber selects the catalog Track, assembles all
+Objects, checks properties/identities, then independently decodes with FFmpeg
+and renders the actual luma pixels as terminal art. Normal decoder exit and
+three rendered frames are required. `media-catalog-error` and `media-loc-error`
+reject unsupported catalogs/invalid Timescale and recover on the same Sessions.
+These two cases are extensions to the runner's 22-case core catalog.
+The source adapter README records fixture provenance and profile limitations.
 
 ## Run the relay or direct origin
 
