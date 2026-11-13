@@ -1,7 +1,8 @@
 # xquic draft-22 endpoint
 
 XQUIC provides two role images for the current draft-22 Native QUIC
-(`moqt://`, ALPN `moqt-22`) endpoint:
+(`moqt://`, ALPN `moqt-22`) and WebTransport (`https://`, H3 with `moqt-22`
+application protocol) endpoint:
 
 | Image | Default process |
 |-------|-----------------|
@@ -14,7 +15,7 @@ images and build targets have been removed.
 ## Build
 
 ```bash
-# Defaults to alibaba/xquic dev/moqt-interop, based on dev/moqt-22-base.
+# Defaults to alibaba/xquic dev/moqt-interop, based on dev/moqt-over-webtrans.
 ./builds/xquic/build.sh
 
 # Local development builds both role images.
@@ -26,7 +27,7 @@ make xquic-build XQUIC_SOURCE=/absolute/path/to/xquic
 ```
 
 `config.json` owns the default source ref and image names. The multi-stage
-`Dockerfile.endpoint` builds Tongsuo 8.4.0 and XQUIC with MoQT enabled, then
+`Dockerfile.endpoint` builds Tongsuo 8.4.0 and XQUIC with MoQT and WT enabled, then
 copies `moqt_interop` into Ubuntu 22.04 runtimes with separate client/relay
 entrypoints. Source provenance is
 written to `.last-build.json`. Local builds do not modify the source checkout.
@@ -43,20 +44,29 @@ preview does not publish to GHCR.
 docker run --rm xquic-client:latest --list
 docker run --rm -e RELAY_URL=moqt://relay:4443 -e TLS_DISABLE_VERIFY=1 \
   xquic-client:latest
+docker run --rm -e RELAY_URL=https://relay:4443 -e TLS_DISABLE_VERIFY=1 \
+  xquic-client:latest
 ./run-interop-tests.sh --client xquic --target-version draft-22 --dry-run
 ```
 
 The client uses `RELAY_URL`, `TESTCASE`, `TLS_DISABLE_VERIFY` and `VERBOSE`
 and writes TAP v14 to stdout. Exit codes are 0 (pass), 1 (failure) and
 127 (unsupported/SKIP). `--list` is the implemented case set. Unsupported
-SUBSCRIBE_TRACKS, WebTransport and media cases
+SUBSCRIBE_TRACKS and media cases
 return SKIP; attempted peer failures remain failures.
+
+HTTPS selects WT. `--transport webtransport` also runs a canonical `moqt://`
+locator over WT. Both paths reuse the same 22 scenario drivers/oracles;
+readiness still requires MoQT SETUP after CONNECT. Transport selection may
+also use `MOQT_TRANSPORT=quic|webtransport`; explicit flags take priority.
 
 ## Run the direct server
 
 ```bash
 # /path/to/test-certs contains disposable cert.pem and priv.key files.
 docker run --rm -p 4443:4443/udp \
+  -v /path/to/test-certs:/certs:ro xquic-relay:latest
+docker run --rm -p 4443:4443/udp -e MOQT_TRANSPORT=webtransport \
   -v /path/to/test-certs:/certs:ro xquic-relay:latest
 ```
 
