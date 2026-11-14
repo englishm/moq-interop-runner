@@ -79,7 +79,7 @@ elif "get-url" in args:
             str(self.build / "Dockerfile.client"),
             str(self.build / "Dockerfile.relay")])
         self.assertEqual(builds[0][6:10], ["-t", "xquic-client:latest", "-t",
-            "ghcr.io/englishm/moq-interop-runner-xquic-client:latest"])
+            "ghcr.io/yanmei-liu/moq-interop-runner-xquic-client:latest"])
         self.assertEqual(builds[1][6:8], ["-t", "xquic-relay:latest"])
         for call in builds:
             self.assertEqual(call[-1], str(self.build / ".sources/xquic"))
