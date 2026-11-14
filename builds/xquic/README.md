@@ -38,9 +38,8 @@ written to `.last-build.json`. Local builds do not modify the source checkout.
 Both roles also receive their
 `ghcr.io/yanmei-liu/moq-interop-runner-xquic-{client,relay}:latest` tags for local
 runner use. The XQUIC maintainer publishes both roles from the
-`Yanmei-Liu/moq-interop-runner` fork. The `xquic` image workflow maps both
-roles to these maintainer-owned packages; publishing requires write access
-to that GHCR namespace.
+`Yanmei-Liu/moq-interop-runner` fork. These maintainer-owned packages are
+outside the upstream runner's GHCR publication and rebuild workflows.
 
 ## Run the client
 

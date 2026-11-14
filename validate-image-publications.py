@@ -13,10 +13,6 @@ BUILD_WORKFLOW = ROOT / ".github/workflows/build-images.yml"
 REBUILD_WORKFLOW = ROOT / ".github/workflows/rebuild-all-images.yml"
 REGISTRY = ROOT / "implementations.json"
 RUNNER_IMAGE_PREFIX = "ghcr.io/englishm/moq-interop-runner-"
-XQUIC_MAINTAINER_IMAGES = {
-    "ghcr.io/yanmei-liu/moq-interop-runner-xquic-client",
-    "ghcr.io/yanmei-liu/moq-interop-runner-xquic-relay",
-}
 
 
 def registry_images() -> set[str]:
@@ -25,8 +21,7 @@ def registry_images() -> set[str]:
     for implementation in registry["implementations"].values():
         for role in implementation["roles"].values():
             image = role.get("docker", {}).get("image", "")
-            if (image.startswith(RUNNER_IMAGE_PREFIX)
-                    or image.removesuffix(":latest") in XQUIC_MAINTAINER_IMAGES):
+            if image.startswith(RUNNER_IMAGE_PREFIX):
                 images.add(image)
     return images
 
@@ -76,11 +71,7 @@ def build_publications() -> tuple[dict[str, list[str]], list[str]]:
             raise ValueError(f"empty images output assignment: {'|'.join(current_jobs)}")
         for entry in entries:
             image = entry.get("ghcr", "") if isinstance(entry, dict) else ""
-            runner_owned = re.fullmatch(
-                re.escape(RUNNER_IMAGE_PREFIX) + r"[a-z0-9][a-z0-9._-]*", image)
-            xquic_owned = (current_jobs == ["xquic"]
-                           and image in XQUIC_MAINTAINER_IMAGES)
-            if not runner_owned and not xquic_owned:
+            if not re.fullmatch(re.escape(RUNNER_IMAGE_PREFIX) + r"[a-z0-9][a-z0-9._-]*", image):
                 raise ValueError(f"invalid runner-owned GHCR publication: {image or entry!r}")
             for job in current_jobs:
                 jobs[job].append(f"{image}:latest")
