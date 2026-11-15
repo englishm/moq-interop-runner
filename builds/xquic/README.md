@@ -16,18 +16,20 @@ draft-14/18 images and build targets have been removed.
 ## Build
 
 ```bash
-# Defaults to alibaba/xquic dev/moqt-interop-40-cases, based on dev/moqt-over-webtrans.
+# Defaults to alibaba/xquic dev/moqt-over-webtrans.
 ./builds/xquic/build.sh
 
 # Local development builds both role images.
 make xquic-build XQUIC_SOURCE=/absolute/path/to/xquic
 
 # A branch, tag or commit can be selected explicitly.
-./builds/xquic/build.sh --ref dev/moqt-interop-40-cases --target client
-./builds/xquic/build.sh --ref dev/moqt-interop-40-cases --target relay
+./builds/xquic/build.sh --ref dev/moqt-over-webtrans --target client
+./builds/xquic/build.sh --ref dev/moqt-over-webtrans --target relay
 ```
 
-`config.json` owns the default source ref and image names. The multi-stage
+`config.json` owns the default source ref and image names. Both roles track
+`dev/moqt-over-webtrans`, where subsequent fixes are integrated. Use `--ref`
+to pin a commit for a reproducible run. The multi-stage
 `Dockerfile.client` builds a pinned BoringSSL revision; `Dockerfile.relay`
 builds Tongsuo 8.4.0. Both build XQUIC with MoQT and WT enabled, then
 copy `moqt_interop` into Ubuntu 22.04 runtimes with separate client/relay

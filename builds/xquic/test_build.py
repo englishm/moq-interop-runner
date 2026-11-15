@@ -71,7 +71,7 @@ elif "get-url" in args:
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = self.calls()
         checkouts = [call[-1] for call in calls if "checkout" in call]
-        self.assertEqual(checkouts, ["dev/moqt-interop-40-cases"])
+        self.assertEqual(checkouts, ["dev/moqt-over-webtrans"])
         builds = [call for call in calls if call[0] == "docker"]
         self.assertEqual(len(builds), 2)
         self.assertEqual([call[3] for call in builds], ["client", "relay"])
@@ -84,7 +84,7 @@ elif "get-url" in args:
         for call in builds:
             self.assertEqual(call[-1], str(self.build / ".sources/xquic"))
         self.assertEqual(self.provenance()["source"]["ref"],
-                         "dev/moqt-interop-40-cases")
+                         "dev/moqt-over-webtrans")
         self.assertEqual(self.provenance()["images"], [
             {"target": "client", "image": "xquic-client:latest"},
             {"target": "relay", "image": "xquic-relay:latest"}])
