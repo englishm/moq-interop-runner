@@ -2,8 +2,8 @@
 # build.sh - Build draft-22 xquic client/server endpoint images
 #
 # Usage:
-#   ./build.sh                              # Clone dev/moqt-interop
-#   ./build.sh --ref dev/moqt-interop        # Select branch/tag/commit
+#   ./build.sh                              # Clone dev/moqt-over-webtrans
+#   ./build.sh --ref <branch-tag-or-commit> # Select another source ref
 #   ./build.sh --local ~/github_xquic/xquic # Use local checkout
 #   ./build.sh --target client               # Build xquic-client only
 #   ./build.sh --target relay                # Build xquic-relay only
@@ -92,7 +92,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --help          Show this help"
             echo ""
             echo "Examples:"
-            echo "  $0                                           # Clone dev/moqt-interop"
+            echo "  $0                                           # Clone dev/moqt-over-webtrans"
             echo "  $0 --local ~/github_xquic/xquic             # Use local checkout"
             echo "  $0 --local ~/github_xquic/xquic --target client"
             echo "  $0 --local ~/github_xquic/xquic --target relay"
