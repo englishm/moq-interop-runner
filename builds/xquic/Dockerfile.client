@@ -3,21 +3,28 @@ FROM ubuntu:22.04 AS builder
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     --no-install-recommends build-essential cmake git ca-certificates \
     libevent-dev libcunit1-dev perl && rm -rf /var/lib/apt/lists/*
-RUN git clone --depth 1 --branch 8.4.0 \
-    https://github.com/Tongsuo-Project/Tongsuo.git /opt/babassl && \
-    cd /opt/babassl && ./Configure --api=1.1.1 no-deprecated && \
-    make -j4
+ARG BORINGSSL_REV=27c62ff54d72b4a2dd55c3c4ace527550a051626
+RUN git init /opt/boringssl && \
+    git -C /opt/boringssl remote add origin https://github.com/google/boringssl.git && \
+    git -C /opt/boringssl fetch --depth 1 origin "${BORINGSSL_REV}" && \
+    git -C /opt/boringssl checkout --detach FETCH_HEAD && \
+    cmake -S /opt/boringssl -B /opt/boringssl/build \
+        -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON && \
+    cmake --build /opt/boringssl/build --target ssl crypto --parallel 4
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     --no-install-recommends ruby && rm -rf /var/lib/apt/lists/*
 COPY . /src
 WORKDIR /src
-RUN XQC_SSL_TYPE=babassl XQC_SSL_PATH=/opt/babassl \
-    XQC_SSL_LIBS='/opt/babassl/libssl.a;/opt/babassl/libcrypto.a' \
+RUN XQC_SSL_TYPE=boringssl XQC_SSL_PATH=/opt/boringssl \
     XQC_BUILD_JOBS=4 ./scripts/validate.sh build --feature moqt_webtransport
 
 FROM ubuntu:22.04 AS client
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     --no-install-recommends libevent-2.1-7 ca-certificates ffmpeg && \
     rm -rf /var/lib/apt/lists/*
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+    SSL_CERT_DIR=/etc/ssl/certs
+RUN test -s "$SSL_CERT_FILE" && test -d "$SSL_CERT_DIR"
 COPY --from=builder /src/build/validation/tests/moqt_interop /app/moqt_interop
 ENTRYPOINT ["/app/moqt_interop"]

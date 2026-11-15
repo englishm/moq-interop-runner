@@ -28,9 +28,9 @@ make xquic-build XQUIC_SOURCE=/absolute/path/to/xquic
 ```
 
 `config.json` owns the default source ref and image names. The multi-stage
-`Dockerfile.client` and `Dockerfile.relay` independently build Tongsuo 8.4.0
-and XQUIC with MoQT and WT enabled, then
-copies `moqt_interop` into Ubuntu 22.04 runtimes with separate client/relay
+`Dockerfile.client` builds a pinned BoringSSL revision; `Dockerfile.relay`
+builds Tongsuo 8.4.0. Both build XQUIC with MoQT and WT enabled, then
+copy `moqt_interop` into Ubuntu 22.04 runtimes with separate client/relay
 entrypoints. The client runtime includes FFmpeg for media decoding; the relay
 does not require a decoder. Source provenance is
 written to `.last-build.json`. Local builds do not modify the source checkout.
@@ -56,6 +56,14 @@ The client uses `RELAY_URL`, `TESTCASE`, `TLS_DISABLE_VERIFY` and `VERBOSE`
 and writes TAP v14 to stdout. Exit codes are 0 (pass), 1 (failure) and
 127 (unsupported/SKIP). `--list` is the implemented case set. Unknown cases
 return SKIP; attempted peer failures remain failures.
+
+The client installs Ubuntu's `ca-certificates` and selects its bundle with
+`SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` and its hashed directory
+with `SSL_CERT_DIR=/etc/ssl/certs`. The image build checks that both paths
+exist. XQUIC must include the client default-CA loading fix; changing the TLS
+backend alone does not initialize its trust store. Public-CA relays use
+verification by default. Override these variables to mount a private CA
+bundle; `TLS_DISABLE_VERIFY=1` remains an explicit local-test bypass.
 
 HTTPS selects WT. `--transport webtransport` also runs a canonical `moqt://`
 locator over WT. Both paths reuse the same 26 scenario drivers/oracles,
