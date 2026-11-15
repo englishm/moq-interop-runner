@@ -1,0 +1,134 @@
+Running tests against moqt://aiomoqt-relay.marzresearch.net:4443...
+  Client: ghcr.io/englishm/moq-interop-runner-stitcher-moq-media-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://aiomoqt-relay.marzresearch.net:4443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/englishm/moq-interop-runner-stitcher-moq-media-client:latest
+TAP version 14
+# stitcher-moq-media-client v0.1.0 (moq-net 0.3.15 via moq-tokio 0.19.28)
+# Relay: moqt://aiomoqt-relay.marzresearch.net:4443
+# Offered: moq-transport-22, moq-transport-21, moq-transport-20, moq-transport-19, moq-transport-18
+# Fixture: cmsf 10000 ms, 1000 ms groups: audio 10 groups/47 objects/470 frames, video 10 groups/50 objects/300 frames
+1..2
+# Subtest: cmsf-live-join
+    1..5
+    ok 1 - catalog (received in 166 ms, equal to the expected catalog)
+    ok 2 - byte-identical (86 objects match the manifest)
+    not ok 3 - ordering (audio: group 1 ended at object 3, before the manifest's last (4))
+    ok 4 - decode (audio 370 frames, video 270 frames)
+    ok 5 - live (media kept arriving for 7645 ms after the first object)
+not ok 1 - cmsf-live-join
+  ---
+  duration_ms: 10816
+  implementation_version: "0.1.0"
+  test_spec_revision: 1
+  media_format: "cmsf"
+  sessions:
+    publisher:
+      moqt_version: "moqt-22"
+      transport: "quic"
+      alpn: "moqt-22"
+    subscriber:
+      moqt_version: "moqt-22"
+      transport: "quic"
+      alpn: "moqt-22"
+  run_id: "4c9ea6921b97c624eb579409c8233b08"
+  namespace: "moq-test/cmsf-live-join/4c9ea6921b97c624eb579409c8233b08"
+  join_offset_ms: 1678
+  catalog_ms: 166
+  groups_received: 18
+  objects_received: 86
+  bytes_received: 1890437
+  first_group: 1
+  last_group: 9
+  tracks:
+    audio:
+      groups: 9
+      objects: 41
+      bytes: 146329
+      first_group: 1
+      first_object: 0
+      last_group: 9
+      complete_groups: 8
+      decoded_frames: 370
+      expected_frames: 370
+    video:
+      groups: 9
+      objects: 45
+      bytes: 1744108
+      first_group: 1
+      first_object: 0
+      last_group: 9
+      complete_groups: 9
+      decoded_frames: 270
+      expected_frames: 270
+  media_span_ms: 7645
+  message: "ordering: audio: group 1 ended at object 3, before the manifest's last (4)"
+  ...
+# Subtest: cmsf-late-join-idle-catalog
+    1..4
+    ok 1 - catalog (equal to the expected catalog for subscriber_1 175 ms, subscriber_2 54 ms, subscriber_3 55 ms after 70000 ms idle)
+    ok 2 - byte-identical (97 objects match the manifest)
+    ok 3 - ordering (20 groups in order, groups 1-9 complete on every track)
+    ok 4 - decode (audio 470 frames, video 300 frames)
+ok 2 - cmsf-late-join-idle-catalog
+  ---
+  duration_ms: 83321
+  implementation_version: "0.1.0"
+  test_spec_revision: 1
+  media_format: "cmsf"
+  sessions:
+    publisher:
+      moqt_version: "moqt-22"
+      transport: "quic"
+      alpn: "moqt-22"
+    subscriber_1:
+      moqt_version: "moqt-22"
+      transport: "quic"
+      alpn: "moqt-22"
+    subscriber_2:
+      moqt_version: "moqt-22"
+      transport: "quic"
+      alpn: "moqt-22"
+    subscriber_3:
+      moqt_version: "moqt-22"
+      transport: "quic"
+      alpn: "moqt-22"
+  run_id: "630d589790230ccc25a00cdfea03a274"
+  namespace: "moq-test/cmsf-late-join-idle-catalog/630d589790230ccc25a00cdfea03a274"
+  idle_ms: 70000
+  catalog_ms_subscriber_1: 175
+  catalog_ms_subscriber_2: 54
+  catalog_ms_subscriber_3: 55
+  groups_received: 20
+  objects_received: 97
+  bytes_received: 2114838
+  first_group: 0
+  last_group: 9
+  tracks:
+    audio:
+      groups: 10
+      objects: 47
+      bytes: 167664
+      first_group: 0
+      first_object: 0
+      last_group: 9
+      complete_groups: 10
+      decoded_frames: 470
+      expected_frames: 470
+    video:
+      groups: 10
+      objects: 50
+      bytes: 1947174
+      first_group: 0
+      first_object: 0
+      last_group: 9
+      complete_groups: 10
+      decoded_frames: 300
+      expected_frames: 300
+  ...
+make: *** [Makefile:122: test-external] Error 1

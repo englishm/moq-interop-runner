@@ -1,0 +1,72 @@
+Running tests against https://34-72-6-160.sslip.io:443...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://34-72-6-160.sslip.io:443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://34-72-6-160.sslip.io:443
+# Transport: WebTransport
+# Offered ALPNs: moqt-22, moqt-18, moqt-16
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 107
+  negotiated_version: draft-22
+  info: SETUP exchange completed successfully
+  ...
+E20261115 00:17:31.363090     7 HQSession.cpp:597] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=073ab24d1305c392, local=10.0.143.66:39448, 34.72.6.160:443=upstream, drain=done
+ok 2 - announce-only
+  ---
+  duration_ms: 123
+  negotiated_version: draft-22
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E1115 00:17:31.459674     7 MoQRelaySession.cpp:1044] PublishNamespaceDone for unknown publishNamespace, sess=0x6013db3f68e0
+E20261115 00:17:31.488813     7 HQSession.cpp:597] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=0ebeaad7652d99b4, local=10.0.143.66:43468, 34.72.6.160:443=upstream, drain=done
+ok 3 - subscribe-error
+  ---
+  duration_ms: 119
+  negotiated_version: draft-22
+  info: Subscribe correctly returned error: unroutable
+  ...
+E1115 00:17:31.816063     7 MoQFramer.cpp:965] parseFillParameters: parameter 1 is not allowed inside FILL_PARAMETERS
+E1115 00:17:31.816089     7 MoQFramer.cpp:2099] parseSubscribeRequest: error in parseTrackRequestParams: 3
+E1115 00:17:31.816092     7 MoQCodec.cpp:126] Conn error=3
+E1115 00:17:31.816094     7 MoQSession.cpp:4408] Parse error=3
+E20261115 00:17:31.843541     7 HQSession.cpp:597] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=9d7a52d142058c8a, local=10.0.143.66:47472, 34.72.6.160:443=upstream, drain=done
+E1115 00:17:31.844720     7 MoQRelaySession.cpp:1044] PublishNamespaceDone for unknown publishNamespace, sess=0x6013db378d70
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 265
+  negotiated_version: draft-22
+  error: Subscribe failed: dropped
+  ...
+E20261115 00:17:31.872681     7 HQSession.cpp:597] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=c2cb66caa9eeb1c5, local=10.0.143.66:54265, 34.72.6.160:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 129
+  negotiated_version: draft-22
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 705
+  negotiated_version: draft-22
+  info: Retained namespace and withdrawal reached both subscribers
+  ...
+E20261115 00:17:32.708176     7 HQSession.cpp:597] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=bb21134185aa2366, local=10.0.143.66:43709, 34.72.6.160:443=upstream, drain=done
+E20261115 00:17:32.708685     7 HQSession.cpp:597] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=55c7305bce920bbd, local=10.0.143.66:51703, 34.72.6.160:443=upstream, drain=done
+E20261115 00:17:32.709300     7 HQSession.cpp:597] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=83273d682ef3581b, local=10.0.143.66:35661, 34.72.6.160:443=upstream, drain=done
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 717
+  negotiated_version: draft-22
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): unroutable
+  ...
+make: *** [Makefile:122: test-external] Error 1
