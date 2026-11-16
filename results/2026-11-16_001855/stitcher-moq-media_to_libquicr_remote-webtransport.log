@@ -1,0 +1,132 @@
+Running tests against https://us-west-2.relay.quicr.org:33437/relay...
+  Client: ghcr.io/englishm/moq-interop-runner-stitcher-moq-media-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://us-west-2.relay.quicr.org:33437/relay \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=1 \
+	ghcr.io/englishm/moq-interop-runner-stitcher-moq-media-client:latest
+TAP version 14
+# stitcher-moq-media-client v0.1.0 (moq-net 0.3.15 via moq-tokio 0.19.28)
+# Relay: https://us-west-2.relay.quicr.org:33437/relay
+# Offered: moq-transport-22, moq-transport-21, moq-transport-20, moq-transport-19, moq-transport-18
+# Fixture: cmsf 10000 ms, 1000 ms groups: audio 10 groups/47 objects/470 frames, video 10 groups/50 objects/300 frames
+1..2
+# Subtest: cmsf-live-join
+    1..5
+    ok 1 - catalog (received in 166 ms, equal to the expected catalog)
+    ok 2 - byte-identical (87 objects match the manifest)
+    ok 3 - ordering (18 groups in order, groups 9-9 complete on every track)
+    ok 4 - decode (audio 420 frames, video 270 frames)
+    ok 5 - live (media kept arriving for 7768 ms after the first object)
+ok 1 - cmsf-live-join
+  ---
+  duration_ms: 10881
+  implementation_version: "0.1.0"
+  test_spec_revision: 1
+  media_format: "cmsf"
+  sessions:
+    publisher:
+      moqt_version: "moqt-18"
+      transport: "webtransport-h3"
+      alpn: "moqt-18"
+    subscriber:
+      moqt_version: "moqt-18"
+      transport: "webtransport-h3"
+      alpn: "moqt-18"
+  run_id: "eec81ab4c3aec73a324ab7569977e543"
+  namespace: "moq-test/cmsf-live-join/eec81ab4c3aec73a324ab7569977e543"
+  join_offset_ms: 1753
+  catalog_ms: 166
+  groups_received: 18
+  objects_received: 87
+  bytes_received: 1893981
+  first_group: 1
+  last_group: 9
+  tracks:
+    audio:
+      groups: 9
+      objects: 42
+      bytes: 149873
+      first_group: 1
+      first_object: 0
+      last_group: 9
+      complete_groups: 9
+      decoded_frames: 420
+      expected_frames: 420
+    video:
+      groups: 9
+      objects: 45
+      bytes: 1744108
+      first_group: 1
+      first_object: 0
+      last_group: 9
+      complete_groups: 9
+      decoded_frames: 270
+      expected_frames: 270
+  media_span_ms: 7768
+  ...
+# Subtest: cmsf-late-join-idle-catalog
+    1..4
+    not ok 1 - catalog (subscriber_1: no catalog object arrived within 5000 ms of the SUBSCRIBE (and no REQUEST_ERROR))
+    ok 2 - byte-identical (97 objects match the manifest)
+    ok 3 - ordering (20 groups in order, groups 1-9 complete on every track)
+    ok 4 - decode (audio 470 frames, video 300 frames)
+not ok 2 - cmsf-late-join-idle-catalog
+  ---
+  duration_ms: 93353
+  implementation_version: "0.1.0"
+  test_spec_revision: 1
+  media_format: "cmsf"
+  sessions:
+    publisher:
+      moqt_version: "moqt-18"
+      transport: "webtransport-h3"
+      alpn: "moqt-18"
+    subscriber_1:
+      moqt_version: "moqt-18"
+      transport: "webtransport-h3"
+      alpn: "moqt-18"
+    subscriber_2:
+      moqt_version: "moqt-18"
+      transport: "webtransport-h3"
+      alpn: "moqt-18"
+    subscriber_3:
+      moqt_version: "moqt-18"
+      transport: "webtransport-h3"
+      alpn: "moqt-18"
+  run_id: "02c83303a2d571d55656705cdf162127"
+  namespace: "moq-test/cmsf-late-join-idle-catalog/02c83303a2d571d55656705cdf162127"
+  idle_ms: 70000
+  catalog_ms_subscriber_2: 165
+  groups_received: 20
+  objects_received: 97
+  bytes_received: 2114838
+  first_group: 0
+  last_group: 9
+  tracks:
+    audio:
+      groups: 10
+      objects: 47
+      bytes: 167664
+      first_group: 0
+      first_object: 0
+      last_group: 9
+      complete_groups: 10
+      decoded_frames: 470
+      expected_frames: 470
+    video:
+      groups: 10
+      objects: 50
+      bytes: 1947174
+      first_group: 0
+      first_object: 0
+      last_group: 9
+      complete_groups: 10
+      decoded_frames: 300
+      expected_frames: 300
+  message: "catalog: subscriber_1: no catalog object arrived within 5000 ms of the SUBSCRIBE (and no REQUEST_ERROR)"
+  ...
+make: *** [Makefile:122: test-external] Error 1
