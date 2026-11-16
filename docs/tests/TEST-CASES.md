@@ -246,6 +246,19 @@ Either outcome is valid; the test checks for graceful handling.
 `sessions` in [YAML diagnostics](../TAP-YAML-METADATA.md#session-fields),
 regardless of connection order
 
+**Relay Variants**: a [test relay](../TEST-RELAY-INTERFACE.md#variants) runs
+each accepted outcome as a separate entry:
+
+- `reject` answers the early SUBSCRIBE at once with REQUEST_ERROR. MoQT-18
+  §10.2.6 requires error code DOES_NOT_EXIST when RENDEZVOUS_TIMEOUT is absent
+  or 0. For a nonzero RENDEZVOUS_TIMEOUT, it lets a relay use a shorter
+  timeout than requested, so the test relay answers with error code TIMEOUT.
+- `hold` keeps the early SUBSCRIBE pending, then routes it to the publisher
+  after PUBLISH_NAMESPACE arrives. MoQT-18 §10.2.6 permits this only when the
+  SUBSCRIBE carries a nonzero RENDEZVOUS_TIMEOUT. The procedure does not set
+  one. When the client omits it, the test relay answers with DOES_NOT_EXIST, as
+  §10.2.6 requires, and reports SKIP.
+
 ---
 
 ## Future Test Cases

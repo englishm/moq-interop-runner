@@ -183,8 +183,8 @@ Each variant must be a behavior that the protocol permits for the negotiated
 draft, and it must cite the text that permits it. Its short name forms the
 entry `test-id@variant` in a test relay's list output.
 
-For example, `subscribe-before-announce` accepts two outcomes, so it could list
-two variants:
+For example, [`subscribe-before-announce`](./TEST-CASES.md#subscribe-before-announce)
+accepts two outcomes, so its specification lists two variants:
 
 - `reject` answers the early SUBSCRIBE at once with REQUEST_ERROR.
 - `hold` keeps the SUBSCRIBE pending, then routes it to the publisher after
