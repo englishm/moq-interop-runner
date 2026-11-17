@@ -21,12 +21,12 @@ checks in a notes file beside this README:
 
 - [CMSF](./cmsf.md): CMAF fragments described by an MSF catalog (the IETF
   media-over-QUIC streaming format).
+- [MPEG-TS](./mpeg-ts.md): an MPEG-2 transport stream, in a TS packaging the
+  client names (MSF `mpeg2ts` or an implementation's own).
 
-Other formats add their own notes file in the same layout; MPEG-TS
-(`mpeg-ts.md`, with `ts-carriage-integrity` and `ts-late-subscriber`) is
-proposed separately. A scenario names the format it uses; its identifier
-carries the format as a prefix (`cmsf-`, `ts-`) so a client can expose several
-formats without ambiguity.
+Other formats add their own notes file in the same layout. A scenario names
+the format it uses; its identifier carries the format as a prefix (`cmsf-`,
+`ts-`) so a client can expose several formats without ambiguity.
 
 Formats differ in who sets the object boundaries. In CMSF the fixture does:
 each CMAF fragment is one object, so the expected objects are known before
@@ -43,6 +43,13 @@ where that distinction matters.
 - [`cmsf-late-join-idle-catalog`](./cmsf-late-join-idle-catalog.md) verifies
   that a subscriber joining after the catalog has been idle longer than the
   relay's cache window still receives the catalog and the media that follows.
+- [`ts-carriage-integrity`](./ts-carriage-integrity.md) verifies that a
+  subscriber present from the start receives the published transport stream
+  from its first random access point, every non-null packet byte for byte, in
+  order and decodable.
+- [`ts-late-subscriber`](./ts-late-subscriber.md) verifies that a subscriber
+  joining part-way through receives, from the group in progress or the next,
+  an unbroken tail a decoder can start on.
 
 ## Roles
 
@@ -142,7 +149,7 @@ subtests and discussion can refer to them:
 | Check | Passes when |
 |-------|-------------|
 | `catalog` | the received description track equals the expected one (for formats that have one) |
-| `byte-identical` | the received bytes are the fixture's: when the fixture sets the objects, every received object payload matches the manifest's hash for its (track, group, object); when the packaging sets them, the stream reassembled from the received payloads in (group, object) order equals the fixture, or a contiguous tail of it from a random access point when the scenario permits a late join |
+| `byte-identical` | the received bytes are the fixture's: when the fixture sets the objects, every received object payload matches the manifest's hash for its (track, group, object); when the packaging sets them, the stream reassembled from the received payloads in (group, object) order equals the fixture, or, when the scenario permits a late join, a contiguous tail of it that contains a random access point and may begin part-way through the group in progress |
 | `ordering` | groups are opened with increasing Group ID, within each group the objects are contiguous and in order, and the set between the first and last received group has no gap or duplicate; objects of adjacent groups may interleave in time |
 | `decode` | the media reassembled from the received objects decodes with the frame counts the fixture predicts |
 
