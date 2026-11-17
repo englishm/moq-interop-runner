@@ -107,6 +107,14 @@ group and object a subscriber sees first is permitted variation; what follows
 is not. A scenario may add a scripted timeline (a late join, an idle period)
 around this flow.
 
+A client may also ask for the head of the group in progress itself: before
+draft 20 with a Relative Joining FETCH sent after the SUBSCRIBE, as the moq-net
+clients do, and from draft 20 on with the subscription fill. Either way the head
+travels apart from the subscription's objects and may arrive after the first of
+them. A client records the group it joined in as one sequence, the head first,
+and records an object that arrives both ways once. `ordering` is then judged on
+that record: by Object ID in the group joined in, by arrival after it.
+
 ## Fixtures
 
 Fixtures are generated at image build time under `lib/media/<format>/`, so
