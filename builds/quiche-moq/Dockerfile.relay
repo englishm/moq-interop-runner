@@ -37,9 +37,14 @@ RUN --mount=type=secret,id=ca_cert,target=/tmp/extra-ca.pem \
 
 # Step 2: Install clang-18 from LLVM's official apt repo.
 # Bookworm ships clang-14 which is too old for quiche's C++20 code (googleurl
-# uses features requiring clang >= 16).
-RUN curl -fsSL https://apt.llvm.org/llvm.sh | bash -s -- 18 && \
-    apt-get install -y lld-18 && \
+# uses features requiring clang >= 16). The repo is set up directly, with
+# retries: llvm.sh aborts on a single failed reachability probe.
+RUN curl -fsSL --retry 5 --retry-all-errors --retry-delay 15 \
+      -o /usr/share/keyrings/apt.llvm.org.asc https://apt.llvm.org/llvm-snapshot.gpg.key && \
+    echo "deb [signed-by=/usr/share/keyrings/apt.llvm.org.asc] https://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-18 main" \
+      > /etc/apt/sources.list.d/llvm.list && \
+    apt-get -o Acquire::Retries=10 update && \
+    apt-get -o Acquire::Retries=10 install -y clang-18 lldb-18 lld-18 clangd-18 && \
     ln -sf /usr/bin/clang-18 /usr/local/bin/clang && \
     ln -sf /usr/bin/clang++-18 /usr/local/bin/clang++ && \
     ln -sf /usr/bin/lld-18 /usr/local/bin/lld && \
