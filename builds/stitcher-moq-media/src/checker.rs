@@ -356,6 +356,8 @@ pub struct TrackReport {
     pub expected_frames: u64,
     pub first_mismatch: Option<Value>,
     pub ordering_error: Option<String>,
+    /// Set when the group joined in opened after a later group: that later group's ID.
+    pub joined_after: Option<u64>,
     pub decode_error: Option<String>,
     pub first_at: Option<Instant>,
     pub last_at: Option<Instant>,
@@ -397,20 +399,42 @@ pub fn verify_track(track: &Track, received: &[&Received], starts: &[u64]) -> Tr
         }
     }
 
-    // ordering: groups opened with strictly increasing Group ID; within a group, objects
-    // consecutive in the order read; no (group, object) twice; every group between the
-    // first and last received present, complete except for the head of the first. Objects
-    // of adjacent groups may interleave in time (independent streams, a late head fill).
+    // ordering: every group opened once, with strictly increasing Group ID after the group
+    // joined in; within a group, objects consecutive in the order read; no (group, object)
+    // twice; every group between the first and last received present, complete except for
+    // the head of the first. Objects of adjacent groups may interleave in time (independent
+    // streams, a late head fill).
+    //
+    // The group joined in is the lowest Group ID received. Its head travels apart from the
+    // subscription (a Joining FETCH or a subscription fill), and when the subscription starts
+    // on a group boundary the head is the whole group, so it may open after later groups. It
+    // is recorded first (docs/tests/media/README.md), which leaves the later groups to open
+    // in increasing order among themselves.
     let mut seen: BTreeSet<(u64, u64)> = BTreeSet::new();
     let mut per_group: BTreeMap<u64, Vec<u64>> = BTreeMap::new();
     let mut error: Option<String> = None;
-    for pair in starts.windows(2) {
-        if pair[1] <= pair[0] {
-            error.get_or_insert(if pair[1] == pair[0] {
-                format!("group {} opened twice", pair[1])
-            } else {
-                format!("group {} opened after group {}", pair[1], pair[0])
-            });
+    let mut opened: BTreeSet<u64> = BTreeSet::new();
+    for g in starts {
+        if !opened.insert(*g) {
+            error.get_or_insert(format!("group {} opened twice", g));
+            break;
+        }
+    }
+    let joined = starts.iter().copied().min();
+    if let (Some(joined), Some(first)) = (joined, starts.first().copied()) {
+        if first != joined {
+            let at = starts.iter().position(|g| *g == joined).unwrap_or(0);
+            report.joined_after = starts[..at].last().copied();
+        }
+    }
+    let later: Vec<u64> = starts
+        .iter()
+        .copied()
+        .filter(|g| Some(*g) != joined)
+        .collect();
+    for pair in later.windows(2) {
+        if pair[1] < pair[0] {
+            error.get_or_insert(format!("group {} opened after group {}", pair[1], pair[0]));
             break;
         }
     }
@@ -647,16 +671,28 @@ pub fn summarize(
     }
     if ordering_errors.is_empty() {
         let groups: usize = reports.values().map(|r| r.groups).sum();
-        checks.push(Check::new(
-            "ordering",
-            true,
-            format!(
-                "{} groups in order, groups {}-{} complete on every track",
-                groups,
-                required.start(),
-                required.end()
-            ),
-        ));
+        // Say so when the group joined in opened late, so a log shows the join that was seen.
+        let late: Vec<String> = reports
+            .iter()
+            .filter_map(|(name, r)| {
+                let after = r.joined_after?;
+                Some(format!(
+                    "{} group {} (joined in) opened after group {}",
+                    name, r.first_group?, after
+                ))
+            })
+            .collect();
+        let mut detail = format!(
+            "{} groups in order, groups {}-{} complete on every track",
+            groups,
+            required.start(),
+            required.end()
+        );
+        if !late.is_empty() {
+            detail.push_str("; ");
+            detail.push_str(&late.join(", "));
+        }
+        checks.push(Check::new("ordering", true, detail));
     } else {
         checks.push(Check::new("ordering", false, ordering_errors.join("; ")));
     }
@@ -827,12 +863,57 @@ mod tests {
 
     #[test]
     fn a_later_group_opened_before_an_earlier_one_fails_ordering() {
-        let t = track(&[2, 2]);
-        let r = report(&t, &[(1, 0), (1, 1), (0, 0), (0, 1)]);
+        // Group 0 is the group joined in; groups 1 and 2 follow it and must open in order.
+        let t = track(&[2, 2, 2]);
+        let r = report(&t, &[(0, 0), (0, 1), (2, 0), (2, 1), (1, 0), (1, 1)]);
         assert_eq!(
             r.ordering_error.as_deref(),
-            Some("group 0 opened after group 1")
+            Some("group 1 opened after group 2")
         );
+        assert_eq!(r.joined_after, None);
+    }
+
+    #[test]
+    fn the_group_joined_in_may_open_after_the_next_group() {
+        // The subscription started on the boundary between groups 0 and 1: it delivers
+        // group 1 onwards, and the whole of group 0 arrives as the fetched head, after
+        // group 1 has opened. Group 0 is recorded first.
+        let t = track(&[2, 2, 2]);
+        let r = report(&t, &[(1, 0), (0, 0), (0, 1), (1, 1), (2, 0), (2, 1)]);
+        assert!(r.ordering_error.is_none(), "{:?}", r.ordering_error);
+        assert_eq!(r.complete_groups, vec![0, 1, 2]);
+        assert_eq!(r.first_group, Some(0));
+        assert_eq!(r.joined_after, Some(1));
+
+        let mut reports = BTreeMap::new();
+        reports.insert("video".to_string(), r);
+        let checks = summarize(Ok("equal".into()), &reports, 1..=2, &Collected::default());
+        let ordering = checks.iter().find(|c| c.name == "ordering").unwrap();
+        assert!(ordering.ok);
+        assert!(
+            ordering
+                .detail
+                .contains("video group 0 (joined in) opened after group 1"),
+            "{}",
+            ordering.detail
+        );
+    }
+
+    #[test]
+    fn the_group_joined_in_must_not_leave_a_gap_behind_it() {
+        // A late lowest group is only the join when nothing is missing after it.
+        let t = track(&[2, 2, 2, 2]);
+        let r = report(&t, &[(2, 0), (2, 1), (3, 0), (3, 1), (0, 0), (0, 1)]);
+        assert_eq!(r.ordering_error.as_deref(), Some("group 1 is missing"));
+    }
+
+    #[test]
+    fn a_group_opened_twice_fails_ordering() {
+        let t = track(&[2, 2]);
+        let rx = received(&t, &[(0, 0), (0, 1), (1, 0), (1, 1)]);
+        let refs: Vec<&Received> = rx.iter().collect();
+        let r = verify_track(&t, &refs, &[0, 1, 0]);
+        assert_eq!(r.ordering_error.as_deref(), Some("group 0 opened twice"));
     }
 
     #[test]

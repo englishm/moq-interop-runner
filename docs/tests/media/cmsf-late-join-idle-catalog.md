@@ -5,7 +5,7 @@
 | Identifier | `cmsf-late-join-idle-catalog` |
 | Status | Proposal |
 | Proposed placement | Media profile, CMSF |
-| Specification revision | 1 |
+| Specification revision | 2 |
 
 ## Purpose
 
@@ -89,7 +89,11 @@ scheduling across the two tracks; and timing within the deadlines.
 
 ## Failure And Timeout Behavior
 
-A request error or session failure on any session fails the test. A catalog
+A request error or session failure on any session fails the test. That
+includes a session the relay ends during the idle period: the client keeps
+its QUIC connections alive through it (PING frames), so an idle session that
+ends was ended by the relay, and the message should say how far into the idle
+period it was. A catalog
 that does not arrive within 5 s of a subscribe fails the `catalog` check; for
 `subscriber_3` that is the property under test, and the message should say
 whether the relay answered with REQUEST_ERROR or with nothing. Media delivery
@@ -110,3 +114,6 @@ all four sessions, and `first_mismatch` when a check fails.
 ## Revision History
 
 - Revision 1: Initial proposal.
+- Revision 2: The shared `ordering` check lets the group joined in open after
+  the group that follows it (see [cmsf-live-join](./cmsf-live-join.md)). The
+  failure text for a session that ends during the idle period is spelled out.

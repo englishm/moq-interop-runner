@@ -43,7 +43,7 @@ use publisher::Publisher;
 use tap::Check;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const TEST_SPEC_REVISION: u64 = 1;
+const TEST_SPEC_REVISION: u64 = 2;
 const MEDIA_FORMAT: &str = "cmsf";
 
 #[derive(Parser)]
@@ -730,11 +730,18 @@ async fn test_late_join_idle_catalog(
         }
     }
 
-    // Idle: nothing published on any track. Both sessions must survive it.
-    let idle_until = tokio::time::Instant::now() + idle;
+    // Idle: nothing published on any track. Both sessions must survive it. moq-tokio keeps
+    // each QUIC connection alive with a PING every few seconds (its default keep-alive), so
+    // a session that ends here was ended by the relay; say how far into the idle it was.
+    let idle_started = tokio::time::Instant::now();
+    let idle_until = idle_started + idle;
     tokio::select! {
-        res = publisher.connection.closed() => anyhow::bail!("publisher session closed during the idle period: {:?}", res),
-        res = s2.connection.closed() => anyhow::bail!("subscriber_2 session closed during the idle period: {:?}", res),
+        res = publisher.connection.closed() => anyhow::bail!(
+            "publisher session closed {} ms into the idle period, with QUIC keep-alive on: {:?}",
+            idle_started.elapsed().as_millis(), res),
+        res = s2.connection.closed() => anyhow::bail!(
+            "subscriber_2 session closed {} ms into the idle period, with QUIC keep-alive on: {:?}",
+            idle_started.elapsed().as_millis(), res),
         _ = tokio::time::sleep_until(idle_until) => {}
     }
 

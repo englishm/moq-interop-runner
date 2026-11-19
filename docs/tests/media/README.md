@@ -115,6 +115,11 @@ them. A client records the group it joined in as one sequence, the head first,
 and records an object that arrives both ways once. `ordering` is then judged on
 that record: by Object ID in the group joined in, by arrival after it.
 
+When the subscription starts on a group boundary, the head is the whole of the
+group before it, and nothing of that group arrives on the subscription. That
+group is still the group joined in: it may open after the subscription's first
+group, and it is recorded first.
+
 ## Fixtures
 
 Fixtures are generated at image build time under `lib/media/<format>/`, so
@@ -158,7 +163,7 @@ subtests and discussion can refer to them:
 |-------|-------------|
 | `catalog` | the received description track equals the expected one (for formats that have one) |
 | `byte-identical` | the received bytes are the fixture's: when the fixture sets the objects, every received object payload matches the manifest's hash for its (track, group, object); when the packaging sets them, the stream reassembled from the received payloads in (group, object) order equals the fixture, or, when the scenario permits a late join, a contiguous tail of it that contains a random access point and may begin part-way through the group in progress |
-| `ordering` | groups are opened with increasing Group ID, within each group the objects are contiguous and in order, and the set between the first and last received group has no gap or duplicate; objects of adjacent groups may interleave in time |
+| `ordering` | groups are opened with increasing Group ID, except that the group joined in may open after later ones; within each group the objects are contiguous and in order, and the set between the first and last received group has no gap or duplicate; objects of adjacent groups may interleave in time |
 | `decode` | the media reassembled from the received objects decodes with the frame counts the fixture predicts |
 
 A format's notes say how each check is computed for that format, which form
@@ -221,7 +226,7 @@ ok 1 - cmsf-live-join
   ---
   duration_ms: 10805
   implementation_version: "0.1.0"
-  test_spec_revision: 1
+  test_spec_revision: 2
   media_format: "cmsf"
   sessions:
     publisher:

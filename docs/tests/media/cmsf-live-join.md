@@ -5,7 +5,7 @@
 | Identifier | `cmsf-live-join` |
 | Status | Proposal |
 | Proposed placement | Media profile, CMSF |
-| Specification revision | 1 |
+| Specification revision | 2 |
 
 ## Purpose
 
@@ -66,8 +66,11 @@ The test passes when:
 
 Permitted variation: the first received group (the one in progress at the
 join, or the next); whether the head of the group in progress is delivered
-or the first received group starts part-way; scheduling and arrival order
-across the two tracks; and timing within the deadlines.
+or the first received group starts part-way; whether the group joined in
+opens before or after the group that follows it (its head travels apart from
+the subscription, and is the whole group when the subscription starts on a
+group boundary); scheduling and arrival order across the two tracks; and
+timing within the deadlines.
 
 ## Failure And Timeout Behavior
 
@@ -90,3 +93,6 @@ session metadata, and `first_mismatch` when a check fails.
 ## Revision History
 
 - Revision 1: Initial proposal.
+- Revision 2: The group joined in may open after the group that follows it.
+  Revision 1 required every group to open in increasing order, which failed a
+  join whose subscription started on a group boundary.
