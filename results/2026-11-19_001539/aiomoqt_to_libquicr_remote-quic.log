@@ -1,0 +1,363 @@
+Running tests against moqt://us-west-2.relay.quicr.org:33437...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://us-west-2.relay.quicr.org:33437 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=1 \
+	ghcr.io/gmarzot/aiomoqt:latest
+2026-11-19 00:17:51.826 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup
+2026-11-19 00:17:51.908 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup
+TAP version 14
+# date: 2026-11-19T00:17:51Z
+# target: moqt://us-west-2.relay.quicr.org:33437
+# version: aiomoqt/0.14.1
+# note: preference probe pinned draft-18
+1..20
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+ok 1 - setup-only
+  ---
+  duration_ms: 253
+  implementation_version: "0.14.1"
+  sessions:
+    client:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "94b54111108d7e22"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+ok 2 - announce-only
+  ---
+  duration_ms: 352
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "7a4fc804a60de434"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+WARNING aiopquic.quic.connection: stream 0 reset by peer: error=0
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 700
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "730aa1cc7e64d618"
+  message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+  ...
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+not ok 4 - subscribe-error
+  ---
+  duration_ms: 249
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "3ccda6f8d2766af2"
+  message: "Unexpected SUBSCRIBE_OK for non-existent track"
+  expected: "error response"
+  received: "SUBSCRIBE_OK"
+  ...
+  [FAIL] subscribe-error: Unexpected SUBSCRIBE_OK for non-existent track
+  [FAIL] rendezvous-timeout: SUBSCRIBE_OK for a track nobody publishes
+not ok 5 - rendezvous-timeout
+  ---
+  duration_ms: 340
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "3567ec77406947c0"
+  message: "SUBSCRIBE_OK for a track nobody publishes"
+  expected: "REQUEST_ERROR TIMEOUT"
+  ...
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+ok 6 - announce-subscribe
+  ---
+  duration_ms: 660
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "901d1763d81bc847"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "04b527724c3e0b76"
+  message: "SUBSCRIBE_OK received — relay routed subscription"
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 1335
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "4788593bb47af32d"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "bf67b2250f28254c"
+  message: "SUBSCRIBE_OK received after delayed announce (relay buffered)"
+  ...
+  [PASS] subscribe-before-announce: SUBSCRIBE_OK received after delayed announce (relay buffered)
+not ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 10894
+  implementation_version: "0.14.1"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "4e0507230e1ce225"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "f509ff4588423a07"
+  message: "no downstream PUBLISH_DONE (16 problem(s)); 15 objects received; Stream Count upstream 3, downstream none"
+  ...
+  [FAIL] data-subgroup-basic: no downstream PUBLISH_DONE (16 problem(s)); 15 objects received; Stream Count upstream 3, downstream none
+WARNING aiopquic.quic.connection: stream 0 reset by peer: error=0
+  [PASS] subscribe-namespace-lifecycle: NAMESPACE then NAMESPACE_DONE received
+ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 1065
+  implementation_version: "0.14.1"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "b8757a1ca34ce182"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "a8ef6b7b33c2e313"
+  message: "NAMESPACE then NAMESPACE_DONE received"
+  ...
+2026-11-19 00:18:08.738 ERROR: MOQT error: control task failed with exception: no request stream bound for request_id=5: cannot send RequestOk (1)
+  [PASS] namespace-discovery: discovered 'track-402f'
+  Discovered: moq-test/402f/interop/namespace-discovery/track-402f
+ok 10 - namespace-discovery
+  ---
+  duration_ms: 813
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "0b4c5f42c7a93276"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "c8c302a1ad4a29b6"
+  message: "discovered 'track-402f'"
+  expected: "PUBLISH announcing 'track-402f'"
+  received: "track-402f"
+  ...
+  [PASS] publish-track-only: PUBLISH_OK received, PUBLISH_DONE sent
+ok 11 - publish-track-only
+  ---
+  duration_ms: 422
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "db3319a4dc8b44ea"
+  message: "PUBLISH_OK received, PUBLISH_DONE sent"
+  ...
+ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 1041
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "dc58a752170c93e6"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "890a035345a72758"
+  message: "5 objects received from the published track"
+  expected: "5 objects"
+  received: "5 objects"
+  ...
+  [PASS] publish-track-subscribe: 5 objects received from the published track
+not ok 13 - moq-test-subgroup-per-group-eog
+  ---
+  duration_ms: 8163
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "32f2302bee2b5334"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "07b4653fa3d76341"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-subgroup-per-group-eog: timed out waiting for object delivery
+not ok 14 - moq-test-subgroup-per-object
+  ---
+  duration_ms: 8164
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "973972cf0f39ce59"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "70f997423cb256af"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-subgroup-per-object: timed out waiting for object delivery
+  [FAIL] moq-test-two-subgroups-eog: timed out waiting for object delivery
+not ok 15 - moq-test-two-subgroups-eog
+  ---
+  duration_ms: 8159
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "155690d41619815a"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "a40854f3ef2ca35f"
+  message: "timed out waiting for object delivery"
+  ...
+not ok 16 - moq-test-datagram
+  ---
+  duration_ms: 8166
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d93d3dc4b1fcb938"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d1bb4e4f12e07eb5"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-datagram: timed out waiting for object delivery
+  [FAIL] moq-test-datagram-eog: timed out waiting for object delivery
+not ok 17 - moq-test-datagram-eog
+  ---
+  duration_ms: 8165
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "03eb40fc72a64be5"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "e306ad66b527a9a0"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-extensions: timed out waiting for object delivery
+not ok 18 - moq-test-extensions
+  ---
+  duration_ms: 8166
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "16c3726207ed870f"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d51f9fa3add7dba6"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-increments: timed out waiting for object delivery
+not ok 19 - moq-test-increments
+  ---
+  duration_ms: 8163
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "f9e0227e4ecf8a47"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "9a5e4ea1bd368da3"
+  message: "timed out waiting for object delivery"
+  ...
+  [FAIL] moq-test-forward-zero: timed out waiting for object delivery
+not ok 20 - moq-test-forward-zero
+  ---
+  duration_ms: 8165
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "ffbb078df7a549ea"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "34cc559fdcd7ff42"
+  message: "timed out waiting for object delivery"
+  ...
+# ended: 2026-11-19T00:19:15Z
+make: *** [Makefile:122: test-external] Error 1

@@ -1,0 +1,71 @@
+Running tests against https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16, moqt-22 (from default)
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 162
+  negotiated_version: draft-16
+  info: SETUP exchange completed successfully
+  ...
+W1119 00:24:19.871432     7 MoQSession.cpp:7807] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x64f3f6be60b0
+E1119 00:24:19.968199     7 MoQRelaySession.cpp:1019] PublishNamespaceDone for unknown publishNamespace, sess=0x64f3f6be60b0
+ok 2 - announce-only
+  ---
+  duration_ms: 250
+  negotiated_version: draft-16
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+W1119 00:24:20.120560     7 MoQSession.cpp:7807] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x64f3f6c02330
+ok 3 - subscribe-error
+  ---
+  duration_ms: 274
+  negotiated_version: draft-16
+  info: Subscribe correctly returned error: not found: Track not found [error:5ea3f41b-c8a6-46a0-890c-924bfee8ad77]
+  ...
+W1119 00:24:20.427377     7 MoQSession.cpp:7807] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x64f3f6bc19b0
+W1119 00:24:20.679442     7 MoQSession.cpp:7807] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x64f3f6bcdea0
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 539
+  negotiated_version: draft-16
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+W1119 00:24:20.935331     7 MoQSession.cpp:7807] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x64f3f6c09860
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 250
+  negotiated_version: draft-16
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+W1119 00:24:21.185160     7 MoQSession.cpp:7807] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x64f3f6c1d620
+W1119 00:24:21.387887     7 MoQSession.cpp:7807] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x64f3f6bb15b0
+W1119 00:24:21.627838     7 MoQSession.cpp:7807] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x64f3f6bd2650
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 643
+  negotiated_version: draft-16
+  error: PUBLISH_NAMESPACE failed: done
+  ...
+W1119 00:24:21.829464     7 MoQSession.cpp:7807] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x64f3f6c16290
+W1119 00:24:22.501990     7 MoQSession.cpp:7807] Issuing request that will fail; nextRequestID_=0 peerMaxRequestID_=0 sess=0x64f3f6c1ae70
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 922
+  negotiated_version: draft-16
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): not found: Track not found [error:61e62ada-4fe4-49de-93a6-2d8e73a14de0]
+  ...
+E20261119 00:24:22.647969     7 HQSession.cpp:583] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=2badabf7bed099e7, local=10.1.0.8:34723, 98.97.224.234:4443=upstream, drain=done
+make: *** [Makefile:122: test-external] Error 1

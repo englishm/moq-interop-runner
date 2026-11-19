@@ -1,0 +1,290 @@
+Running tests against moqt://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443...
+  Client: ghcr.io/gmarzot/aiomoqt:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:latest
+2026-11-19 00:21:31.011 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup; reason: peer doesn't support any known protocol
+2026-11-19 00:21:31.072 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup; reason: peer doesn't support any known protocol
+2026-11-19 00:21:31.133 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup; reason: peer doesn't support any known protocol
+TAP version 14
+# date: 2026-11-19T00:21:30Z
+# target: moqt://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443
+# version: aiomoqt/0.14.1
+# note: preference probe pinned draft-16
+1..20
+ok 1 - setup-only
+  ---
+  duration_ms: 197
+  implementation_version: "0.14.1"
+  sessions:
+    client:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "929de870d4a859e8"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+  [FAIL] announce-only: Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted
+not ok 2 - announce-only
+  ---
+  duration_ms: 211
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "978b4cf9dcf63e42"
+  message: "Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  expected: "PUBLISH_NAMESPACE_OK"
+  received: "MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  ...
+  [FAIL] publish-namespace-done: Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted
+not ok 3 - publish-namespace-done
+  ---
+  duration_ms: 213
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "de1301ac6d2dcdba"
+  message: "Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  expected: "PUBLISH_NAMESPACE_OK + PUBLISH_NAMESPACE_DONE"
+  received: "MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  ...
+not ok 4 - subscribe-error
+  ---
+  duration_ms: 161
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "254e2e1af178a40f"
+  message: "Non-conformant: expected TRACK_DOES_NOT_EXIST (d14=0x04 / d16=0x10), got code=0"
+  expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+  received: "SUBSCRIBE_ERROR code=0"
+  ...
+  [FAIL] subscribe-error: Non-conformant: expected TRACK_DOES_NOT_EXIST (d14=0x04 / d16=0x10), got code=0
+  [PASS] rendezvous-timeout: 
+ok 5 - rendezvous-timeout # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-16
+  ---
+  duration_ms: 149
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "848ae1d86e91cf26"
+  ...
+not ok 6 - announce-subscribe
+  ---
+  duration_ms: 215
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "53cf0a1448bbd138"
+  message: "Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  received: "MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  ...
+  [FAIL] announce-subscribe: Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted
+not ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 219
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "aed946d89d7a1225"
+  message: "Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  received: "MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  ...
+  [FAIL] subscribe-before-announce: Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted
+  [FAIL] data-subgroup-basic: PUBLISH_NAMESPACE refused: code=0 peer MAX_REQUEST_ID 0 exhausted
+not ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 197
+  implementation_version: "0.14.1"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "cd79b4b137554d60"
+  message: "PUBLISH_NAMESPACE refused: code=0 peer MAX_REQUEST_ID 0 exhausted"
+  ...
+not ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 233
+  implementation_version: "0.14.1"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "67ec23daa78fc993"
+  message: "Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  expected: "NAMESPACE then NAMESPACE_DONE"
+  received: "MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  ...
+  [FAIL] subscribe-namespace-lifecycle: Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted
+  [FAIL] namespace-discovery: Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted
+not ok 10 - namespace-discovery
+  ---
+  duration_ms: 211
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "4dce8ab1e1a01219"
+  message: "Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  expected: "PUBLISH announcing 'track-410a'"
+  received: "MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  ...
+not ok 11 - publish-track-only
+  ---
+  duration_ms: 196
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "7f8875e0f698bccc"
+  message: "Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  expected: "PUBLISH_OK"
+  received: "MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  ...
+  [FAIL] publish-track-only: Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted
+not ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 194
+  implementation_version: "0.14.1"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "c5a30b6ffbae43cb"
+  message: "Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  expected: "SUBSCRIBE_OK and 5 objects"
+  received: "MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted"
+  ...
+  [FAIL] publish-track-subscribe: Failed: MOQTRequestError: request error: code=0 reason=peer MAX_REQUEST_ID 0 exhausted
+  [PASS] moq-test-subgroup-per-group-eog: 
+ok 13 - moq-test-subgroup-per-group-eog # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-16
+  ---
+  duration_ms: 149
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "6a61e2a99cf2ed1a"
+  ...
+ok 14 - moq-test-subgroup-per-object # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-16
+  ---
+  duration_ms: 164
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "6232c6615332af51"
+  ...
+  [PASS] moq-test-subgroup-per-object: 
+ok 15 - moq-test-two-subgroups-eog # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-16
+  ---
+  duration_ms: 175
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "ced0d26ccf7f6f28"
+  ...
+  [PASS] moq-test-two-subgroups-eog: 
+ok 16 - moq-test-datagram # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-16
+  ---
+  duration_ms: 161
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "41181fca7cada3d4"
+  ...
+  [PASS] moq-test-datagram: 
+  [PASS] moq-test-datagram-eog: 
+ok 17 - moq-test-datagram-eog # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-16
+  ---
+  duration_ms: 162
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "573b3f4f2393f9cf"
+  ...
+ok 18 - moq-test-extensions # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-16
+  ---
+  duration_ms: 163
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "606d62f0237568d0"
+  ...
+  [PASS] moq-test-extensions: 
+ok 19 - moq-test-increments # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-16
+  ---
+  duration_ms: 176
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "bdcbafc0008fae06"
+  ...
+  [PASS] moq-test-increments: 
+ok 20 - moq-test-forward-zero # SKIP RENDEZVOUS_TIMEOUT is draft-18; negotiated draft-16
+  ---
+  duration_ms: 161
+  implementation_version: "0.14.1"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-16"
+      alpn: "moqt-16"
+      quic_initial_destination_connection_id: "7a50fd524fc3f3a7"
+  ...
+  [PASS] moq-test-forward-zero: 
+# ended: 2026-11-19T00:21:35Z
+make: *** [Makefile:122: test-external] Error 1
