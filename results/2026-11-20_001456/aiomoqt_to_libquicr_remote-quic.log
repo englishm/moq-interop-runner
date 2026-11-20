@@ -1,0 +1,618 @@
+Running tests against moqt://us-west-2.relay.quicr.org:33437...
+  Client: ghcr.io/gmarzot/aiomoqt:interop
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://us-west-2.relay.quicr.org:33437 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=1 \
+	ghcr.io/gmarzot/aiomoqt:interop
+2026-11-20 00:17:21.358 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup
+2026-11-20 00:17:21.432 WARNING: MOQT: peer closed: CRYPTO_ERROR (0x178), before MoQT setup
+TAP version 14
+# date: 2026-11-20T00:17:21Z
+# target: moqt://us-west-2.relay.quicr.org:33437
+# version: aiomoqt/0.15.0rc2
+# note: preference probe pinned draft-18
+1..37
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+ok 1 - setup-only
+  ---
+  duration_ms: 45
+  implementation_version: "0.15.0rc2"
+  sessions:
+    client:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "2b2032699723e584"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+ok 2 - announce-only
+  ---
+  duration_ms: 142
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "659247157151ea5d"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+WARNING aiopquic.quic.connection: stream 0 reset by peer: error=0
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 164
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "3903c8d46ead8199"
+  message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+  ...
+  [FAIL] subscribe-error: Unexpected SUBSCRIBE_OK for non-existent track
+not ok 4 - subscribe-error
+  ---
+  duration_ms: 46
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "0acba15f0c310967"
+  message: "Unexpected SUBSCRIBE_OK for non-existent track"
+  expected: "error response"
+  received: "SUBSCRIBE_OK"
+  ...
+  [FAIL] rendezvous-timeout: SUBSCRIBE_OK for a track nobody publishes
+not ok 5 - rendezvous-timeout
+  ---
+  duration_ms: 152
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "8dc68eb44a43eabc"
+  message: "SUBSCRIBE_OK for a track nobody publishes"
+  expected: "REQUEST_ERROR TIMEOUT"
+  ...
+ok 6 - announce-subscribe
+  ---
+  duration_ms: 116
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "e0a146d0e0aa2b94"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "01b78b56016fa500"
+  message: "SUBSCRIBE_OK received — relay routed subscription"
+  ...
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 669
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "67367e37742408bb"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "2473c64158a2c635"
+  message: "SUBSCRIBE_OK received after delayed announce (relay buffered)"
+  ...
+  [PASS] subscribe-before-announce: SUBSCRIBE_OK received after delayed announce (relay buffered)
+  [FAIL] data-subgroup-basic: no downstream PUBLISH_DONE (16 problem(s)); 15 objects received; Stream Count upstream 3, downstream none
+not ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 10331
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "43cbbb4302fbce59"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "f4e487a09ffc8ba0"
+  message: "no downstream PUBLISH_DONE (16 problem(s)); 15 objects received; Stream Count upstream 3, downstream none"
+  ...
+WARNING aiopquic.quic.connection: stream 0 reset by peer: error=0
+ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 189
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "9b09808f7534bd4d"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "9df324ebbae55d2f"
+  message: "NAMESPACE then NAMESPACE_DONE received"
+  ...
+  [PASS] subscribe-namespace-lifecycle: NAMESPACE then NAMESPACE_DONE received
+2026-11-20 00:17:33.657 ERROR: MOQT error: control task failed with exception: no request stream bound for request_id=5: cannot send RequestOk (1)
+  [PASS] namespace-discovery: discovered 'track-9191'
+  Discovered: moq-test/9191/interop/namespace-discovery/track-9191
+ok 10 - namespace-discovery
+  ---
+  duration_ms: 138
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "e6a96687b93e93be"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "1091a73f2d8c4e41"
+  message: "discovered 'track-9191'"
+  expected: "PUBLISH announcing 'track-9191'"
+  received: "track-9191"
+  ...
+ok 11 - publish-track-only
+  ---
+  duration_ms: 158
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "508a8fb5809edc53"
+  message: "PUBLISH_OK received, PUBLISH_DONE sent"
+  ...
+  [PASS] publish-track-only: PUBLISH_OK received, PUBLISH_DONE sent
+ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 211
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d4d816cc43ab41da"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "ac5667a39fab72bc"
+  message: "5 objects received from the published track"
+  expected: "5 objects"
+  received: "5 objects"
+  ...
+  [PASS] publish-track-subscribe: 5 objects received from the published track
+WARNING aiopquic.quic.connection: stream 0 reset by peer: error=0
+  [FAIL] publish-namespace-done-track: object 0.0 priority 128, expected 200 (3 problem(s)); objects 1/1, Stream Count none/1; observer saw NAMESPACE, NAMESPACE_DONE
+not ok 13 - publish-namespace-done-track
+  ---
+  duration_ms: 11173
+  implementation_version: "0.15.0rc2"
+  sessions:
+    observer:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "38fa4c21182ee95f"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "3f6f5ac62b234f01"
+  message: "object 0.0 priority 128, expected 200 (3 problem(s)); objects 1/1, Stream Count none/1; observer saw NAMESPACE, NAMESPACE_DONE"
+  expected: "NAMESPACE, PUBLISH_DONE, NAMESPACE_DONE"
+  received: "NAMESPACE, NAMESPACE_DONE"
+  ...
+WARNING aiopquic.quic.connection: stream 0 reset by peer: error=0
+WARNING aiopquic.quic.connection: stream 7 reset by peer: error=0
+  [PASS] subscribe-cancel-live: 2 objects before the cancel, 0 after it, 0 in flight within 114 ms
+ok 14 - subscribe-cancel-live
+  ---
+  duration_ms: 1307
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "886c926ee7251a57"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "68486968fbe86396"
+  message: "2 objects before the cancel, 0 after it, 0 in flight within 114 ms"
+  ...
+WARNING aiopquic.quic.connection: stream 0 reset by peer: error=0
+WARNING aiopquic.quic.connection: stream 4 reset by peer: error=0
+WARNING aiopquic.quic.connection: stream 0 reset by peer: error=0
+  [PASS] publish-namespace-multi-publisher-retention: shared retained after publisher_2 withdrew; both late subscribers saw it, and all three saw its NAMESPACE_DONE when publisher_1 withdrew
+ok 15 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 442
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 1
+  sessions:
+    observer:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "fd66dd04ff737747"
+    publisher_1:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "e6ae5f86517fcfc7"
+    publisher_2:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "244d40e33b792c59"
+    subscriber_1:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d2358fdddedbaa5a"
+    subscriber_2:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "af313143de78bf91"
+  message: "shared retained after publisher_2 withdrew; both late subscribers saw it, and all three saw its NAMESPACE_DONE when publisher_1 withdrew"
+  ...
+not ok 16 - fetch
+  ---
+  duration_ms: 398
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "9a72c131ae281504"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "78b9a4123415a570"
+    fetcher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d39d7e678d65e0ac"
+  message: "unexpected object 1.5 (1 problem(s)); 6 objects of group 1 received by the FETCH"
+  expected: "5 objects of group 1"
+  received: "6 objects"
+  ...
+  [FAIL] fetch: unexpected object 1.5 (1 problem(s)); 6 objects of group 1 received by the FETCH
+  [FAIL] fetch-descending: unexpected object 2.5 (2 problem(s)); 12 objects of groups 1-2 received by the FETCH in descending order
+
+  Sent: 15 objects, 4 groups, 50/s, 30Kbps (0.3s)
+
+  Sent: 20 objects, 5 groups, 50/s, 30Kbps (0.4s)
+not ok 17 - fetch-descending
+  ---
+  duration_ms: 498
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "3025c2cbec3a167c"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "db45ef09565d1581"
+    fetcher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "dcbb1e02d9d71729"
+  message: "unexpected object 2.5 (2 problem(s)); 12 objects of groups 1-2 received by the FETCH in descending order"
+  expected: "10 objects of groups 1-2"
+  received: "12 objects"
+  ...
+  [FAIL] fetch-error-recovery: FETCH past the Largest Object answered REQUEST_ERROR code=0x0
+not ok 18 - fetch-error-recovery
+  ---
+  duration_ms: 2433
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "e926eeb50bc8c240"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d959c78c264e6329"
+    fetcher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "6852fcaa1d0ed34e"
+  message: "FETCH past the Largest Object answered REQUEST_ERROR code=0x0"
+  expected: "REQUEST_ERROR INVALID_RANGE"
+  received: "REQUEST_ERROR code=0x0"
+  ...
+  [PASS] join: 9 objects received by the joining FETCH
+
+  Sent: 117 objects, 24 groups, 50/s, 30Kbps (2.3s)
+ok 19 - join
+  ---
+  duration_ms: 390
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "eb3ee4fce9a65f2c"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "1ecfce1ade9526f8"
+    joiner:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "312c6442eff1d120"
+  message: "9 objects received by the joining FETCH"
+  ...
+
+  Sent: 15 objects, 4 groups, 50/s, 30Kbps (0.3s)
+not ok 20 - moq-test-subgroup-per-group-eog
+  ---
+  duration_ms: 7015
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "357af66e7433af3c"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "84c1b4b0e1f6f3e7"
+  message: "object 0.0 priority 128, expected 200 (19 problem(s)); objects 15/15, End of Group 3/3, Stream Count none/3"
+  ...
+  [FAIL] moq-test-subgroup-per-group-eog: object 0.0 priority 128, expected 200 (19 problem(s)); objects 15/15, End of Group 3/3, Stream Count none/3
+not ok 21 - moq-test-subgroup-per-group-no-eog
+  ---
+  duration_ms: 7015
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "f94f46f5eec32bc8"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "413c3dfe3c7d4a12"
+  message: "object 0.0 priority 128, expected 200 (19 problem(s)); objects 18/18, End of Group 0/0, Stream Count none/3"
+  ...
+  [FAIL] moq-test-subgroup-per-group-no-eog: object 0.0 priority 128, expected 200 (19 problem(s)); objects 18/18, End of Group 0/0, Stream Count none/3
+not ok 22 - moq-test-subgroup-per-group-nonzero-start
+  ---
+  duration_ms: 7015
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "2981705794812a2a"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "3bdc86350d26dba1"
+  message: "object 6.3 priority 128, expected 200 (10 problem(s)); objects 6/6, End of Group 3/3, Stream Count none/3"
+  ...
+  [FAIL] moq-test-subgroup-per-group-nonzero-start: object 6.3 priority 128, expected 200 (10 problem(s)); objects 6/6, End of Group 3/3, Stream Count none/3
+  [FAIL] moq-test-subgroup-per-object: object 0.0 priority 128, expected 200 (9 problem(s)); objects 8/8, End of Group 0/0, Stream Count none/8
+not ok 23 - moq-test-subgroup-per-object
+  ---
+  duration_ms: 7015
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "d6b32a77ee965f16"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "9faed814d22fd365"
+  message: "object 0.0 priority 128, expected 200 (9 problem(s)); objects 8/8, End of Group 0/0, Stream Count none/8"
+  ...
+not ok 24 - moq-test-subgroup-per-object-sparse-ids
+  ---
+  duration_ms: 7021
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "2fd8a3367c6c1dc1"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "9da09ff7e994f12a"
+  message: "object 4.2 priority 128, expected 200 (4 problem(s)); objects 3/3, End of Group 0/0, Stream Count none/3"
+  ...
+  [FAIL] moq-test-subgroup-per-object-sparse-ids: object 4.2 priority 128, expected 200 (4 problem(s)); objects 3/3, End of Group 0/0, Stream Count none/3
+not ok 25 - moq-test-two-subgroups-eog
+  ---
+  duration_ms: 7016
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "792cda8b7045a83c"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "7805355eb1049561"
+  message: "object 0.0 priority 128, expected 200 (22 problem(s)); objects 18/18, End of Group 3/3, Stream Count none/6"
+  ...
+  [FAIL] moq-test-two-subgroups-eog: object 0.0 priority 128, expected 200 (22 problem(s)); objects 18/18, End of Group 3/3, Stream Count none/6
+not ok 26 - moq-test-two-subgroups-no-eog
+  ---
+  duration_ms: 7015
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "829236f6eedfc0d2"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "f4009e78861a0f97"
+  message: "object 0.0 priority 128, expected 200 (22 problem(s)); objects 21/21, End of Group 0/0, Stream Count none/6"
+  ...
+  [FAIL] moq-test-two-subgroups-no-eog: object 0.0 priority 128, expected 200 (22 problem(s)); objects 21/21, End of Group 0/0, Stream Count none/6
+  [FAIL] moq-test-datagram: object 0.0 priority 128, expected 200 (16 problem(s)); objects 15/15, End of Group 0/0, Stream Count none/0
+not ok 27 - moq-test-datagram
+  ---
+  duration_ms: 7265
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "455b6a121dcb6b54"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "8f9becee8936db78"
+  message: "object 0.0 priority 128, expected 200 (16 problem(s)); objects 15/15, End of Group 0/0, Stream Count none/0"
+  ...
+not ok 28 - moq-test-datagram-nonzero-start
+  ---
+  duration_ms: 7264
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "dda13fb339078cb2"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "4357da1bd36de684"
+  message: "object 6.3 priority 128, expected 200 (10 problem(s)); objects 9/9, End of Group 0/0, Stream Count none/0"
+  ...
+  [FAIL] moq-test-datagram-nonzero-start: object 6.3 priority 128, expected 200 (10 problem(s)); objects 9/9, End of Group 0/0, Stream Count none/0
+not ok 29 - moq-test-datagram-sparse-ids
+  ---
+  duration_ms: 7265
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "a73ed59c92dd696b"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "92fb604737e01d40"
+  message: "object 10.3 priority 128, expected 200 (10 problem(s)); objects 9/9, End of Group 0/0, Stream Count none/0"
+  ...
+  [FAIL] moq-test-datagram-sparse-ids: object 10.3 priority 128, expected 200 (10 problem(s)); objects 9/9, End of Group 0/0, Stream Count none/0
+not ok 30 - moq-test-datagram-eog
+  ---
+  duration_ms: 7267
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "2c4e0f6406e40bf2"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "ecf4b1fa8bce7bb0"
+  message: "object 0.0 priority 128, expected 200 (25 problem(s)); objects 18/15, End of Group 0/3, Stream Count none/0"
+  ...
+  [FAIL] moq-test-datagram-eog: object 0.0 priority 128, expected 200 (25 problem(s)); objects 18/15, End of Group 0/3, Stream Count none/0
+  [FAIL] moq-test-extensions: object 0.0 priority 128, expected 200 (19 problem(s)); objects 15/15, End of Group 3/3, Stream Count none/3
+not ok 31 - moq-test-extensions
+  ---
+  duration_ms: 7015
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "dae6aebe70a81809"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-18"
+      alpn: "moqt-18"
+      quic_initial_destination_connection_id: "f27d3f9ab5369179"
+  message: "object 0.0 priority 128, expected 200 (19 problem(s)); objects 15/15, End of Group 3/3, Stream Count none/3"
+  ...
+make: *** [Makefile:122: test-external] Error 143
