@@ -1,0 +1,131 @@
+Running tests against https://quichemoq.dev:443...
+  Client: ghcr.io/englishm/moq-interop-runner-stitcher-moq-media-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://quichemoq.dev:443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/englishm/moq-interop-runner-stitcher-moq-media-client:latest
+TAP version 14
+# stitcher-moq-media-client v0.1.0 (moq-net 0.3.22 via moq-tokio 0.19.35)
+# Relay: https://quichemoq.dev:443
+# Offered: moq-transport-22, moq-transport-21, moq-transport-20, moq-transport-19, moq-transport-18
+# Fixture: cmsf 10000 ms, 1000 ms groups: audio 10 groups/47 objects/470 frames, video 10 groups/50 objects/300 frames
+1..2
+# Subtest: cmsf-live-join
+    1..5
+    not ok 1 - catalog (no catalog object arrived within 5000 ms of the SUBSCRIBE (and no REQUEST_ERROR))
+    ok 2 - byte-identical (29 objects match the manifest)
+    ok 3 - ordering (6 groups in order, groups 9-9 complete on every track)
+    ok 4 - decode (audio 140 frames, video 90 frames)
+    not ok 5 - live (media stopped 2796 ms after the first object (expected at least 3000 ms))
+not ok 1 - cmsf-live-join
+  ---
+  duration_ms: 10543
+  implementation_version: "0.1.0"
+  test_spec_revision: 2
+  media_format: "cmsf"
+  sessions:
+    publisher:
+      moqt_version: "moqt-22"
+      transport: "webtransport-h3"
+      alpn: "moqt-22"
+    subscriber:
+      moqt_version: "moqt-22"
+      transport: "webtransport-h3"
+      alpn: "moqt-22"
+  run_id: "5108a14b78392a711d0750cec9ffc2d8"
+  namespace: "moq-test/cmsf-live-join/5108a14b78392a711d0750cec9ffc2d8"
+  join_offset_ms: 1546
+  groups_received: 6
+  objects_received: 29
+  bytes_received: 612108
+  first_group: 7
+  last_group: 9
+  tracks:
+    audio:
+      groups: 3
+      objects: 14
+      bytes: 49981
+      first_group: 7
+      first_object: 0
+      last_group: 9
+      complete_groups: 3
+      decoded_frames: 140
+      expected_frames: 140
+    video:
+      groups: 3
+      objects: 15
+      bytes: 562127
+      first_group: 7
+      first_object: 0
+      last_group: 9
+      complete_groups: 3
+      decoded_frames: 90
+      expected_frames: 90
+  media_span_ms: 2796
+  message: "catalog: no catalog object arrived within 5000 ms of the SUBSCRIBE (and no REQUEST_ERROR)"
+  ...
+# Subtest: cmsf-late-join-idle-catalog
+    1..4
+    not ok 1 - catalog (subscriber_1: no catalog object arrived within 5000 ms of the SUBSCRIBE (and no REQUEST_ERROR))
+    ok 2 - byte-identical (87 objects match the manifest)
+    ok 3 - ordering (18 groups in order, groups 1-9 complete on every track)
+    ok 4 - decode (audio 420 frames, video 270 frames)
+not ok 2 - cmsf-late-join-idle-catalog
+  ---
+  duration_ms: 97008
+  implementation_version: "0.1.0"
+  test_spec_revision: 2
+  media_format: "cmsf"
+  sessions:
+    publisher:
+      moqt_version: "moqt-22"
+      transport: "webtransport-h3"
+      alpn: "moqt-22"
+    subscriber_1:
+      moqt_version: "moqt-22"
+      transport: "webtransport-h3"
+      alpn: "moqt-22"
+    subscriber_2:
+      moqt_version: "moqt-22"
+      transport: "webtransport-h3"
+      alpn: "moqt-22"
+    subscriber_3:
+      moqt_version: "moqt-22"
+      transport: "webtransport-h3"
+      alpn: "moqt-22"
+  run_id: "5ffa43dd3250ff2ef7d3810b73459081"
+  namespace: "moq-test/cmsf-late-join-idle-catalog/5ffa43dd3250ff2ef7d3810b73459081"
+  idle_ms: 70000
+  groups_received: 18
+  objects_received: 87
+  bytes_received: 1893981
+  first_group: 1
+  last_group: 9
+  tracks:
+    audio:
+      groups: 9
+      objects: 42
+      bytes: 149873
+      first_group: 1
+      first_object: 0
+      last_group: 9
+      complete_groups: 9
+      decoded_frames: 420
+      expected_frames: 420
+    video:
+      groups: 9
+      objects: 45
+      bytes: 1744108
+      first_group: 1
+      first_object: 0
+      last_group: 9
+      complete_groups: 9
+      decoded_frames: 270
+      expected_frames: 270
+  message: "catalog: subscriber_1: no catalog object arrived within 5000 ms of the SUBSCRIBE (and no REQUEST_ERROR)"
+  ...
+make: *** [Makefile:122: test-external] Error 1
