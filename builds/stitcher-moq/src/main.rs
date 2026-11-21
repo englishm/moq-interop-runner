@@ -27,6 +27,12 @@
 //! - It surfaces no PUBLISH_NAMESPACE_OK, so `announce-only` and `publish-namespace-done`
 //!   report what they can see: the announce was not rejected and the session stayed up.
 //!
+//! Every test point's YAML block reports what each of its sessions negotiated, under the role
+//! names the test specs give (`sessions.<role>.moqt_version`, docs/TAP-YAML-METADATA.md), and it
+//! does so for a failed test too. Transport and ALPN are reported only for a raw QUIC URL: an
+//! `https://` dial races WebTransport against moq-tokio's WebSocket fallback, and the connection
+//! does not say which one won.
+//!
 //! Subscribers discover the namespace under test (SUBSCRIBE_NAMESPACE `moq-test/interop`),
 //! not the empty prefix, which draft-14 forbids and several relays reject. Sessions close
 //! subscriber first, and the process lets its last CONNECTION_CLOSE go out before it
@@ -156,7 +162,7 @@ async fn main() -> anyhow::Result<()> {
         .context("invalid MOQ_CLIENT_VERSION")?;
 
     println!("TAP version 14");
-    println!("# stitcher-moq-client v0.2.0 (moq-net 0.3.22 via moq-tokio 0.19.35)");
+    println!("# stitcher-moq-client v{VERSION} (moq-net 0.3.22 via moq-tokio 0.19.35)");
     println!("# Relay: {}", cli.relay);
     println!("# Offered: {}", offered.join(", "));
     println!("1..{}", tests.len());
@@ -179,7 +185,10 @@ async fn main() -> anyhow::Result<()> {
         let num = i + 1;
         let start = Instant::now();
 
-        let result = run_test(test_name, &client, &relay_url).await;
+        // Filled in as each session is established, so a test that fails or times out
+        // afterwards still reports what its sessions negotiated.
+        let mut sessions = Vec::new();
+        let result = run_test(test_name, &client, &relay_url, &mut sessions).await;
         let duration_ms = start.elapsed().as_millis();
 
         match result {
@@ -188,12 +197,12 @@ async fn main() -> anyhow::Result<()> {
                     Some(reason) => println!("ok {} - {} # SKIP {}", num, test_name, reason),
                     None => println!("ok {} - {}", num, test_name),
                 }
-                print_diagnostics(duration_ms, &diag);
+                print_diagnostics(duration_ms, &sessions, &diag);
             }
             Err(e) => {
                 all_passed = false;
                 println!("not ok {} - {}", num, test_name);
-                print_failure_diagnostics(duration_ms, &format!("{:#}", e));
+                print_failure_diagnostics(duration_ms, &sessions, &format!("{:#}", e));
             }
         }
     }
@@ -209,30 +218,98 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// This client's own version, for the TAP header and `implementation_version`.
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Default)]
 struct Diagnostics {
-    negotiated: Option<String>,
     outcome: Option<String>,
     /// Report the test as `ok … # SKIP <reason>`: nothing was exercised on the wire.
     skip: Option<String>,
 }
 
-fn print_diagnostics(duration_ms: u128, diag: &Diagnostics) {
-    println!("  ---");
-    println!("  duration_ms: {}", duration_ms);
-    if let Some(v) = &diag.negotiated {
-        println!("  negotiated: {}", v);
+/// What one session of a test negotiated, for the `sessions` mapping of the TAP YAML block
+/// (docs/TAP-YAML-METADATA.md). `role` is the test's Diagnostic Role (docs/tests/TEST-CASES.md).
+struct Session {
+    role: &'static str,
+    /// The version this session selected, as `moqt-NN`. `None` if the connection reports
+    /// none; the field is then left out rather than guessed.
+    moqt_version: Option<String>,
+    /// Reported only for a raw QUIC URL, where there is no doubt (see [`Session::observe`]).
+    transport: Option<&'static str>,
+    alpn: Option<&'static str>,
+}
+
+impl Session {
+    /// Read what an established connection negotiated.
+    ///
+    /// A `moqt://` URL is raw QUIC with no fallback, and its QUIC ALPN is the MoQT one, so
+    /// transport and ALPN are known. An `https://` dial races WebTransport against
+    /// moq-tokio's WebSocket fallback, and the connection does not say which one won, so
+    /// neither is claimed there: the metadata is for what was negotiated, not predicted.
+    fn observe(role: &'static str, connection: &moq_tokio::Connection, url: &url::Url) -> Self {
+        let version = connection.version();
+        let raw_quic = matches!(url.scheme(), "moqt" | "moql");
+        Self {
+            role,
+            moqt_version: version.map(|v| normalize_version(v.as_str())),
+            transport: raw_quic.then_some("quic"),
+            alpn: version.filter(|_| raw_quic).map(|v| v.alpn()),
+        }
     }
+}
+
+/// `moq-transport-22` → `moqt-22`, the form docs/TAP-YAML-METADATA.md asks for and the
+/// runner's report reads. A moq-lite name (offered only through `MOQ_CLIENT_VERSION`) is
+/// passed through as it is.
+fn normalize_version(name: &str) -> String {
+    match name.strip_prefix("moq-transport-") {
+        Some(draft) => format!("moqt-{}", draft),
+        None => name.to_string(),
+    }
+}
+
+/// A YAML double-quoted scalar.
+fn quoted(value: &str) -> String {
+    format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
+}
+
+/// The fields every test point reports, pass or fail: how long it took, which client build
+/// ran it, and what each of its sessions negotiated.
+fn print_common(duration_ms: u128, sessions: &[Session]) {
+    println!("  duration_ms: {}", duration_ms);
+    println!("  implementation_version: {}", quoted(VERSION));
+    if sessions.is_empty() {
+        return;
+    }
+    println!("  sessions:");
+    for session in sessions {
+        println!("    {}:", session.role);
+        if let Some(v) = &session.moqt_version {
+            println!("      moqt_version: {}", quoted(v));
+        }
+        if let Some(t) = session.transport {
+            println!("      transport: {}", quoted(t));
+        }
+        if let Some(a) = session.alpn {
+            println!("      alpn: {}", quoted(a));
+        }
+    }
+}
+
+fn print_diagnostics(duration_ms: u128, sessions: &[Session], diag: &Diagnostics) {
+    println!("  ---");
+    print_common(duration_ms, sessions);
     if let Some(o) = &diag.outcome {
-        println!("  outcome: \"{}\"", o.replace('"', "\\\""));
+        println!("  outcome: {}", quoted(o));
     }
     println!("  ...");
 }
 
-fn print_failure_diagnostics(duration_ms: u128, message: &str) {
+fn print_failure_diagnostics(duration_ms: u128, sessions: &[Session], message: &str) {
     println!("  ---");
-    println!("  duration_ms: {}", duration_ms);
-    println!("  message: \"{}\"", message.replace('"', "\\\""));
+    print_common(duration_ms, sessions);
+    println!("  message: {}", quoted(message));
     println!("  ...");
 }
 
@@ -240,6 +317,7 @@ async fn run_test(
     name: &str,
     client: &moq_tokio::Client,
     relay_url: &url::Url,
+    sessions: &mut Vec<Session>,
 ) -> anyhow::Result<Diagnostics> {
     let timeout = match name {
         "setup-only" => Duration::from_secs(2),
@@ -254,7 +332,7 @@ async fn run_test(
         _ => Duration::from_secs(5),
     };
 
-    tokio::time::timeout(timeout, run_test_inner(name, client, relay_url))
+    tokio::time::timeout(timeout, run_test_inner(name, client, relay_url, sessions))
         .await
         .context(format!("timeout after {}ms", timeout.as_millis()))?
 }
@@ -263,15 +341,18 @@ async fn run_test_inner(
     name: &str,
     client: &moq_tokio::Client,
     relay_url: &url::Url,
+    sessions: &mut Vec<Session>,
 ) -> anyhow::Result<Diagnostics> {
     match name {
-        "setup-only" => test_setup_only(client, relay_url).await,
-        "announce-only" => test_announce_only(client, relay_url).await,
-        "publish-namespace-done" => test_publish_namespace_done(client, relay_url).await,
-        "subscribe-error" => test_subscribe_error(client, relay_url).await,
+        "setup-only" => test_setup_only(client, relay_url, sessions).await,
+        "announce-only" => test_announce_only(client, relay_url, sessions).await,
+        "publish-namespace-done" => test_publish_namespace_done(client, relay_url, sessions).await,
+        "subscribe-error" => test_subscribe_error(client, relay_url, sessions).await,
         "rendezvous-timeout" => Ok(test_rendezvous_timeout()),
-        "announce-subscribe" => test_announce_subscribe(client, relay_url).await,
-        "subscribe-before-announce" => test_subscribe_before_announce(client, relay_url).await,
+        "announce-subscribe" => test_announce_subscribe(client, relay_url, sessions).await,
+        "subscribe-before-announce" => {
+            test_subscribe_before_announce(client, relay_url, sessions).await
+        }
         _ => anyhow::bail!("unknown test: {}", name),
     }
 }
@@ -287,12 +368,15 @@ fn test_rendezvous_timeout() -> Diagnostics {
 }
 
 /// Dial the relay once — as a publisher of `publish`, a subscriber into `subscribe`, or
-/// neither — and wait until the MoQ session is established.
+/// neither — wait until the MoQ session is established, and record what it negotiated
+/// under `role`, the test's name for this session.
 async fn connect(
     client: &moq_tokio::Client,
     relay_url: &url::Url,
     publish: Option<moq_net::origin::Consumer>,
     subscribe: Option<moq_net::origin::Producer>,
+    role: &'static str,
+    sessions: &mut Vec<Session>,
 ) -> anyhow::Result<moq_tokio::Connection> {
     let mut client = client.clone();
     if let Some(origin) = publish {
@@ -301,33 +385,25 @@ async fn connect(
     if let Some(origin) = subscribe {
         client = client.with_subscriber(origin);
     }
-    client
+    let connection = client
         .connect(relay_url.clone())
         .established()
         .await
-        .context("failed to connect")
-}
-
-fn negotiated(connection: &moq_tokio::Connection) -> String {
-    connection
-        .version()
-        .map(|v| v.to_string())
-        .unwrap_or_else(|| "unknown".into())
+        .context("failed to connect")?;
+    sessions.push(Session::observe(role, &connection, relay_url));
+    Ok(connection)
 }
 
 /// Connect, complete SETUP, close gracefully.
 async fn test_setup_only(
     client: &moq_tokio::Client,
     relay_url: &url::Url,
+    sessions: &mut Vec<Session>,
 ) -> anyhow::Result<Diagnostics> {
-    let connection = connect(client, relay_url, None, None).await?;
-    let negotiated = negotiated(&connection);
+    let connection = connect(client, relay_url, None, None, "client", sessions).await?;
     connection.abort(Error::Cancel);
 
-    Ok(Diagnostics {
-        negotiated: Some(negotiated),
-        ..Default::default()
-    })
+    Ok(Diagnostics::default())
 }
 
 /// Connect, PUBLISH_NAMESPACE the test namespace, verify the session survives it.
@@ -338,6 +414,7 @@ async fn test_setup_only(
 async fn test_announce_only(
     client: &moq_tokio::Client,
     relay_url: &url::Url,
+    sessions: &mut Vec<Session>,
 ) -> anyhow::Result<Diagnostics> {
     let origin = moq_tokio::origin::spawn();
     let broadcast = origin
@@ -348,8 +425,15 @@ async fn test_announce_only(
         .announce(Route::default())
         .context("failed to announce")?;
 
-    let connection = connect(client, relay_url, Some(origin.consume()), None).await?;
-    let negotiated = negotiated(&connection);
+    let connection = connect(
+        client,
+        relay_url,
+        Some(origin.consume()),
+        None,
+        "publisher",
+        sessions,
+    )
+    .await?;
 
     tokio::select! {
         res = connection.closed() => anyhow::bail!("session closed after announce: {:?}", res),
@@ -360,7 +444,6 @@ async fn test_announce_only(
     drop(broadcast);
 
     Ok(Diagnostics {
-        negotiated: Some(negotiated),
         outcome: Some(
             "PUBLISH_NAMESPACE not rejected: session healthy 700 ms later (moq-net does not surface PUBLISH_NAMESPACE_OK)"
                 .into(),
@@ -373,6 +456,7 @@ async fn test_announce_only(
 async fn test_publish_namespace_done(
     client: &moq_tokio::Client,
     relay_url: &url::Url,
+    sessions: &mut Vec<Session>,
 ) -> anyhow::Result<Diagnostics> {
     let origin = moq_tokio::origin::spawn();
     let broadcast = origin
@@ -382,8 +466,15 @@ async fn test_publish_namespace_done(
         .announce(Route::default())
         .context("failed to announce")?;
 
-    let connection = connect(client, relay_url, Some(origin.consume()), None).await?;
-    let negotiated = negotiated(&connection);
+    let connection = connect(
+        client,
+        relay_url,
+        Some(origin.consume()),
+        None,
+        "publisher",
+        sessions,
+    )
+    .await?;
 
     // Let the announce land.
     tokio::select! {
@@ -404,7 +495,6 @@ async fn test_publish_namespace_done(
     connection.abort(Error::Cancel);
 
     Ok(Diagnostics {
-        negotiated: Some(negotiated),
         outcome: Some("PUBLISH_NAMESPACE_DONE sent; session healthy 300 ms later".into()),
         ..Default::default()
     })
@@ -415,13 +505,21 @@ async fn test_publish_namespace_done(
 async fn test_subscribe_error(
     client: &moq_tokio::Client,
     relay_url: &url::Url,
+    sessions: &mut Vec<Session>,
 ) -> anyhow::Result<Diagnostics> {
     let root = moq_tokio::origin::spawn();
     let origin = scoped(&root, NONEXISTENT_NAMESPACE)?;
     let consumer = origin.consume();
 
-    let connection = connect(client, relay_url, None, Some(origin)).await?;
-    let negotiated = negotiated(&connection);
+    let connection = connect(
+        client,
+        relay_url,
+        None,
+        Some(origin),
+        "subscriber",
+        sessions,
+    )
+    .await?;
 
     let mut skip = None;
     let outcome = match consumer.request_broadcast(NONEXISTENT_NAMESPACE).await {
@@ -471,7 +569,6 @@ async fn test_subscribe_error(
     connection.abort(Error::Cancel);
 
     Ok(Diagnostics {
-        negotiated: Some(negotiated),
         outcome: Some(outcome),
         skip,
     })
@@ -481,6 +578,7 @@ async fn test_subscribe_error(
 async fn test_announce_subscribe(
     client: &moq_tokio::Client,
     relay_url: &url::Url,
+    sessions: &mut Vec<Session>,
 ) -> anyhow::Result<Diagnostics> {
     let started = Instant::now();
 
@@ -496,9 +594,16 @@ async fn test_announce_subscribe(
         .announce(Route::default())
         .context("failed to announce")?;
 
-    let pub_connection = connect(client, relay_url, Some(pub_origin.consume()), None)
-        .await
-        .context("publisher")?;
+    let pub_connection = connect(
+        client,
+        relay_url,
+        Some(pub_origin.consume()),
+        None,
+        "publisher",
+        sessions,
+    )
+    .await
+    .context("publisher")?;
 
     // Give the relay time to process the announce.
     tokio::time::sleep(Duration::from_millis(300)).await;
@@ -508,11 +613,17 @@ async fn test_announce_subscribe(
     let sub_origin = scoped(&sub_root, TEST_NAMESPACE)?;
     let sub_consumer = sub_origin.consume();
     let dialed = Instant::now();
-    let sub_connection = connect(client, relay_url, None, Some(sub_origin))
-        .await
-        .context("subscriber")?;
+    let sub_connection = connect(
+        client,
+        relay_url,
+        None,
+        Some(sub_origin),
+        "subscriber",
+        sessions,
+    )
+    .await
+    .context("subscriber")?;
     let rtt_hint = rtt(&sub_connection, dialed.elapsed());
-    let negotiated = negotiated(&sub_connection);
 
     // Wait for the relay to route the publisher's announcement to us, then subscribe.
     let sub_broadcast = tokio::time::timeout(
@@ -555,7 +666,6 @@ async fn test_announce_subscribe(
     drop(broadcast);
 
     Ok(Diagnostics {
-        negotiated: Some(negotiated),
         outcome: Some(format!(
             "relay routed the SUBSCRIBE to the publisher ({} ms), no REQUEST_ERROR followed",
             routed.as_millis()
@@ -572,6 +682,7 @@ async fn test_announce_subscribe(
 async fn test_subscribe_before_announce(
     client: &moq_tokio::Client,
     relay_url: &url::Url,
+    sessions: &mut Vec<Session>,
 ) -> anyhow::Result<Diagnostics> {
     let started = Instant::now();
 
@@ -580,11 +691,17 @@ async fn test_subscribe_before_announce(
     let sub_origin = scoped(&sub_root, TEST_NAMESPACE)?;
     let sub_consumer = sub_origin.consume();
     let dialed = Instant::now();
-    let sub_connection = connect(client, relay_url, None, Some(sub_origin))
-        .await
-        .context("subscriber")?;
+    let sub_connection = connect(
+        client,
+        relay_url,
+        None,
+        Some(sub_origin),
+        "subscriber",
+        sessions,
+    )
+    .await
+    .context("subscriber")?;
     let rtt_hint = rtt(&sub_connection, dialed.elapsed());
-    let negotiated = negotiated(&sub_connection);
 
     // "Before announce" only means something if the relay is not already advertising
     // the namespace. It can be: a relay may keep a previous session's namespace listed
@@ -653,9 +770,16 @@ async fn test_subscribe_before_announce(
         .announce(Route::default())
         .context("failed to announce")?;
 
-    let pub_connection = connect(client, relay_url, Some(pub_origin.consume()), None)
-        .await
-        .context("publisher")?;
+    let pub_connection = connect(
+        client,
+        relay_url,
+        Some(pub_origin.consume()),
+        None,
+        "publisher",
+        sessions,
+    )
+    .await
+    .context("publisher")?;
 
     let sub_broadcast = if resolved_early {
         // Resolved through a stale route: give our announce a moment to reach the relay
@@ -723,7 +847,6 @@ async fn test_subscribe_before_announce(
         RelayAnswer::Accepted { routed } => routed,
         RelayAnswer::Rejected(e) => {
             return Ok(Diagnostics {
-                negotiated: Some(negotiated),
                 outcome: Some(format!(
                     "relay answered the SUBSCRIBE with REQUEST_ERROR ({}) and the session survived; the spec accepts a clean REQUEST_ERROR here",
                     e
@@ -747,7 +870,6 @@ async fn test_subscribe_before_announce(
     };
 
     Ok(Diagnostics {
-        negotiated: Some(negotiated),
         outcome: Some(outcome),
         ..Default::default()
     })
