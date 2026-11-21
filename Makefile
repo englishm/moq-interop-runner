@@ -14,7 +14,7 @@
 
 SHELL := /bin/bash
 
-.PHONY: test test-verbose test-single test-external clean mlog-clean certs \
+.PHONY: test test-verbose test-single test-external clean artifacts-clean certs \
         interop-all interop-docker interop-remote interop-relay interop-client interop-list \
         relay-start relay-stop logs logs-relay logs-client \
         build-adapters build-moxygen-adapter build-impl build-moq-rs build-moq-go report help _ensure-certs \
@@ -82,37 +82,36 @@ _ensure-certs:
 #############################################################################
 
 # Run tests with configured images (requires Docker images to exist)
-test: _ensure-certs mlog-clean
+test: _ensure-certs artifacts-clean
 	@$(RESOLVE_RELAY_URL); \
 	echo "Running interop tests..."; \
 	echo "  Relay:  $(RELAY_IMAGE)"; \
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
 	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
-		docker compose -f docker-compose.test.yml up --abort-on-container-exit
+		docker compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from test-client
 	@echo ""
-	@echo "Test results in mlog/"
+	@echo "Test artifacts in mlog/, keylogs/, and pcap/"
 
-test-verbose: _ensure-certs mlog-clean
+test-verbose: _ensure-certs artifacts-clean
 	@$(RESOLVE_RELAY_URL); \
 	echo "Running interop tests (verbose)..."; \
 	echo "  Relay:  $(RELAY_IMAGE)"; \
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
 	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) VERBOSE=1 \
-		docker compose -f docker-compose.test.yml up --abort-on-container-exit
+		docker compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from test-client
 
 # Run a specific test
-test-single:
+test-single: _ensure-certs artifacts-clean
 	@$(RESOLVE_RELAY_URL); \
 	echo "Running test: $(TESTCASE)"; \
 	echo "  Relay:  $(RELAY_IMAGE)"; \
 	echo "  Client: $(CLIENT_IMAGE)"; \
 	echo "  URL:    $$resolved_relay_url"; \
-	RELAY_URL="$$resolved_relay_url" RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
-		docker compose -f docker-compose.test.yml run --rm \
-		-e TESTCASE=$(TESTCASE) \
-		test-client
+	TESTCASE="$(TESTCASE)" RELAY_URL="$$resolved_relay_url" \
+		RELAY_IMAGE=$(RELAY_IMAGE) CLIENT_IMAGE=$(CLIENT_IMAGE) \
+		docker compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from test-client
 
 # Run against external relay URL (not using compose)
 test-external:
@@ -139,11 +138,12 @@ relay-stop:
 # Clean up
 clean:
 	docker compose -f docker-compose.test.yml down -v --rmi local 2>/dev/null || true
-	rm -rf mlog/ certs/ results/
+	rm -rf mlog/ keylogs/ pcap/ certs/ results/
 
-mlog-clean:
-	rm -rf mlog/
-	mkdir -p mlog/relay mlog/client
+artifacts-clean:
+	@docker compose -f docker-compose.test.yml down --timeout 1 >/dev/null 2>&1 || true
+	mkdir -p mlog/relay mlog/client keylogs/relay keylogs/client pcap
+	find mlog/relay mlog/client keylogs/relay keylogs/client pcap -mindepth 1 -delete
 
 # Show logs
 logs:
