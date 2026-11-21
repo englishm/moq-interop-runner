@@ -50,6 +50,15 @@ where that distinction matters.
 - [`ts-late-subscriber`](./ts-late-subscriber.md) verifies that a subscriber
   joining part-way through receives, from the group in progress or the next,
   an unbroken tail a decoder can start on.
+- [`ts-clock-step`](./ts-clock-step.md) verifies that a stream whose clock
+  steps without warning, as at an unflagged encoder switch, arrives byte for
+  byte and decodes on both sides of the step.
+- [`ts-multi-program`](./ts-multi-program.md) verifies that a multiplex of
+  three programs on independent clocks arrives whole, every PMT unchanged and
+  each program decodable.
+- [`ts-publisher-restart`](./ts-publisher-restart.md) verifies that a
+  subscriber recovers the stream within 5 s when the publisher's process
+  restarts mid-stream.
 
 ## Roles
 
