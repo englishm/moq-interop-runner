@@ -246,6 +246,19 @@ Either outcome is valid; the test checks for graceful handling.
 `sessions` in [YAML diagnostics](../TAP-YAML-METADATA.md#session-fields),
 regardless of connection order
 
+**Relay Variants**: a [test relay](../TEST-RELAY-INTERFACE.md#variants) runs
+each accepted outcome as a separate entry:
+
+- `reject` answers the early SUBSCRIBE at once with REQUEST_ERROR. MoQT-18
+  §10.2.6 requires error code DOES_NOT_EXIST when RENDEZVOUS_TIMEOUT is absent
+  or 0. For a nonzero RENDEZVOUS_TIMEOUT, it lets a relay use a shorter
+  timeout than requested, so the test relay answers with error code TIMEOUT.
+- `hold` keeps the early SUBSCRIBE pending, then routes it to the publisher
+  after PUBLISH_NAMESPACE arrives. MoQT-18 §10.2.6 permits this only when the
+  SUBSCRIBE carries a nonzero RENDEZVOUS_TIMEOUT. The procedure does not set
+  one. When the client omits it, the test relay answers with DOES_NOT_EXIST, as
+  §10.2.6 requires, and reports SKIP.
+
 ---
 
 ### `publish-subscribe-media`
@@ -336,6 +349,18 @@ An alternative approach uses standardized mlog (qlog for MoQT) output:
 4. Validator determines PASS/FAIL based on expected event sequences
 
 This approach could enable more sophisticated validation (e.g., verifying relay internal behavior) and reduce test client complexity. See the mlog event suggestions in each test case for the types of events that would be useful.
+
+### Future: Test Relay Validation
+
+[Decision 004](../decisions/004-client-validation-with-test-relays.md) plans
+to check clients from the relay side with a test relay:
+1. The runner starts a test relay for one test and, optionally, one relay variant
+2. The client runs the same test against it and reports its own result
+3. The test relay checks the client's messages and reports a TAP result
+4. A result passes only when both sides pass
+
+A test relay can also exercise each relay behavior that a test permits. The
+contract is defined in [TEST-RELAY-INTERFACE.md](../TEST-RELAY-INTERFACE.md).
 
 ---
 
