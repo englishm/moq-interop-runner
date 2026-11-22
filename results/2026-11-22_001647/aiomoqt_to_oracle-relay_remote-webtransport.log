@@ -1,0 +1,709 @@
+Running tests against https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443...
+  Client: ghcr.io/gmarzot/aiomoqt:interop
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:interop
+TAP version 14
+# date: 2026-11-22T00:18:30Z
+# target: https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443
+# version: aiomoqt/0.15.0rc2
+# note: preference probe pinned draft-22
+1..37
+ok 1 - setup-only
+  ---
+  duration_ms: 251
+  implementation_version: "0.15.0rc2"
+  sessions:
+    client:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "654dd3246f7eb1e4"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+not ok 2 - announce-only
+  ---
+  duration_ms: 300
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "0203d486113a1823"
+  message: "Failed: MOQTRequestError: request error: code=1 reason="
+  expected: "PUBLISH_NAMESPACE_OK"
+  received: "MOQTRequestError: request error: code=1 reason="
+  ...
+  [FAIL] announce-only: Failed: MOQTRequestError: request error: code=1 reason=
+  [FAIL] publish-namespace-done: Failed: MOQTRequestError: request error: code=1 reason=
+not ok 3 - publish-namespace-done
+  ---
+  duration_ms: 313
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "e9acd3bfc171ac7e"
+  message: "Failed: MOQTRequestError: request error: code=1 reason="
+  expected: "PUBLISH_NAMESPACE_OK + PUBLISH_NAMESPACE_DONE"
+  received: "MOQTRequestError: request error: code=1 reason="
+  ...
+ok 4 - subscribe-error
+  ---
+  duration_ms: 243
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "13da0b75e445777a"
+  message: "Error received (expected): code=16"
+  expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+  ...
+  [PASS] subscribe-error: Error received (expected): code=16
+ok 5 - rendezvous-timeout
+  ---
+  duration_ms: 818
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "8f0304550cc49d8b"
+  message: "REQUEST_ERROR TIMEOUT received"
+  expected: "REQUEST_ERROR TIMEOUT"
+  ...
+  [PASS] rendezvous-timeout: REQUEST_ERROR TIMEOUT received
+  [FAIL] announce-subscribe: Failed: MOQTRequestError: request error: code=1 reason=
+not ok 6 - announce-subscribe
+  ---
+  duration_ms: 299
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "29d043384bb36047"
+  message: "Failed: MOQTRequestError: request error: code=1 reason="
+  received: "MOQTRequestError: request error: code=1 reason="
+  ...
+ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-21' coro=<_MOQTSessionMixin._await_response() done, defined at /app/aiomoqt/protocol.py:735> exception=MOQTRequestError('request error: code=16 reason=')>
+Traceback (most recent call last):
+  File "/app/aiomoqt/protocol.py", line 767, in _await_response
+    raise MOQTRequestError(
+aiomoqt.types.MOQTRequestError: request error: code=16 reason=
+not ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 1034
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "9b97f05ed222859f"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "9bbeaeb3391ed571"
+  message: "Failed: MOQTRequestError: request error: code=1 reason="
+  received: "MOQTRequestError: request error: code=1 reason="
+  ...
+  [FAIL] subscribe-before-announce: Failed: MOQTRequestError: request error: code=1 reason=
+  [FAIL] data-subgroup-basic: PUBLISH_NAMESPACE refused: code=1 
+not ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 321
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "5df714c9d85b7aef"
+  message: "PUBLISH_NAMESPACE refused: code=1 "
+  ...
+not ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 603
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "e082792e9ef36063"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "70312568ffaca93d"
+  message: "Failed: MOQTRequestError: request error: code=1 reason="
+  expected: "NAMESPACE then NAMESPACE_DONE"
+  received: "MOQTRequestError: request error: code=1 reason="
+  ...
+  [FAIL] subscribe-namespace-lifecycle: Failed: MOQTRequestError: request error: code=1 reason=
+not ok 10 - namespace-discovery
+  ---
+  duration_ms: 298
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "b4e1fa278d5a163c"
+  message: "Failed: MOQTRequestError: request error: code=1 reason="
+  expected: "PUBLISH announcing 'track-34d6'"
+  received: "MOQTRequestError: request error: code=1 reason="
+  ...
+  [FAIL] namespace-discovery: Failed: MOQTRequestError: request error: code=1 reason=
+  [FAIL] publish-track-only: Failed: MOQTRequestError: request error: code=1 reason=
+not ok 11 - publish-track-only
+  ---
+  duration_ms: 301
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "479d072439c05514"
+  message: "Failed: MOQTRequestError: request error: code=1 reason="
+  expected: "PUBLISH_OK"
+  received: "MOQTRequestError: request error: code=1 reason="
+  ...
+  [FAIL] publish-track-subscribe: Failed: MOQTRequestError: request error: code=16 reason=
+not ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 607
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "de74bee6590cf1bf"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "2c3ee81a6b225b1f"
+  message: "Failed: MOQTRequestError: request error: code=16 reason="
+  expected: "SUBSCRIBE_OK and 5 objects"
+  received: "MOQTRequestError: request error: code=16 reason="
+  ...
+not ok 13 - publish-namespace-done-track
+  ---
+  duration_ms: 551
+  implementation_version: "0.15.0rc2"
+  sessions:
+    observer:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "be51acdd5870f441"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "a2c1a93cf43dcdba"
+  message: "PUBLISH_NAMESPACE refused: code=1 "
+  ...
+  [FAIL] publish-namespace-done-track: PUBLISH_NAMESPACE refused: code=1 
+not ok 14 - subscribe-cancel-live
+  ---
+  duration_ms: 299
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "cfb5b12109444a74"
+  message: "PUBLISH_NAMESPACE refused: code=1 "
+  ...
+  [FAIL] subscribe-cancel-live: PUBLISH_NAMESPACE refused: code=1 
+  [FAIL] publish-namespace-multi-publisher-retention: publisher_1 PUBLISH_NAMESPACE refused: code=1 
+not ok 15 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 586
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 1
+  sessions:
+    observer:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "fdb98accad3b6b06"
+    publisher_1:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "481771a88214ff43"
+  message: "publisher_1 PUBLISH_NAMESPACE refused: code=1 "
+  expected: "shared retained until publisher_1 withdraws"
+  received: "observer: nothing"
+  ...
+not ok 16 - fetch
+  ---
+  duration_ms: 300
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "76ea9f9051c2078d"
+  message: "Failed: MOQTRequestError: request error: code=1 reason="
+  expected: "FETCH_OK and the group's objects"
+  received: "MOQTRequestError: request error: code=1 reason="
+  ...
+  [FAIL] fetch: Failed: MOQTRequestError: request error: code=1 reason=
+  [FAIL] fetch-descending: Failed: MOQTRequestError: request error: code=1 reason=
+not ok 17 - fetch-descending
+  ---
+  duration_ms: 304
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "4e9999c359f5c2b5"
+  message: "Failed: MOQTRequestError: request error: code=1 reason="
+  expected: "FETCH_OK and two groups in descending order"
+  received: "MOQTRequestError: request error: code=1 reason="
+  ...
+  [FAIL] fetch-error-recovery: Failed: MOQTRequestError: request error: code=1 reason=
+not ok 18 - fetch-error-recovery
+  ---
+  duration_ms: 299
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "8f6543c882264cdd"
+  message: "Failed: MOQTRequestError: request error: code=1 reason="
+  expected: "INVALID_RANGE, then FETCH_OK and the group's objects"
+  received: "MOQTRequestError: request error: code=1 reason="
+  ...
+  [FAIL] join: Failed: MOQTRequestError: request error: code=1 reason=
+not ok 19 - join
+  ---
+  duration_ms: 304
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "8dd359712b5f6c74"
+  message: "Failed: MOQTRequestError: request error: code=1 reason="
+  expected: "SUBSCRIBE_OK, FETCH_OK and earlier objects"
+  received: "MOQTRequestError: request error: code=1 reason="
+  ...
+not ok 20 - moq-test-subgroup-per-group-eog
+  ---
+  duration_ms: 641
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "df683df108c8b6a9"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "a834b3e2f780cf29"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-subgroup-per-group-eog: PUBLISH refused: code=0x1 
+  [FAIL] moq-test-subgroup-per-group-no-eog: PUBLISH refused: code=0x1 
+not ok 21 - moq-test-subgroup-per-group-no-eog
+  ---
+  duration_ms: 640
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "69364cf003e1bfb4"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "8dc9aab033999776"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-subgroup-per-group-nonzero-start: PUBLISH refused: code=0x1 
+not ok 22 - moq-test-subgroup-per-group-nonzero-start
+  ---
+  duration_ms: 626
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "19eb5434736dc992"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "182b7034b6418bda"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-subgroup-per-object: PUBLISH refused: code=0x1 
+not ok 23 - moq-test-subgroup-per-object
+  ---
+  duration_ms: 630
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "89e4ff9a874f430a"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "186a85c944cb010f"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-subgroup-per-object-sparse-ids: PUBLISH refused: code=0x1 
+not ok 24 - moq-test-subgroup-per-object-sparse-ids
+  ---
+  duration_ms: 624
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "05765262825596ca"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "51fa2e9b17c56a18"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+not ok 25 - moq-test-two-subgroups-eog
+  ---
+  duration_ms: 631
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "81dfabc9a3f85389"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "80520cfbb7c5ce89"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-two-subgroups-eog: PUBLISH refused: code=0x1 
+not ok 26 - moq-test-two-subgroups-no-eog
+  ---
+  duration_ms: 635
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "cb7f78a04c7f9198"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "18781ad283a49d17"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-two-subgroups-no-eog: PUBLISH refused: code=0x1 
+not ok 27 - moq-test-datagram
+  ---
+  duration_ms: 611
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "18c6bb19dab5c67f"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "8725e7b09baba804"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-datagram: PUBLISH refused: code=0x1 
+not ok 28 - moq-test-datagram-nonzero-start
+  ---
+  duration_ms: 622
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "8a3f0e744e8e2c61"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "9fe842de506efb50"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-datagram-nonzero-start: PUBLISH refused: code=0x1 
+not ok 29 - moq-test-datagram-sparse-ids
+  ---
+  duration_ms: 628
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "ff26bd3b47ab848b"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "6d88c62446490951"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-datagram-sparse-ids: PUBLISH refused: code=0x1 
+not ok 30 - moq-test-datagram-eog
+  ---
+  duration_ms: 647
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "1fc148a74e6d6744"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "2dda35b887511fcf"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-datagram-eog: PUBLISH refused: code=0x1 
+not ok 31 - moq-test-extensions
+  ---
+  duration_ms: 649
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "90a199c03affe379"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "af62d6c93ae9c91a"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-extensions: PUBLISH refused: code=0x1 
+  [FAIL] moq-test-extensions-integer-only: PUBLISH refused: code=0x1 
+not ok 32 - moq-test-extensions-integer-only
+  ---
+  duration_ms: 637
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "ed1d6967098ecaeb"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "9626054586550aee"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+not ok 33 - moq-test-extensions-variable-only
+  ---
+  duration_ms: 645
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "dd87f545ce71c913"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "38080cd9e3dcf45c"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-extensions-variable-only: PUBLISH refused: code=0x1 
+not ok 34 - moq-test-object-fragmentation
+  ---
+  duration_ms: 637
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "72d932f892589656"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "ddfb0f3b828811ec"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-object-fragmentation: PUBLISH refused: code=0x1 
+  [FAIL] moq-test-object-large-id: PUBLISH refused: code=0x1 
+not ok 35 - moq-test-object-large-id
+  ---
+  duration_ms: 638
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "7f0180c5684adef5"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "26d895439ae9479c"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+not ok 36 - moq-test-increments
+  ---
+  duration_ms: 633
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "0ac646f5e379a072"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "6390b0c7daf53584"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+  [FAIL] moq-test-increments: PUBLISH refused: code=0x1 
+  [FAIL] moq-test-forward-zero: PUBLISH refused: code=0x1 
+not ok 37 - moq-test-forward-zero
+  ---
+  duration_ms: 619
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "906d889efeca5d1f"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "f6b61160f3043c4f"
+  message: "PUBLISH refused: code=0x1 "
+  ...
+# ended: 2026-11-22T00:18:52Z
+make: *** [Makefile:122: test-external] Error 1

@@ -1,0 +1,64 @@
+Running tests against https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16, moqt-22 (from default)
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 136
+  negotiated_version: draft-22
+  info: SETUP exchange completed successfully
+  ...
+not ok 2 - announce-only
+  ---
+  duration_ms: 177
+  negotiated_version: draft-22
+  ...
+E20261122 00:20:18.537524     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=760dd4a3f9bed6e6, local=10.0.134.92:46397, 130.35.249.170:4443=upstream, drain=done
+ok 3 - subscribe-error
+  ---
+  duration_ms: 176
+  negotiated_version: draft-22
+  info: Subscribe correctly returned error: 
+  ...
+not ok 4 - announce-subscribe
+  ---
+  duration_ms: 169
+  negotiated_version: draft-22
+  error: PUBLISH_NAMESPACE failed: 
+  ...
+E20261122 00:20:18.880587     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=960d46d3218eb9a6, local=10.0.134.92:38342, 130.35.249.170:4443=upstream, drain=done
+not ok 5 - publish-namespace-done
+  ---
+  duration_ms: 176
+  negotiated_version: draft-22
+  error: PUBLISH_NAMESPACE failed: 
+  ...
+E20261122 00:20:19.059530     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=516593995ce98556, local=10.0.134.92:33456, 130.35.249.170:4443=upstream, drain=done
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 357
+  negotiated_version: draft-22
+  error: PUBLISH_NAMESPACE failed: 
+  ...
+E20261122 00:20:19.416738     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=f2854ad92cbcac8d, local=10.0.134.92:48475, 130.35.249.170:4443=upstream, drain=done
+E20261122 00:20:19.420642     7 HQSession.cpp:609] Connection closed with error err=91141958510814 msg=Client closed by peer reason=draft22 protocol violation proto=h3, client CID=, server CID=57b5bad62209b275, local=10.0.134.92:37518, 130.35.249.170:4443=upstream, drain=done
+not ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 793
+  negotiated_version: draft-22
+  error: Publisher failed: std::runtime_error: PUBLISH_NAMESPACE failed: 
+  ...
+E20261122 00:20:20.210250     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=21b44678f787c32d, local=10.0.134.92:39924, 130.35.249.170:4443=upstream, drain=done
+make: *** [Makefile:122: test-external] Error 1
