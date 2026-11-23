@@ -1,0 +1,680 @@
+Running tests against https://moq-relay.red5.net:4433/moq...
+  Client: ghcr.io/gmarzot/aiomoqt:interop
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://moq-relay.red5.net:4433/moq \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:interop
+TAP version 14
+# date: 2026-11-23T00:17:23Z
+# target: https://moq-relay.red5.net:4433/moq
+# version: aiomoqt/0.15.0rc2
+# note: preference probe pinned draft-22
+1..37
+ok 1 - setup-only
+  ---
+  duration_ms: 107
+  implementation_version: "0.15.0rc2"
+  sessions:
+    client:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "e432cf03fec7776d"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+ok 2 - announce-only
+  ---
+  duration_ms: 127
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "cf221bfafabc9fb3"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 226
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "ac04687876f42fd2"
+  message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+  ...
+  [PASS] subscribe-error: Error received (expected): code=16
+ok 4 - subscribe-error
+  ---
+  duration_ms: 103
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "92d8d2ee6603e63e"
+  message: "Error received (expected): code=16"
+  expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+  ...
+not ok 5 - rendezvous-timeout
+  ---
+  duration_ms: 123
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "9f678e03ab7f4acc"
+  message: "REQUEST_ERROR code=0x10, expected TIMEOUT"
+  expected: "REQUEST_ERROR TIMEOUT"
+  ...
+  [FAIL] rendezvous-timeout: REQUEST_ERROR code=0x10, expected TIMEOUT
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+ok 6 - announce-subscribe
+  ---
+  duration_ms: 265
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "504b6d2e16a867a0"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "8cee49c1af5a322a"
+  message: "SUBSCRIBE_OK received — relay routed subscription"
+  ...
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 732
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "29cadaa2375fa4a2"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "272fe41dae4c18c4"
+  message: "Error received (valid: relay didn't buffer): code=16"
+  ...
+  [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=16
+  [PASS] data-subgroup-basic: 15 objects received; Stream Count upstream 3, downstream 3
+ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 318
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "92115e0920dbd507"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "28209749b7596667"
+  message: "15 objects received; Stream Count upstream 3, downstream 3"
+  ...
+  [PASS] subscribe-namespace-lifecycle: NAMESPACE then NAMESPACE_DONE received
+ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 264
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "d588d04bc18a5760"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "71de96c0bee4b89a"
+  message: "NAMESPACE then NAMESPACE_DONE received"
+  ...
+  [PASS] namespace-discovery: discovered 'track-8613'
+  Discovered: moq-test/8613/interop/namespace-discovery/track-8613
+ok 10 - namespace-discovery
+  ---
+  duration_ms: 265
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "63691286faf3b248"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "407d5f7f745408cf"
+  message: "discovered 'track-8613'"
+  expected: "PUBLISH announcing 'track-8613'"
+  received: "track-8613"
+  ...
+  [PASS] publish-track-only: PUBLISH_OK received, PUBLISH_DONE sent
+ok 11 - publish-track-only
+  ---
+  duration_ms: 245
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "0a3cf2ad79d62a6b"
+  message: "PUBLISH_OK received, PUBLISH_DONE sent"
+  ...
+  [PASS] publish-track-subscribe: 5 objects received from the published track
+ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 371
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "4e4a3b29fd115069"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "563da7bbddcabea8"
+  message: "5 objects received from the published track"
+  expected: "5 objects"
+  received: "5 objects"
+  ...
+  [FAIL] publish-namespace-done-track: observer saw NAMESPACE, PUBLISH_DONE, expected NAMESPACE, PUBLISH_DONE, NAMESPACE_DONE in that order (1 problem(s)); objects 1/1, Stream Count 1/1; observer saw NAMESPACE, PUBLISH_DONE
+not ok 13 - publish-namespace-done-track
+  ---
+  duration_ms: 5301
+  implementation_version: "0.15.0rc2"
+  sessions:
+    observer:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "89012ea91d69f859"
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "32906a8e3964f4a6"
+  message: "observer saw NAMESPACE, PUBLISH_DONE, expected NAMESPACE, PUBLISH_DONE, NAMESPACE_DONE in that order (1 problem(s)); objects 1/1, Stream Count 1/1; observer saw NAMESPACE, PUBLISH_DONE"
+  expected: "NAMESPACE, PUBLISH_DONE, NAMESPACE_DONE"
+  received: "NAMESPACE, PUBLISH_DONE"
+  ...
+ok 14 - subscribe-cancel-live
+  ---
+  duration_ms: 1287
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "0b66e738202e078d"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "2f04ad95dc1de06f"
+  message: "2 objects before the cancel, 0 after it, 0 in flight within 117 ms"
+  ...
+  [PASS] subscribe-cancel-live: 2 objects before the cancel, 0 after it, 0 in flight within 117 ms
+  [FAIL] publish-namespace-multi-publisher-retention: subscriber_1: no NAMESPACE shared retained from publisher_1
+not ok 15 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 5564
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 1
+  sessions:
+    observer:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "ce25531dc14b006d"
+    publisher_1:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "3a003d145b31b685"
+    publisher_2:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "54fc51e8494de8e3"
+    subscriber_1:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "1307169eb9fb8dc3"
+    subscriber_2:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "50453b9e16b484e7"
+  message: "subscriber_1: no NAMESPACE shared retained from publisher_1"
+  expected: "shared retained until publisher_1 withdraws"
+  received: "observer: NAMESPACE shared, NAMESPACE sync, NAMESPACE_DONE sync; subscriber_1: nothing; subscriber_2: nothing"
+  ...
+  [PASS] fetch: 5 objects of group 1 received by the FETCH
+
+  Sent: 20 objects, 5 groups, 50/s, 30Kbps (0.4s)
+ok 16 - fetch
+  ---
+  duration_ms: 613
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "e4c3327ee3a7e5dc"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "45e28c150dd64dae"
+    fetcher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "df9bcff89e9f0aee"
+  message: "5 objects of group 1 received by the FETCH"
+  ...
+
+  Sent: 24 objects, 5 groups, 50/s, 30Kbps (0.5s)
+not ok 17 - fetch-descending
+  ---
+  duration_ms: 709
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "6daa6a9dcd0a1d1b"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "d681b27e0b41b0fb"
+    fetcher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "fafbd22de456936f"
+  message: "unexpected object 0.0 (6 problem(s)); 10 objects of groups 1-2 received by the FETCH in descending order"
+  expected: "10 objects of groups 1-2"
+  received: "10 objects"
+  ...
+  [FAIL] fetch-descending: unexpected object 0.0 (6 problem(s)); 10 objects of groups 1-2 received by the FETCH in descending order
+  [PASS] fetch-error-recovery: 5 objects of group 1 received by the FETCH after INVALID_RANGE
+
+  Sent: 21 objects, 5 groups, 50/s, 30Kbps (0.4s)
+ok 18 - fetch-error-recovery
+  ---
+  duration_ms: 681
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "16633d7d1c4c580c"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "54d03c72e1721569"
+    fetcher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "f4524dc02d983e6f"
+  message: "5 objects of group 1 received by the FETCH after INVALID_RANGE"
+  ...
+ok 19 - join
+  ---
+  duration_ms: 583
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "70244a07f05f4e19"
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "240b582508473ece"
+    joiner:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "6f3d647e0872547e"
+  message: "6 objects received by the joining FETCH"
+  ...
+  [PASS] join: 6 objects received by the joining FETCH
+
+  Sent: 19 objects, 4 groups, 48/s, 29Kbps (0.4s)
+not ok 20 - moq-test-subgroup-per-group-eog
+  ---
+  duration_ms: 155
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "49cde25a26aab25b"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-subgroup-per-group-eog: SUBSCRIBE refused: code=16 Track not found
+not ok 21 - moq-test-subgroup-per-group-no-eog
+  ---
+  duration_ms: 125
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "9304f5230824918b"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-subgroup-per-group-no-eog: SUBSCRIBE refused: code=16 Track not found
+  [FAIL] moq-test-subgroup-per-group-nonzero-start: SUBSCRIBE refused: code=16 Track not found
+not ok 22 - moq-test-subgroup-per-group-nonzero-start
+  ---
+  duration_ms: 122
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "1160e8740c8d1924"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-subgroup-per-object: SUBSCRIBE refused: code=16 Track not found
+not ok 23 - moq-test-subgroup-per-object
+  ---
+  duration_ms: 121
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "1f6f75fcee5f17d4"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-subgroup-per-object-sparse-ids: SUBSCRIBE refused: code=16 Track not found
+not ok 24 - moq-test-subgroup-per-object-sparse-ids
+  ---
+  duration_ms: 129
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "9a04943758f1976a"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-two-subgroups-eog: SUBSCRIBE refused: code=16 Track not found
+not ok 25 - moq-test-two-subgroups-eog
+  ---
+  duration_ms: 125
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "c7afe55b05b6a493"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+not ok 26 - moq-test-two-subgroups-no-eog
+  ---
+  duration_ms: 125
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "fb4b4047aacb5357"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-two-subgroups-no-eog: SUBSCRIBE refused: code=16 Track not found
+  [FAIL] moq-test-datagram: SUBSCRIBE refused: code=16 Track not found
+not ok 27 - moq-test-datagram
+  ---
+  duration_ms: 124
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "4676d40e94e9f37d"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+not ok 28 - moq-test-datagram-nonzero-start
+  ---
+  duration_ms: 121
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "8bf9578268dbb9bf"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-datagram-nonzero-start: SUBSCRIBE refused: code=16 Track not found
+not ok 29 - moq-test-datagram-sparse-ids
+  ---
+  duration_ms: 124
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "0c8501341356fdf1"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-datagram-sparse-ids: SUBSCRIBE refused: code=16 Track not found
+  [FAIL] moq-test-datagram-eog: SUBSCRIBE refused: code=16 Track not found
+not ok 30 - moq-test-datagram-eog
+  ---
+  duration_ms: 126
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "3b1c380f8a4e00f2"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+not ok 31 - moq-test-extensions
+  ---
+  duration_ms: 120
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "a4e856b7dbc26905"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-extensions: SUBSCRIBE refused: code=16 Track not found
+not ok 32 - moq-test-extensions-integer-only
+  ---
+  duration_ms: 126
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "321af528f7719f77"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-extensions-integer-only: SUBSCRIBE refused: code=16 Track not found
+not ok 33 - moq-test-extensions-variable-only
+  ---
+  duration_ms: 121
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "a49a7edf9db29662"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-extensions-variable-only: SUBSCRIBE refused: code=16 Track not found
+not ok 34 - moq-test-object-fragmentation
+  ---
+  duration_ms: 122
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "fcea2650ff8909ff"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-object-fragmentation: SUBSCRIBE refused: code=16 Track not found
+not ok 35 - moq-test-object-large-id
+  ---
+  duration_ms: 145
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "aac40efeb9130452"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-object-large-id: SUBSCRIBE refused: code=16 Track not found
+  [FAIL] moq-test-increments: SUBSCRIBE refused: code=16 Track not found
+not ok 36 - moq-test-increments
+  ---
+  duration_ms: 126
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "84f498b5758ae356"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+not ok 37 - moq-test-forward-zero
+  ---
+  duration_ms: 122
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "webtransport-h3"
+      moqt_version: "moqt-22"
+      alpn: "h3"
+      webtransport_protocol: "moqt-22"
+      quic_initial_destination_connection_id: "f3f2b3cc3389638e"
+  message: "SUBSCRIBE refused: code=16 Track not found"
+  ...
+  [FAIL] moq-test-forward-zero: SUBSCRIBE refused: code=16 Track not found
+# ended: 2026-11-23T00:17:43Z
+make: *** [Makefile:122: test-external] Error 1

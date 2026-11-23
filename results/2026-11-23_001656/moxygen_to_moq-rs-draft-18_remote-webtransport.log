@@ -1,0 +1,70 @@
+Running tests against https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16, moqt-22 (from default)
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 151
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E1123 00:21:52.764486     7 MoQRelaySession.cpp:1019] PublishNamespaceDone for unknown publishNamespace, sess=0x634279828700
+ok 2 - announce-only
+  ---
+  duration_ms: 157
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E20261123 00:21:52.800642     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=8a8229e5c0bab250, local=10.0.142.70:50261, 8.228.3.228:443=upstream, drain=done
+ok 3 - subscribe-error
+  ---
+  duration_ms: 151
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: not found: Track not found [error:e4f3dd42-5acc-48d6-af54-119138d2e0b2]
+  ...
+E20261123 00:21:52.952255     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=0df9ff70cbaef800, local=10.0.142.70:47698, 8.228.3.228:443=upstream, drain=done
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 378
+  negotiated_version: draft-18
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+E20261123 00:21:53.330196     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=6e4169bcb250df38, local=10.0.142.70:56338, 8.228.3.228:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 185
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E20261123 00:21:53.516285     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=bbc77f62d48768c4, local=10.0.142.70:49479, 8.228.3.228:443=upstream, drain=done
+E1123 00:21:53.954979     7 MoQRelaySession.cpp:945] Invalid publishNamespace cancel requestID=0
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 474
+  negotiated_version: draft-18
+  error: PUBLISH_NAMESPACE failed: peer stopped reading the request stream
+  ...
+E20261123 00:21:53.989369     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=4238a94070b90748, local=10.0.142.70:45769, 8.228.3.228:443=upstream, drain=done
+E20261123 00:21:53.989814     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=4dad1fd5224e0ae4, local=10.0.142.70:50466, 8.228.3.228:443=upstream, drain=done
+E20261123 00:21:53.990918     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=89c864fcc7dd5739, local=10.0.142.70:59717, 8.228.3.228:443=upstream, drain=done
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 802
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): not found: Track not found [error:3b0400d3-8d9e-4a6c-8e52-b2068f16e67f]
+  ...
+E20261123 00:21:54.792642     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=e915ce8bb31d6cfa, local=10.0.142.70:55037, 8.228.3.228:443=upstream, drain=done
+E20261123 00:21:54.793540     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=02a5e6cbe5c38e7f, local=10.0.142.70:50620, 8.228.3.228:443=upstream, drain=done
+make: *** [Makefile:122: test-external] Error 1
