@@ -2,7 +2,7 @@
 # Dockerfile for moq-net-media-ts-client (Rust)
 #
 # Builds the MPEG-TS media test client on the moq-net / moq-tokio crates (moq-net 0.3.15 /
-# moq-tokio 0.19.28) and bakes the MPEG-TS fixture (lib/media/mpeg-ts/) and its reference
+# moq-tokio 0.19.28) and bakes the MPEG-TS fixtures (lib/media/mpeg-ts/) and their reference
 # oracle, check-ts.py, into the image. The oracle needs TSDuck and ffprobe; TSDuck
 # publishes Debian packages for trixie only, so every stage is on trixie.
 #
@@ -52,6 +52,8 @@ FROM tools AS fixture
 COPY lib/media/mpeg-ts /src/lib/media/mpeg-ts
 RUN mkdir -p /fixture \
     && bash /src/lib/media/mpeg-ts/make-fixture.sh /fixture/fixture.ts \
+    && bash /src/lib/media/mpeg-ts/make-fixture.sh --step /fixture/fixture-step.ts \
+    && bash /src/lib/media/mpeg-ts/make-fixture.sh --mpts /fixture/fixture-mpts.ts \
     && bash /src/lib/media/mpeg-ts/test/test-check-ts.sh
 
 # Runtime image: the client runs the oracle after each scenario, so it keeps the tools.
