@@ -47,23 +47,23 @@ pub fn reassemble(objects: &[Received], dir: &Path) -> anyhow::Result<usize> {
 /// How long `check-ts.py` may take; it normally finishes in a few seconds.
 const CHECKER_DEADLINE: Duration = Duration::from_secs(60);
 
-/// Run `check-ts.py` over what [`reassemble`] wrote in `dir`, with `catalogs` (the catalog
-/// object published, then as received) for its `catalog` check.
+/// Run `check-ts.py` over what [`reassemble`] wrote in `dir`, with the test's own `args` and
+/// `catalogs` (the catalog object published, then as received) for its `catalog` check.
 pub async fn check(
     checker: &Path,
     fixture: &Path,
     dir: &Path,
-    late_join: bool,
+    args: &[&str],
     catalogs: Option<(&[u8], &[u8])>,
 ) -> anyhow::Result<Report> {
-    run(checker, fixture, dir, late_join, catalogs, CHECKER_DEADLINE).await
+    run(checker, fixture, dir, args, catalogs, CHECKER_DEADLINE).await
 }
 
 async fn run(
     checker: &Path,
     fixture: &Path,
     dir: &Path,
-    late_join: bool,
+    args: &[&str],
     catalogs: Option<(&[u8], &[u8])>,
     deadline: Duration,
 ) -> anyhow::Result<Report> {
@@ -74,10 +74,8 @@ async fn run(
         .arg("--received")
         .arg(dir.join("received.ts"))
         .arg("--objects")
-        .arg(dir.join("objects.txt"));
-    if late_join {
-        cmd.arg("--late-join");
-    }
+        .arg(dir.join("objects.txt"))
+        .args(args);
     if let Some((published, received)) = catalogs {
         std::fs::write(dir.join("catalog-published.json"), published)
             .context("writing catalog-published.json")?;
@@ -191,7 +189,7 @@ mod test {
             &checker,
             &dir.path().join("fixture.ts"),
             dir.path(),
-            false,
+            &[],
             None,
             Duration::from_millis(300),
         )
@@ -218,7 +216,7 @@ mod test {
             &checker,
             &dir.path().join("fixture.ts"),
             dir.path(),
-            false,
+            &[],
             None,
             Duration::from_secs(10),
         )
@@ -266,6 +264,7 @@ mod test {
             group,
             object,
             payload: [&[0x05][..], body].concat().into(),
+            arrived: std::time::Instant::now(),
         };
         let bad = reassemble(
             &[obj(1, 0, b"B"), obj(0, 0, b"A"), obj(1, 1, b"C")],

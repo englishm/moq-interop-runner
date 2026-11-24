@@ -89,8 +89,19 @@ impl Publisher {
     /// Publish every object at `t0` plus its arrival, then end the track. Fails early if the
     /// session ends.
     pub async fn publish(&self, fixture: &Fixture, t0: Instant) -> anyhow::Result<()> {
+        self.publish_from(fixture, t0, 0.0).await
+    }
+
+    /// As [`Self::publish`], from the first group starting `from_secs` or more into the fixture.
+    pub async fn publish_from(
+        &self,
+        fixture: &Fixture,
+        t0: Instant,
+        from_secs: f64,
+    ) -> anyhow::Result<()> {
         let mut group: Option<moq_net::group::Producer> = None;
-        for (i, object) in fixture.objects.iter().enumerate() {
+        let objects = fixture.objects.iter().filter(|o| o.group_secs >= from_secs);
+        for (i, object) in objects.enumerate() {
             let at = t0 + Duration::from_secs_f64(object.ready_secs);
             tokio::select! {
                 res = self.connection.closed() => anyhow::bail!("publisher session closed while publishing: {:?}", res),

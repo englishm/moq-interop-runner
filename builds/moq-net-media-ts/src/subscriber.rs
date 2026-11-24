@@ -20,6 +20,8 @@ const MEDIA_MAX_AGE: Duration = Duration::from_secs(10);
 pub struct Subscriber {
     /// Keeps the scoped origin alive.
     _root: moq_net::origin::Producer,
+    consumer: moq_net::origin::Consumer,
+    namespace: String,
     broadcast: moq_net::broadcast::Consumer,
     pub connection: moq_tokio::Connection,
     pub session: Session,
@@ -64,6 +66,8 @@ impl Subscriber {
 
         Ok(Self {
             _root: root,
+            consumer,
+            namespace: namespace.to_string(),
             broadcast,
             connection,
             session,
@@ -85,6 +89,30 @@ impl Subscriber {
         name: &str,
         within: Duration,
     ) -> anyhow::Result<moq_net::track::Subscriber> {
+        subscribe(&self.broadcast, name, within).await
+    }
+
+    /// Subscribe to `name` again, on the broadcast the relay routes now: the one held, unless
+    /// it has ended, in which case the next routed broadcast that has not. Each wait has
+    /// `within`.
+    pub async fn resubscribe(
+        &mut self,
+        name: &str,
+        within: Duration,
+    ) -> anyhow::Result<moq_net::track::Subscriber> {
+        let by = tokio::time::Instant::now() + within;
+        while self.broadcast.is_closed() {
+            let routed =
+                tokio::time::timeout_at(by, self.consumer.routed_broadcast(&self.namespace))
+                    .await
+                    .context("no live broadcast routed in time")?
+                    .context("broadcast never became routable")?;
+            if routed.is_closed() {
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            } else {
+                self.broadcast = routed;
+            }
+        }
         subscribe(&self.broadcast, name, within).await
     }
 
@@ -187,6 +215,7 @@ pub struct Received {
     pub group: u64,
     pub object: u64,
     pub payload: Bytes,
+    pub arrived: Instant,
 }
 
 /// What a collection run observed.
@@ -224,6 +253,7 @@ pub async fn collect(mut subscriber: moq_net::track::Subscriber, deadline: Insta
                                         group: sequence,
                                         object: index,
                                         payload: frame.payload,
+                                        arrived: Instant::now(),
                                     }));
                                 }
                                 Ok(None) => break,

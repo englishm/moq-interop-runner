@@ -165,10 +165,11 @@ cargo run --release --manifest-path builds/stitcher-moq-media/Cargo.toml -- \
 The `moq-net-media-ts` client image drives the MPEG-TS scenarios in
 [`docs/tests/media/`](../docs/tests/media/README.md) the same way, a
 publisher and a checker subscriber from one process, exposing
-`ts-carriage-integrity` and `ts-late-subscriber`. It publishes the fixture in
+`ts-carriage-integrity`, `ts-late-subscriber`, `ts-clock-step`,
+`ts-multi-program` and `ts-publisher-restart`. It publishes the fixtures in
 moq-dev's passthrough layout (`ts_packaging: moq-dev-m2ts`) and grades what
 the subscriber received with the reference oracle,
-[`check-ts.py`](../lib/media/mpeg-ts/check-ts.py). The fixture is generated,
+[`check-ts.py`](../lib/media/mpeg-ts/check-ts.py). The fixtures are generated,
 and the oracle's sensitivity tests run, at image build time from
 [`lib/media/mpeg-ts/`](../lib/media/mpeg-ts/); the runtime image carries
 ffmpeg and TSDuck for the oracle.
@@ -180,7 +181,9 @@ docker build -t moq-dev-rs-interop:latest -f adapters/moq-dev-rs/Dockerfile.rela
 make test RELAY_IMAGE=moq-dev-rs-interop:latest CLIENT_IMAGE=moq-net-media-ts-client:latest
 ```
 
-A full run takes about 45 s. The late subscriber reads the Group ID the
+A full run takes about 2 min. In `ts-publisher-restart` the first publisher
+runs as a child process of the client and is killed, so its session ends with
+no closing message at all. The late subscriber reads the Group ID the
 publisher has open just before it sends SUBSCRIBE, so `join-point` checks
 against the exact group. `MOQ_CLIENT_VERSION` and `VERBOSE=1` behave as for
 `stitcher-moq-media`.
@@ -190,6 +193,8 @@ To run outside Docker (ffmpeg, ffprobe, TSDuck and python3 needed):
 ```bash
 mkdir -p /tmp/ts-fixture
 bash lib/media/mpeg-ts/make-fixture.sh /tmp/ts-fixture/fixture.ts
+bash lib/media/mpeg-ts/make-fixture.sh --step /tmp/ts-fixture/fixture-step.ts
+bash lib/media/mpeg-ts/make-fixture.sh --mpts /tmp/ts-fixture/fixture-mpts.ts
 cargo run --release --manifest-path builds/moq-net-media-ts/Cargo.toml -- \
   --relay moqt://cdn.moq.dev:443/anon --fixture-dir /tmp/ts-fixture \
   --checker lib/media/mpeg-ts/check-ts.py
