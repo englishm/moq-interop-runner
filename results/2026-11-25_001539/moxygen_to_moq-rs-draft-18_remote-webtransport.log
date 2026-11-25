@@ -1,0 +1,69 @@
+Running tests against https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq...
+  Client: ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/facebookexperimental/moxygen-interop-client:latest-amd64
+TAP version 14
+# moxygen interop test client
+# Relay: https://draft-18-interop.cloudflare.mediaoverquic.com:443/moq
+# Transport: WebTransport
+# Offered ALPNs: moqt-18, moqt-16, moqt-22 (from default)
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 104
+  negotiated_version: draft-18
+  info: SETUP exchange completed successfully
+  ...
+E20261125 00:20:12.635426     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=fd03bfed740fb154, local=10.1.0.107:58402, 8.228.3.228:443=upstream, drain=done
+E1125 00:20:12.726701     7 MoQRelaySession.cpp:1014] PublishNamespaceDone for unknown publishNamespace, sess=0x5a8aa27dbc50
+ok 2 - announce-only
+  ---
+  duration_ms: 115
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E20261125 00:20:12.751681     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=1c07806564d8caa7, local=10.1.0.107:50624, 8.228.3.228:443=upstream, drain=done
+ok 3 - subscribe-error
+  ---
+  duration_ms: 123
+  negotiated_version: draft-18
+  info: Subscribe correctly returned error: not found: Track not found [error:dce27a67-5b0e-4ab8-84b6-07ceeaaa8a57]
+  ...
+E20261125 00:20:12.874997     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=19a232dc65e20e63, local=10.1.0.107:39394, 8.228.3.228:443=upstream, drain=done
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 256
+  negotiated_version: draft-18
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+E20261125 00:20:13.132676     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=b57bb72dc371278d, local=10.1.0.107:38820, 8.228.3.228:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 117
+  negotiated_version: draft-18
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E1125 00:20:13.567730     7 MoQRelaySession.cpp:940] Invalid publishNamespace cancel requestID=0
+not ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 342
+  negotiated_version: draft-18
+  error: PUBLISH_NAMESPACE failed: peer stopped reading the request stream
+  ...
+E20261125 00:20:13.592882     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=b1814d6d9797af4c, local=10.1.0.107:48247, 8.228.3.228:443=upstream, drain=done
+E20261125 00:20:13.593147     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=c3ea9bc010aed35f, local=10.1.0.107:50212, 8.228.3.228:443=upstream, drain=done
+E20261125 00:20:13.593330     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=8a1d2805a6dd8e79, local=10.1.0.107:50518, 8.228.3.228:443=upstream, drain=done
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 708
+  negotiated_version: draft-18
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): not found: Track not found [error:2e9c41b1-76c7-4ca0-a330-dd04d31d0dd8]
+  ...
+E20261125 00:20:14.303105     7 HQSession.cpp:609] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=451f81390ac8172d, local=10.1.0.107:56533, 8.228.3.228:443=upstream, drain=done
+make: *** [Makefile:122: test-external] Error 1
