@@ -1,0 +1,682 @@
+Running tests against moqt://moqt.nokiaresearch.com:4443/moq...
+  Client: ghcr.io/gmarzot/aiomoqt:interop
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://moqt.nokiaresearch.com:4443/moq \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:interop
+TAP version 14
+# date: 2026-11-26T00:15:41Z
+# target: moqt://moqt.nokiaresearch.com:4443/moq
+# version: aiomoqt/0.15.0rc2
+# note: preference probe pinned draft-22
+1..37
+ok 1 - setup-only
+  ---
+  duration_ms: 1530
+  implementation_version: "0.15.0rc2"
+  sessions:
+    client:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "eab9fd940abbccd5"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+ok 2 - announce-only
+  ---
+  duration_ms: 1651
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "1e4fbbba968bf47c"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 1752
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "ed70d2ba5fcf0f3e"
+  message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+  ...
+ok 4 - subscribe-error
+  ---
+  duration_ms: 877
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "06664aec0d358e56"
+  message: "Error received (expected): code=16"
+  expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+  ...
+  [PASS] subscribe-error: Error received (expected): code=16
+ok 5 - rendezvous-timeout
+  ---
+  duration_ms: 2177
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "f9c8a32acb6c13a6"
+  message: "REQUEST_ERROR TIMEOUT received"
+  expected: "REQUEST_ERROR TIMEOUT"
+  ...
+  [PASS] rendezvous-timeout: REQUEST_ERROR TIMEOUT received
+ok 6 - announce-subscribe
+  ---
+  duration_ms: 3275
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "2b9f0fc4130ad04d"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "1752644a7d2b461a"
+  message: "SUBSCRIBE_OK received — relay routed subscription"
+  ...
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 3598
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "853888f61f27f7b7"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "9bf8cd0f30850b46"
+  message: "Error received (valid: relay didn't buffer): code=16"
+  ...
+  [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=16
+ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 3477
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "e57d3330619cf7f1"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "332c152f46a70d22"
+  message: "15 objects received; Stream Count upstream 3, downstream 3"
+  ...
+  [PASS] data-subgroup-basic: 15 objects received; Stream Count upstream 3, downstream 3
+ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 3434
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "3a3446e2281f278f"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "80caa5f19d799f6a"
+  message: "NAMESPACE then NAMESPACE_DONE received"
+  ...
+  [PASS] subscribe-namespace-lifecycle: NAMESPACE then NAMESPACE_DONE received
+  Discovered: moq-test/7a2d/interop/namespace-discovery/track-7a2d
+ok 10 - namespace-discovery
+  ---
+  duration_ms: 3424
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "596f0fbe29a9a08b"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "7259e68d2af24e23"
+  message: "discovered 'track-7a2d'"
+  expected: "PUBLISH announcing 'track-7a2d'"
+  received: "track-7a2d"
+  ...
+  [PASS] namespace-discovery: discovered 'track-7a2d'
+ok 11 - publish-track-only
+  ---
+  duration_ms: 1730
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "cfcfff8acb72657d"
+  message: "PUBLISH_OK received, PUBLISH_DONE sent"
+  ...
+  [PASS] publish-track-only: PUBLISH_OK received, PUBLISH_DONE sent
+ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 3297
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "71724403eef923b7"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "b6a8173e4a0f9ddd"
+  message: "5 objects received from the published track"
+  expected: "5 objects"
+  received: "5 objects"
+  ...
+  [PASS] publish-track-subscribe: 5 objects received from the published track
+ok 13 - publish-namespace-done-track
+  ---
+  duration_ms: 3597
+  implementation_version: "0.15.0rc2"
+  sessions:
+    observer:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "31a39a0d54315ff4"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "312cef745a8da07c"
+  message: "objects 1/1, Stream Count 1/1; observer saw NAMESPACE, PUBLISH_DONE, NAMESPACE_DONE, NAMESPACE_DONE, NAMESPACE_DONE, NAMESPACE_DONE"
+  ...
+  [PASS] publish-namespace-done-track: objects 1/1, Stream Count 1/1; observer saw NAMESPACE, PUBLISH_DONE, NAMESPACE_DONE, NAMESPACE_DONE, NAMESPACE_DONE, NAMESPACE_DONE
+WARNING aiopquic.quic.connection: stream 0 reset by peer: error=1
+ok 14 - subscribe-cancel-live
+  ---
+  duration_ms: 4325
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "17f646ec28b6580c"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "eadd20d76a1f41cc"
+  message: "2 objects before the cancel, 0 after it, 8 in flight within 261 ms"
+  ...
+  [PASS] subscribe-cancel-live: 2 objects before the cancel, 0 after it, 8 in flight within 261 ms
+  [FAIL] publish-namespace-multi-publisher-retention: observer: NAMESPACE shared while present; 1 problem(s)
+not ok 15 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 5511
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 1
+  sessions:
+    observer:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "3566fa646e978bbe"
+    publisher_1:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "dd2b2e3a170a95a3"
+    publisher_2:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "4bf3fc2bba9bf798"
+    subscriber_1:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "4b8c1d8ed25cd008"
+    subscriber_2:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "6c2096d7f5ad2d0f"
+  message: "observer: NAMESPACE shared while present; 1 problem(s)"
+  expected: "shared retained until publisher_1 withdraws"
+  received: "observer: NAMESPACE shared, NAMESPACE shared, NAMESPACE sync, NAMESPACE_DONE sync, NAMESPACE_DONE shared; subscriber_1: NAMESPACE shared, NAMESPACE_DONE shared; subscriber_2: NAMESPACE shared, NAMESPACE_DONE shared"
+  ...
+
+  Sent: 136 objects, 28 groups, 50/s, 30Kbps (2.7s)
+ok 16 - fetch
+  ---
+  duration_ms: 4983
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "6601ae379d391dab"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "5c8299de78bf707e"
+    fetcher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "65f33a5b7ecb4597"
+  message: "5 objects of group 1 received by the FETCH"
+  ...
+  [PASS] fetch: 5 objects of group 1 received by the FETCH
+  [PASS] fetch-descending: 10 objects of groups 1-2 received by the FETCH in descending order
+
+  Sent: 138 objects, 28 groups, 50/s, 30Kbps (2.8s)
+ok 17 - fetch-descending
+  ---
+  duration_ms: 4953
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "8a18739d7eeb6032"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "aaa0ccd1f637c6fb"
+    fetcher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "52cd0efa6155370d"
+  message: "10 objects of groups 1-2 received by the FETCH in descending order"
+  ...
+WARNING aiopquic.quic.connection: stream 0 reset by peer: error=1
+
+  Sent: 138 objects, 28 groups, 50/s, 30Kbps (2.8s)
+ok 18 - fetch-error-recovery
+  ---
+  duration_ms: 4986
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "49c4ecb40ab854fa"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "584637fc61cd03b1"
+    fetcher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "69b547bed983adf4"
+  message: "5 objects of group 1 received by the FETCH after INVALID_RANGE"
+  ...
+  [PASS] fetch-error-recovery: 5 objects of group 1 received by the FETCH after INVALID_RANGE
+
+  Sent: 134 objects, 27 groups, 50/s, 30Kbps (2.7s)
+ok 19 - join
+  ---
+  duration_ms: 4943
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "53b375ca2350f515"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "354d70503ae896b5"
+    joiner:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "baba61084d74a1ed"
+  message: "6 objects received by the joining FETCH"
+  ...
+  [PASS] join: 6 objects received by the joining FETCH
+not ok 20 - moq-test-subgroup-per-group-eog
+  ---
+  duration_ms: 2437
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "60d3b423ae0cd52d"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "6b91ee80cebb4ca7"
+  message: "object 0.0: 64-byte payload, expected 64 bytes of b't' (15 problem(s)); objects 15/15, End of Group 3/3, Stream Count 3/3"
+  ...
+  [FAIL] moq-test-subgroup-per-group-eog: object 0.0: 64-byte payload, expected 64 bytes of b't' (15 problem(s)); objects 15/15, End of Group 3/3, Stream Count 3/3
+  [FAIL] moq-test-subgroup-per-group-no-eog: object 0.0: 64-byte payload, expected 64 bytes of b't' (18 problem(s)); objects 18/18, End of Group 0/0, Stream Count 3/3
+not ok 21 - moq-test-subgroup-per-group-no-eog
+  ---
+  duration_ms: 2498
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "8c09b7c788c5a8ca"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "d5fa62a42a198d2d"
+  message: "object 0.0: 64-byte payload, expected 64 bytes of b't' (18 problem(s)); objects 18/18, End of Group 0/0, Stream Count 3/3"
+  ...
+not ok 22 - moq-test-subgroup-per-group-nonzero-start
+  ---
+  duration_ms: 2500
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "eff3586e61f5ba07"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "e0b867249bff36c9"
+  message: "object 6.3: 64-byte payload, expected 64 bytes of b't' (6 problem(s)); objects 6/6, End of Group 3/3, Stream Count 3/3"
+  ...
+  [FAIL] moq-test-subgroup-per-group-nonzero-start: object 6.3: 64-byte payload, expected 64 bytes of b't' (6 problem(s)); objects 6/6, End of Group 3/3, Stream Count 3/3
+  [FAIL] moq-test-subgroup-per-object: object 0.0: 64-byte payload, expected 64 bytes of b't' (9 problem(s)); objects 8/8, End of Group 0/0, Stream Count 8/8
+not ok 23 - moq-test-subgroup-per-object
+  ---
+  duration_ms: 2658
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "348520bc725f96b6"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "a9e1ca680b328a7a"
+  message: "object 0.0: 64-byte payload, expected 64 bytes of b't' (9 problem(s)); objects 8/8, End of Group 0/0, Stream Count 8/8"
+  ...
+not ok 24 - moq-test-subgroup-per-object-sparse-ids
+  ---
+  duration_ms: 2615
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "69ee5120443dfa57"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "a525eb833ebca6cb"
+  message: "object 4.2: 64-byte payload, expected 64 bytes of b't' (4 problem(s)); objects 3/3, End of Group 0/0, Stream Count 3/3"
+  ...
+  [FAIL] moq-test-subgroup-per-object-sparse-ids: object 4.2: 64-byte payload, expected 64 bytes of b't' (4 problem(s)); objects 3/3, End of Group 0/0, Stream Count 3/3
+not ok 25 - moq-test-two-subgroups-eog
+  ---
+  duration_ms: 2480
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "a5e6fc4f4636f950"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "b0b6311ef4dae7b6"
+  message: "object 0.0: 64-byte payload, expected 64 bytes of b't' (18 problem(s)); objects 18/18, End of Group 3/3, Stream Count 6/6"
+  ...
+  [FAIL] moq-test-two-subgroups-eog: object 0.0: 64-byte payload, expected 64 bytes of b't' (18 problem(s)); objects 18/18, End of Group 3/3, Stream Count 6/6
+  [FAIL] moq-test-two-subgroups-no-eog: object 0.0: 64-byte payload, expected 64 bytes of b't' (21 problem(s)); objects 21/21, End of Group 0/0, Stream Count 6/6
+not ok 26 - moq-test-two-subgroups-no-eog
+  ---
+  duration_ms: 2536
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "1a3645da87aaf9cd"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "c2f6e7acfd1ffcbd"
+  message: "object 0.0: 64-byte payload, expected 64 bytes of b't' (21 problem(s)); objects 21/21, End of Group 0/0, Stream Count 6/6"
+  ...
+  [FAIL] moq-test-datagram: object 0.0: 64-byte payload, expected 64 bytes of b't' (18 problem(s)); objects 15/15, End of Group 0/0, Stream Count 0/0
+not ok 27 - moq-test-datagram
+  ---
+  duration_ms: 3010
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "ea3f6fcfea4a66e2"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "1f690c79f31f8cd6"
+  message: "object 0.0: 64-byte payload, expected 64 bytes of b't' (18 problem(s)); objects 15/15, End of Group 0/0, Stream Count 0/0"
+  ...
+not ok 28 - moq-test-datagram-nonzero-start
+  ---
+  duration_ms: 2850
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "2d75be4e77f06b97"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "a8ab7ec7d56f4c9f"
+  message: "object 6.3: 64-byte payload, expected 64 bytes of b't' (12 problem(s)); objects 9/9, End of Group 0/0, Stream Count 0/0"
+  ...
+  [FAIL] moq-test-datagram-nonzero-start: object 6.3: 64-byte payload, expected 64 bytes of b't' (12 problem(s)); objects 9/9, End of Group 0/0, Stream Count 0/0
+not ok 29 - moq-test-datagram-sparse-ids
+  ---
+  duration_ms: 2887
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "df547fb5cc538078"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "c8c621dbb1b9ff26"
+  message: "object 10.3: 64-byte payload, expected 64 bytes of b't' (12 problem(s)); objects 9/9, End of Group 0/0, Stream Count 0/0"
+  ...
+  [FAIL] moq-test-datagram-sparse-ids: object 10.3: 64-byte payload, expected 64 bytes of b't' (12 problem(s)); objects 9/9, End of Group 0/0, Stream Count 0/0
+not ok 30 - moq-test-datagram-eog
+  ---
+  duration_ms: 3100
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "c3cfc68d0b283f4c"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "dd52e763630ca881"
+  message: "object 0.0: 64-byte payload, expected 64 bytes of b't' (15 problem(s)); objects 15/15, End of Group 3/3, Stream Count 0/0"
+  ...
+  [FAIL] moq-test-datagram-eog: object 0.0: 64-byte payload, expected 64 bytes of b't' (15 problem(s)); objects 15/15, End of Group 3/3, Stream Count 0/0
+not ok 31 - moq-test-extensions
+  ---
+  duration_ms: 2551
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "9af261d4f797dd41"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "fd830ccf53732332"
+  message: "object 0.0: 64-byte payload, expected 64 bytes of b't' (15 problem(s)); objects 15/15, End of Group 3/3, Stream Count 3/3"
+  ...
+  [FAIL] moq-test-extensions: object 0.0: 64-byte payload, expected 64 bytes of b't' (15 problem(s)); objects 15/15, End of Group 3/3, Stream Count 3/3
+not ok 32 - moq-test-extensions-integer-only
+  ---
+  duration_ms: 2458
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "248cd8fcfcd8e327"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "3e40659d91d0a54d"
+  message: "object 0.0: 64-byte payload, expected 64 bytes of b't' (15 problem(s)); objects 15/15, End of Group 3/3, Stream Count 3/3"
+  ...
+  [FAIL] moq-test-extensions-integer-only: object 0.0: 64-byte payload, expected 64 bytes of b't' (15 problem(s)); objects 15/15, End of Group 3/3, Stream Count 3/3
+not ok 33 - moq-test-extensions-variable-only
+  ---
+  duration_ms: 2484
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "4f9980f516a8ca9a"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "38775750e191f6b7"
+  message: "object 0.0: 64-byte payload, expected 64 bytes of b't' (15 problem(s)); objects 15/15, End of Group 3/3, Stream Count 3/3"
+  ...
+  [FAIL] moq-test-extensions-variable-only: object 0.0: 64-byte payload, expected 64 bytes of b't' (15 problem(s)); objects 15/15, End of Group 3/3, Stream Count 3/3
+not ok 34 - moq-test-object-fragmentation
+  ---
+  duration_ms: 2497
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "2986a63063ba58db"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "f57790f5ac10fcfa"
+  message: "object 0.0: 96-byte payload, expected 96 bytes of b't' (1 problem(s)); objects 1/1, End of Group 0/0, Stream Count 1/1"
+  ...
+  [FAIL] moq-test-object-fragmentation: object 0.0: 96-byte payload, expected 96 bytes of b't' (1 problem(s)); objects 1/1, End of Group 0/0, Stream Count 1/1
+not ok 35 - moq-test-object-large-id
+  ---
+  duration_ms: 1689
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "5ec8e18fe98a6a05"
+  message: "SUBSCRIBE refused: code=3 Invalid Parameters"
+  ...
+  [FAIL] moq-test-object-large-id: SUBSCRIBE refused: code=3 Invalid Parameters
+  [FAIL] moq-test-increments: SUBSCRIBE refused: code=3 Invalid Parameters
+not ok 36 - moq-test-increments
+  ---
+  duration_ms: 1632
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "2b3dbf784ea8647f"
+  message: "SUBSCRIBE refused: code=3 Invalid Parameters"
+  ...
+make: *** [Makefile:122: test-external] Error 143

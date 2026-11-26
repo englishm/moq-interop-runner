@@ -1,0 +1,68 @@
+Running tests against https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443/interop...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443/interop \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://interop-k7m2-prestage.ove.us-phoenix-1.oci.oraclecloud.com:4443/interop
+# Transport: WebTransport
+# Offered ALPNs: moqt-22, moqt-18, moqt-16 (from MOQT_VERSIONS)
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 155
+  negotiated_version: draft-22
+  info: SETUP exchange completed successfully
+  ...
+E1126 00:18:16.276159     7 MoQRelaySession.cpp:1014] PublishNamespaceDone for unknown publishNamespace, sess=0x5ff44f403d80
+ok 2 - announce-only
+  ---
+  duration_ms: 176
+  negotiated_version: draft-22
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E20261126 00:18:16.334039     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=ecd3ea702570f9bd, local=10.1.0.151:34121, 130.35.249.170:4443=upstream, drain=done
+ok 3 - subscribe-error
+  ---
+  duration_ms: 171
+  negotiated_version: draft-22
+  info: Subscribe correctly returned error: 
+  ...
+E20261126 00:18:16.504460     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=d334054aafdc66d6, local=10.1.0.151:56270, 130.35.249.170:4443=upstream, drain=done
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 409
+  negotiated_version: draft-22
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+E20261126 00:18:16.916020     7 HQSession.cpp:610] Connection closed with error err=91141958510814 msg=Client closed by peer reason=draft22 protocol violation proto=h3, client CID=, server CID=53841b39b5b535dd, local=10.1.0.151:54909, 130.35.249.170:4443=upstream, drain=done
+E20261126 00:18:16.916246     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=39bbea0e8a41dee3, local=10.1.0.151:34974, 130.35.249.170:4443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 173
+  negotiated_version: draft-22
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E20261126 00:18:17.088783     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=ba4871d1dd895196, local=10.1.0.151:38891, 130.35.249.170:4443=upstream, drain=done
+ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 1071
+  negotiated_version: draft-22
+  info: Retained namespace and withdrawal reached both subscribers
+  ...
+E20261126 00:18:18.160876     7 HQSession.cpp:610] Connection closed with error err=91141958510814 msg=Client closed by peer reason=draft22 protocol violation proto=h3, client CID=, server CID=6f741856892a6210, local=10.1.0.151:57106, 130.35.249.170:4443=upstream, drain=done
+E20261126 00:18:18.161084     7 HQSession.cpp:610] Connection closed with error err=91141958510814 msg=Client closed by peer reason=draft22 protocol violation proto=h3, client CID=, server CID=e658c06abbdb6c09, local=10.1.0.151:37844, 130.35.249.170:4443=upstream, drain=done
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 811
+  negotiated_version: draft-22
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): 
+  ...
+E20261126 00:18:18.974151     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=6f681ee95dac4bf2, local=10.1.0.151:38790, 130.35.249.170:4443=upstream, drain=done
+E20261126 00:18:18.976897     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=bc7f68d989bbb8db, local=10.1.0.151:47012, 130.35.249.170:4443=upstream, drain=done
