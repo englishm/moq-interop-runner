@@ -47,11 +47,14 @@ test client opens a second `publisher` session for the restart.
 The test passes when:
 
 - `byte-identical`: the received stream is the fixture from its start to some
-  point at or before 8 s, then from the restarted publisher's first random
-  access point to the end, each part an unbroken run (`--restart-at` allows
-  one gap at the restart);
+  point at or before 8 s, then from a random access point of the restarted
+  publisher's stream to the end, each part an unbroken run (`--restart-at`
+  allows one gap at the restart). The second part need not start at the
+  restarted publisher's first random access point: `recovery` bounds what is
+  lost, and no fill or fetch of earlier groups is expected;
 - `recovery`: the first object of the second part arrives within 5 s of the
-  new publisher's PUBLISH_NAMESPACE;
+  new publisher's PUBLISH_NAMESPACE, with the client's default timeouts. The
+  test client times and reports it: `check-ts.py` sees no control messages;
 - `ordering`, `packet-alignment`, `transport-errors` and `psi-unchanged` pass
   within each part.
 
