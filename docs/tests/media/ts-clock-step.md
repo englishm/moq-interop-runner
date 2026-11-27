@@ -34,7 +34,8 @@ below.
 fixture on clocks 16,844.5 s apart, spliced at one packet 10 s into a 20 s
 stream, the second joining mid-GOP with a random access point 0.08 s after the
 splice. The PAT and PMT are byte-identical on both sides. The generator
-records the splice's packet index in the fixture's manifest.
+records the splice's packet index in the fixture's manifest,
+`fixture-step.json`, which `check-ts.py` reads beside the fixture.
 
 ## Procedure
 

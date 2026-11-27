@@ -6,6 +6,9 @@
 //!
 //! - `ts-carriage-integrity` (docs/tests/media/ts-carriage-integrity.md)
 //! - `ts-late-subscriber` (docs/tests/media/ts-late-subscriber.md)
+//! - `ts-clock-step` (docs/tests/media/ts-clock-step.md)
+//! - `ts-multi-program` (docs/tests/media/ts-multi-program.md)
+//! - `ts-publisher-restart` (docs/tests/media/ts-publisher-restart.md, see restart.rs)
 //!
 //! Built on moq-dev's `moq-tokio` 0.19 / `moq-net` 0.3 crates from crates.io, at the pair the
 //! moq-dev-rs runner client pins. Offers MoQT drafts 22 down to 18 by default; `MOQ_CLIENT_VERSION`
@@ -14,15 +17,17 @@
 //!
 //! The publisher packages the fixture as moq-dev's `import ts --passthrough` does
 //! (`moq-dev-m2ts`, see fixture.rs), and the checker grades what arrived with
-//! lib/media/mpeg-ts/check-ts.py. Both read the fixture from `MEDIA_FIXTURE_DIR` (default
+//! lib/media/mpeg-ts/check-ts.py. Both read the fixtures from `MEDIA_FIXTURE_DIR` (default
 //! `/app/fixture`, generated at image build), so no fixture travels over the network.
 
 mod fixture;
 mod oracle;
 mod publisher;
+mod restart;
 mod subscriber;
 mod tap;
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -75,7 +80,7 @@ struct Cli {
     #[arg(short, long)]
     verbose: bool,
 
-    /// Directory holding fixture.ts
+    /// Directory holding the fixtures (fixture.ts, fixture-step.ts, fixture-mpts.ts)
     #[arg(long, env = "MEDIA_FIXTURE_DIR", default_value = "/app/fixture")]
     fixture_dir: PathBuf,
 
@@ -86,9 +91,54 @@ struct Cli {
     /// Override the random run identifier (lowercase hex) for debugging
     #[arg(long, env = "MEDIA_RUN_ID")]
     run_id: Option<String>,
+
+    /// Run only ts-publisher-restart's first publisher, at this namespace (see restart.rs)
+    #[arg(long, hide = true)]
+    publish_child: Option<String>,
+
+    /// The fixture file the child publisher publishes
+    #[arg(long, hide = true, default_value = "fixture.ts")]
+    child_fixture: String,
 }
 
-const TESTS: &[&str] = &["ts-carriage-integrity", "ts-late-subscriber"];
+/// A test case: its fixture in the fixture directory and what `check-ts.py` is told.
+struct Case {
+    name: &'static str,
+    fixture: &'static str,
+    args: &'static [&'static str],
+}
+
+const TESTS: &[Case] = &[
+    Case {
+        name: "ts-carriage-integrity",
+        fixture: "fixture.ts",
+        args: &[],
+    },
+    Case {
+        name: "ts-late-subscriber",
+        fixture: "fixture.ts",
+        args: &["--late-join"],
+    },
+    Case {
+        name: "ts-clock-step",
+        fixture: "fixture-step.ts",
+        args: &["--expect-step"],
+    },
+    Case {
+        name: "ts-multi-program",
+        fixture: "fixture-mpts.ts",
+        args: &["--programs", "3"],
+    },
+    Case {
+        name: "ts-publisher-restart",
+        fixture: "fixture.ts",
+        args: &["--restart-at", "8"],
+    },
+];
+
+fn case(name: &str) -> Option<&'static Case> {
+    TESTS.iter().find(|c| c.name == name)
+}
 
 /// The default offer, newest first: the drafts implementations.json lists for this client.
 /// moq-net 0.3 also speaks drafts 14-17; MOQ_CLIENT_VERSION can still ask for them.
@@ -125,7 +175,7 @@ async fn main() -> anyhow::Result<()> {
 
     if cli.list {
         for t in TESTS {
-            println!("{}", t);
+            println!("{}", t.name);
         }
         return Ok(());
     }
@@ -139,15 +189,15 @@ async fn main() -> anyhow::Result<()> {
 
     // An empty TESTCASE means "no specific test": the runner's Makefile passes
     // `-e TESTCASE=` on full-suite runs, and clap reads that as Some("").
-    let tests: Vec<&str> = match cli.test.as_deref().filter(|name| !name.is_empty()) {
-        Some(name) => {
-            if !TESTS.contains(&name) {
+    let tests: Vec<&Case> = match cli.test.as_deref().filter(|name| !name.is_empty()) {
+        Some(name) => match case(name) {
+            Some(case) => vec![case],
+            None => {
                 eprintln!("Unknown test: {}", name);
                 std::process::exit(127);
             }
-            vec![name]
-        }
-        None => TESTS.to_vec(),
+        },
+        None => TESTS.iter().collect(),
     };
 
     let relay_url = url::Url::parse(&cli.relay).context("invalid relay URL")?;
@@ -170,34 +220,6 @@ async fn main() -> anyhow::Result<()> {
         .collect::<anyhow::Result<Vec<_>>>()
         .context("invalid MOQ_CLIENT_VERSION")?;
 
-    println!("TAP version 14");
-    println!(
-        "# moq-net-media-ts-client v{} (moq-net {} via moq-tokio {})",
-        VERSION,
-        env!("MOQ_NET_VERSION"),
-        env!("MOQ_TOKIO_VERSION")
-    );
-    println!("# Relay: {}", cli.relay);
-    println!("# Offered: {}", offered.join(", "));
-
-    let fixture = match Fixture::load(&cli.fixture_dir) {
-        Ok(f) => Arc::new(f),
-        Err(e) => {
-            println!(
-                "Bail out! fixture at {}: {:#}",
-                cli.fixture_dir.display(),
-                e
-            );
-            std::process::exit(1);
-        }
-    };
-    if !cli.checker.is_file() {
-        println!("Bail out! no checker at {}", cli.checker.display());
-        std::process::exit(1);
-    }
-    println!("# Fixture: {}", fixture.summary());
-    println!("1..{}", tests.len());
-
     // `connect::Config` is `#[non_exhaustive]`: take the defaults and set what we own.
     let mut config = moq_tokio::connect::Config::default();
     config.version = versions;
@@ -212,18 +234,65 @@ async fn main() -> anyhow::Result<()> {
         .init(moq_tokio::quic::Config::default())
         .context("failed to init client")?;
 
+    if let Some(namespace) = &cli.publish_child {
+        let fixture = Fixture::load(&cli.fixture_dir, &cli.child_fixture)?;
+        return restart::run_child(&client, &relay_url, namespace, &fixture).await;
+    }
+
+    println!("TAP version 14");
+    println!(
+        "# moq-net-media-ts-client v{} (moq-net {} via moq-tokio {})",
+        VERSION,
+        env!("MOQ_NET_VERSION"),
+        env!("MOQ_TOKIO_VERSION")
+    );
+    println!("# Relay: {}", cli.relay);
+    println!("# Offered: {}", offered.join(", "));
+
+    let mut fixtures: BTreeMap<&str, Arc<Fixture>> = BTreeMap::new();
+    for case in &tests {
+        if fixtures.contains_key(case.fixture) {
+            continue;
+        }
+        match Fixture::load(&cli.fixture_dir, case.fixture) {
+            Ok(f) => {
+                println!("# Fixture: {}", f.summary());
+                fixtures.insert(case.fixture, Arc::new(f));
+            }
+            Err(e) => {
+                println!(
+                    "Bail out! fixture {} in {}: {:#}",
+                    case.fixture,
+                    cli.fixture_dir.display(),
+                    e
+                );
+                std::process::exit(1);
+            }
+        }
+    }
+    if !cli.checker.is_file() {
+        println!("Bail out! no checker at {}", cli.checker.display());
+        std::process::exit(1);
+    }
+    println!("1..{}", tests.len());
+
     let mut all_passed = true;
-    for (i, test_name) in tests.iter().enumerate() {
+    for (i, case) in tests.iter().enumerate() {
         let num = i + 1;
+        let test_name = case.name;
         let start = Instant::now();
-        let mut ctx = TestContext::new(test_name, fixture.clone(), cli.run_id.as_deref());
+        let fixture = fixtures[case.fixture].clone();
+        let mut ctx = TestContext::new(case, fixture.clone(), cli.run_id.as_deref());
         // Hard cap: the scenario's deadline plus headroom for setup and session teardown.
-        let cap = scenario_cap(fixture_span(&fixture));
+        let cap = match test_name {
+            "ts-publisher-restart" => scenario_cap(restart::DEADLINE),
+            _ => scenario_cap(fixture_span(&fixture)),
+        };
         let result = tokio::time::timeout(cap, async {
-            match *test_name {
-                "ts-carriage-integrity" => test_carriage(&mut ctx, &client, &relay_url).await,
+            match test_name {
                 "ts-late-subscriber" => test_late_subscriber(&mut ctx, &client, &relay_url).await,
-                _ => anyhow::bail!("unknown test: {}", test_name),
+                "ts-publisher-restart" => restart::test(&mut ctx, &cli, &client, &relay_url).await,
+                _ => test_carriage(&mut ctx, &client, &relay_url).await,
             }
         })
         .await;
@@ -301,7 +370,7 @@ impl Session {
         }
     }
 
-    fn diag(&self) -> Value {
+    pub fn diag(&self) -> Value {
         let mut m = serde_json::Map::new();
         if let Some(v) = &self.moqt_version {
             m.insert("moqt_version".into(), json!(v));
@@ -358,13 +427,17 @@ struct TestContext {
     /// ts-late-subscriber: G and G′, the highest group open at the TS SUBSCRIBE and when its
     /// SUBSCRIBE_OK arrived.
     join_group: Option<(u64, u64)>,
-    late_join: bool,
+    /// What `check-ts.py` is told beyond the files.
+    checker_args: &'static [&'static str],
+    /// The scenario's own checks, reported after the checker's.
+    extra: Vec<Check>,
     /// The catalog object as received.
     catalog: Option<bytes::Bytes>,
 }
 
 impl TestContext {
-    fn new(test: &str, fixture: Arc<Fixture>, run_id: Option<&str>) -> Self {
+    fn new(case: &Case, fixture: Arc<Fixture>, run_id: Option<&str>) -> Self {
+        let test = case.name;
         let run_id = match run_id {
             Some(id) if !id.is_empty() => id.to_string(),
             _ => format!("{:032x}", rand::random::<u128>()),
@@ -380,13 +453,18 @@ impl TestContext {
             diag,
             sessions: serde_json::Map::new(),
             join_group: None,
-            late_join: test == "ts-late-subscriber",
+            checker_args: case.args,
+            extra: Vec::new(),
             catalog: None,
         }
     }
 
     fn session(&mut self, role: &str, session: &Session) {
-        self.sessions.insert(role.to_string(), session.diag());
+        self.session_value(role, session.diag());
+    }
+
+    fn session_value(&mut self, role: &str, diag: Value) {
+        self.sessions.insert(role.to_string(), diag);
         self.diag
             .insert("sessions".into(), Value::Object(self.sessions.clone()));
     }
@@ -420,7 +498,7 @@ async fn grade(
         &cli.checker,
         &ctx.fixture.path,
         work.path(),
-        ctx.late_join,
+        ctx.checker_args,
         catalogs,
     )
     .await?;
@@ -432,6 +510,7 @@ async fn grade(
         let lowest = collected.objects.iter().map(|o| o.group).min();
         ctx.checks.push(join_point(lowest, open, established));
     }
+    ctx.checks.append(&mut ctx.extra);
     if let Some(Err(e)) = collected.end {
         anyhow::bail!("{}", e);
     }
@@ -477,8 +556,8 @@ fn join_point(lowest: Option<u64>, open: u64, established: u64) -> Check {
     }
 }
 
-/// `ts-carriage-integrity`: a subscriber present from the start must receive the whole
-/// fixture, byte for byte and in order.
+/// `ts-carriage-integrity`, and `ts-clock-step` and `ts-multi-program` on their fixtures: a
+/// subscriber present from the start must receive the whole fixture, byte for byte and in order.
 async fn test_carriage(
     ctx: &mut TestContext,
     client: &moq_tokio::Client,
@@ -661,6 +740,23 @@ mod test {
             + SUBSCRIBE_DEADLINE
             + SUBSCRIBE_SETTLE;
         assert!(scenario_cap(span) > steps + span + DRAIN_DEADLINE);
+    }
+
+    #[test]
+    fn every_case_is_dispatched_and_names_its_fixture() {
+        for case in TESTS {
+            assert!(case.fixture.ends_with(".ts"), "{}", case.name);
+            assert_eq!(
+                case.args.contains(&"--late-join"),
+                case.name == "ts-late-subscriber"
+            );
+        }
+        assert!(case("ts-unknown").is_none());
+    }
+
+    #[test]
+    fn the_restart_cap_outlasts_its_deadline() {
+        assert!(scenario_cap(restart::DEADLINE) > restart::DEADLINE + 3 * SETUP_DEADLINE);
     }
 
     #[test]

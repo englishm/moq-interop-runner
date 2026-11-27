@@ -23,14 +23,18 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
 DURATION=6 bash "$SCRIPT_DIR/../make-fixture.sh" "$WORK/fixture.ts" >/dev/null
+DURATION=8 STEP_AT=4 bash "$SCRIPT_DIR/../make-fixture.sh" --step "$WORK/fixture-step.ts" >/dev/null
+DURATION=6 bash "$SCRIPT_DIR/../make-fixture.sh" --mpts "$WORK/fixture-mpts.ts" >/dev/null
+FX="$WORK/fixture.ts"
 
-# mutate <name> <python expression over pk, the fixture's packets; raps, the indices of its
-# video random access points; and pid(p), flip(p, at) and frame(i), the packets of the video
-# frame that starts at index i>
+# mutate <name> <python expression over pk, the packets of the fixture $FX; raps, the indices of
+# its video random access points; step, the step fixture's splice; and pid(p), flip(p, at) and
+# frame(i), the packets of the video frame that starts at index i>
 mutate() {
-    python3 - "$WORK/fixture.ts" "$WORK/$1.ts" "$2" <<'EOF'
-import sys
+    python3 - "$FX" "$WORK/$1.ts" "$2" <<'EOF'
+import json, sys
 src, dst, expr = sys.argv[1:]
+step = json.load(open(src[:-3] + ".json"))["step_packet"] if src.endswith("-step.ts") else None
 data = open(src, "rb").read()
 pk = [data[i:i + 188] for i in range(0, len(data), 188)]
 pid = lambda p: ((p[1] & 0x1F) << 8) | p[2]
@@ -52,7 +56,7 @@ EOF
 # simulated packaging drops null packets, opens a group at each video random access point and
 # cuts objects of up to 64 packets; packets before the first random access point are not placed.
 package() {
-    python3 - "$WORK/fixture.ts" "$WORK/$1" "$2" <<'EOF'
+    python3 - "$FX" "$WORK/$1" "$2" <<'EOF'
 import sys
 src, dst, expr = sys.argv[1:]
 data = open(src, "rb").read()
@@ -78,6 +82,9 @@ def move(lst, a, b):
     lst = list(lst)
     lst.insert(b, lst.pop(a))
     return lst
+def restarted(before, after, skip=0):
+    """Groups below `before`, then from group `after` on, less the first `skip` objects of it."""
+    return [x for x in objs if x[0] < before] + [x for x in objs if x[0] >= after][skip:]
 def regroup(g):
     """Move the last object of group g - 1 to the head of group g, renumbering group g."""
     prev = [x for x in objs if x[0] == g - 1]
@@ -101,7 +108,7 @@ expect() {
     local desc="$1" want="$2" decider="$3"
     shift 3
     local out rc=0
-    out=$(python3 "$CHECK" --fixture "$WORK/fixture.ts" "$@") || rc=$?
+    out=$(python3 "$CHECK" --fixture "$FX" "$@") || rc=$?
     TESTS=$((TESTS + 1))
     local got=pass
     [ "$rc" -eq 0 ] || got=fail
@@ -124,7 +131,7 @@ expect_ok() {
     local desc="$1" check="$2"
     shift 2
     local out
-    out=$(python3 "$CHECK" --fixture "$WORK/fixture.ts" "$@") || true
+    out=$(python3 "$CHECK" --fixture "$FX" "$@") || true
     TESTS=$((TESTS + 1))
     if echo "$out" | grep -q "^ok [0-9]* - $check "; then
         echo "ok $TESTS - $desc"
@@ -224,6 +231,69 @@ expect_ok "a catalog received as published passes the catalog check" catalog \
 expect "a catalog changed in transit fails the catalog check" fail catalog \
     --received "$WORK/identity.ts" \
     --catalog-expected "$WORK/catalog.json" --catalog-received "$WORK/catalog-changed.json"
+
+# ts-publisher-restart: one gap, after a part that ends by --restart-at and before a part that
+# starts at a random access point. Groups open at each 1 s random access point, so groups 0-1
+# end by 2.5 s.
+package restart 'restarted(2, 3)'
+package restart-late 'restarted(4, 5)'
+package restart-off-rap 'restarted(2, 3, skip=1)'
+package restart-twice '[x for x in restarted(2, 3) if x[0] != 4]'
+package restart-no-second '[x for x in objs if x[0] < 2]'
+package restart-swapped '(lambda r: swap(r, r.index(next(x for x in r if x[:2] == (3, 1))), r.index(next(x for x in r if x[:2] == (3, 2)))))(restarted(2, 3))'
+expect "a restart with one gap at a random access point passes" pass - \
+    --received "$WORK/restart.ts" --objects "$WORK/restart.objects" --restart-at 2.5
+expect "a restart is not the whole stream without --restart-at" fail byte-identical \
+    --received "$WORK/restart.ts" --objects "$WORK/restart.objects"
+expect "a first part that runs past the restart point fails byte identity" fail byte-identical \
+    --received "$WORK/restart-late.ts" --objects "$WORK/restart-late.objects" --restart-at 2.5
+expect "a second part that starts between random access points fails byte identity" fail byte-identical \
+    --received "$WORK/restart-off-rap.ts" --objects "$WORK/restart-off-rap.objects" --restart-at 2.5
+expect "a second gap fails byte identity" fail byte-identical \
+    --received "$WORK/restart-twice.ts" --objects "$WORK/restart-twice.objects" --restart-at 2.5
+expect "no second part fails byte identity" fail byte-identical \
+    --received "$WORK/restart-no-second.ts" --objects "$WORK/restart-no-second.objects" --restart-at 2.5
+expect "objects out of order within the second part fail ordering" fail ordering \
+    --received "$WORK/restart-swapped.ts" --objects "$WORK/restart-swapped.objects" --restart-at 2.5
+
+# ts-clock-step: the fixture breaks every continuity counter once at the splice, and decodes
+# on each side of it.
+FX="$WORK/fixture-step.ts"
+mutate step-identity 'pk'
+mutate step-ends 'pk[:step]'
+mutate step-dropped '[p for i, p in enumerate(pk) if not step + 3000 <= i < step + 3500]'
+mutate step-repaired '(lambda last: pk[:step] + [bytes([p[0], p[1], p[2], (p[3] & 0xF0) | (last.__setitem__(pid(p), (last[pid(p)] + 1) & 15) or last[pid(p)])]) + p[4:] if pid(p) in last and p[3] & 0x10 else p for p in pk[step:]])({pid(p): p[3] & 15 for p in pk[:step] if pid(p) != 0x1FFF and p[3] & 0x10})'
+mutate step-frame-lost '[p for i, p in enumerate(pk) if i not in frame(next(j for j in range(raps[-2] + 1, len(pk)) if pid(pk[j]) == 0x100 and pk[j][1] & 0x40))]'
+expect "the step fixture itself passes with --expect-step" pass - --received "$WORK/step-identity.ts" --expect-step
+expect "the step fixture's own breaks fail continuity without --expect-step" fail continuity \
+    --received "$WORK/step-identity.ts"
+expect "a stream that ends at the splice fails byte identity" fail byte-identical \
+    --received "$WORK/step-ends.ts" --expect-step
+expect "500 packets dropped after the splice fail continuity" fail continuity \
+    --received "$WORK/step-dropped.ts" --expect-step
+expect "continuity counters renumbered across the splice fail continuity" fail continuity \
+    --received "$WORK/step-repaired.ts" --expect-step
+expect "a lost video frame after the splice fails decode" fail decode \
+    --received "$WORK/step-frame-lost.ts" --expect-step
+
+# ts-multi-program: the PAT lists three programmes, each decodes alone.
+FX="$WORK/fixture-mpts.ts"
+mutate mpts-identity 'pk'
+mutate mpts-first-only '[p for p in pk if not 0x200 <= pid(p) < 0x400]'
+mutate mpts-pmt3-changed '[flip(p, 10) if pid(p) == 0x300 and p[1] & 0x40 else p for p in pk]'
+mutate mpts-p3-frame-lost '(lambda s: [p for i, p in enumerate(pk) if not (pid(p) == 0x311 and s[2] <= i < s[3])])([i for i, p in enumerate(pk) if pid(p) == 0x311 and p[1] & 0x40][len(pk) // 4000:])'
+expect "the three-programme fixture itself passes with --programs 3" pass - \
+    --received "$WORK/mpts-identity.ts" --programs 3
+expect "a stream carrying only the first programme fails psi-unchanged" fail psi-unchanged \
+    --received "$WORK/mpts-first-only.ts" --programs 3
+expect "a stream carrying only the first programme fails byte identity" fail byte-identical \
+    --received "$WORK/mpts-first-only.ts" --programs 3
+expect "a changed PMT of the third programme fails psi-unchanged" fail psi-unchanged \
+    --received "$WORK/mpts-pmt3-changed.ts" --programs 3
+expect "a lost frame in the third programme fails decode" fail decode \
+    --received "$WORK/mpts-p3-frame-lost.ts" --programs 3
+expect "a PAT listing three programmes fails --programs 2" fail psi-unchanged \
+    --received "$WORK/mpts-identity.ts" --programs 2
 
 echo "1..$TESTS"
 if [ "$FAILURES" -gt 0 ]; then
