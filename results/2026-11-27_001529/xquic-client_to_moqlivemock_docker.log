@@ -1,0 +1,985 @@
+rm -rf mlog/
+mkdir -p mlog/relay mlog/client
+Running interop tests...
+  Relay:  ghcr.io/eyevinn/mlmrel:latest
+  Client: ghcr.io/englishm/moq-interop-runner-xquic-client:latest
+  URL:    moqt://relay:4443
+time="2026-11-27T00:21:06Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-27T00:21:06Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-27T00:21:06Z" level=warning msg="The \"PORT\" variable is not set. Defaulting to a blank string."
+time="2026-11-27T00:21:06Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+time="2026-11-27T00:21:06Z" level=warning msg="The \"HEX\" variable is not set. Defaulting to a blank string."
+ Container main-test-client-1 Recreate 
+ Container main-test-client-1 Recreated 
+Attaching to relay-1, test-client-1
+ Container main-relay-1 Starting 
+ Container main-relay-1 Started 
+ Container main-relay-1 Waiting 
+relay-1  | WARNING: /mlog is not writable; qlog goes to stderr
+relay-1  | Starting mlmrel on port 4443
+relay-1  |   Cert: /certs/cert.pem
+relay-1  |   Key:  /certs/priv.key
+relay-1  |   Mlog: /mlog
+relay-1  | time=2026-11-27T00:21:06.998Z level=INFO msg="Starting MoQ server" addr=0.0.0.0:4443
+relay-1  | time=2026-11-27T00:21:06.998Z level=INFO msg="failed to sufficiently increase receive buffer size (was: 1024 kiB, wanted: 7168 kiB, got: 2048 kiB). See https://github.com/quic-go/quic-go/wiki/UDP-Buffer-Sizes for details."
+ Container main-relay-1 Healthy 
+ Container main-test-client-1 Starting 
+ Container main-test-client-1 Started 
+test-client-1  | TAP version 14
+test-client-1  | 1..40
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738872671.4275}}}
+relay-1        | time=2026-11-27T00:21:12.671Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.140576,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.244138,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:12.671Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:21:12 671495] [error] |scid:7b0c84ad092f817f|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=client
+test-client-1  | [2026/11/27 00:21:12 672003] [error] |scid:7b0c84ad092f817f|xqc_conn_close_with_error|conn:000056FB59FCA540|err:0x0|l-0.0.0.0-34418-6e42924e9859f028 p-172.18.0.2-4443-b2c94e52|
+relay-1        | time=2026-11-27T00:21:12.674Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:12 760870] [report] |scid:7b0c84ad092f817f|xqc_conn_destroy|000056FB59FCA540|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1637|first_send_delay:0|conn_persist:91404|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-34418-6e42924e9859f028 p-172.18.0.2-4443-b2c94e52|hsk_recv:1101|close_recv:0|close_send:4660|last_recv:2443|last_send:89253|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,12,8,5,21,0,32,i0,4,52,61,80,3,2,0,4,25,34,8004,4,2,0,4,308,317,80064,2,1,0,4,37,4000,5,2,4,23,40000,6,4,4,23,40000,7,89,0-2,0-2,0-0,0-0,0-0,0-0,0-2874,0-3058,0-7,0-5,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:7|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | ok 1 - setup-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 220
+test-client-1  |   sessions:
+test-client-1  |     client:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738872890.4526}}}
+relay-1        | time=2026-11-27T00:21:12.890Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.077944,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+test-client-1  | [2026/11/27 00:21:12 890564] [error] |scid:e339f72c9b098052|xqc_ssl_new_session_cb|early data is not enabled|
+relay-1        | {"time":0.245645,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:12.890Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":2.791804,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish_namespace","request_id":0,"track_namespace":["moq-test","interop","30bb96b73a540b75cd2d4d27df89f06d"]}}}
+relay-1        | time=2026-11-27T00:21:12.893Z level=INFO msg="registered announcement" namespace="[moq-test interop 30bb96b73a540b75cd2d4d27df89f06d]"
+relay-1        | {"time":2.865302,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_ok"}}}
+test-client-1  | [2026/11/27 00:21:12 895481] [error] |scid:e339f72c9b098052|xqc_conn_close_with_error|conn:000056FB59F66860|err:0x0|l-0.0.0.0-47393-7e494b990aba9c5d p-172.18.0.2-4443-e05d0784|
+relay-1        | time=2026-11-27T00:21:12.897Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:21:12.897Z level=INFO msg="announcement withdrawn" namespace="[moq-test interop 30bb96b73a540b75cd2d4d27df89f06d]"
+test-client-1  | [2026/11/27 00:21:12 982183] [report] |scid:e339f72c9b098052|xqc_conn_destroy|000056FB59F66860|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1309|first_send_delay:4082|conn_persist:93259|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-47393-7e494b990aba9c5d p-172.18.0.2-4443-e05d0784|hsk_recv:808|close_recv:0|close_send:8642|last_recv:4460|last_send:86985|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,14,11,8,77,0,36,i0,4,25,34,4,6,4,0,4,24,33,80,7,4,0,4,1400,1409,3,5,4,0,4,23,40000,9,8,4,23,40000,10,86,4,14,4,8,4,0-2,0-2,0-0,0-0,0-0,0-0,0-2989,0-4536,0-8,0-8,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:8|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | ok 2 - announce-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 223
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+test-client-1  | [2026/11/27 00:21:13 113926] [error] |scid:f5d105d134ebe615|xqc_ssl_new_session_cb|early data is not enabled|
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738873113.881}}}
+relay-1        | time=2026-11-27T00:21:13.113Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.08837,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.121789,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:13.114Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":2.512129,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish_namespace","request_id":0,"track_namespace":["moq-test","interop","103b5933e3eb1873ffc932908d7424e8"]}}}
+relay-1        | time=2026-11-27T00:21:13.116Z level=INFO msg="registered announcement" namespace="[moq-test interop 103b5933e3eb1873ffc932908d7424e8]"
+relay-1        | {"time":2.573178,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_ok"}}}
+relay-1        | time=2026-11-27T00:21:13.118Z level=INFO msg="announcement withdrawn" namespace="[moq-test interop 103b5933e3eb1873ffc932908d7424e8]"
+test-client-1  | [2026/11/27 00:21:13 219511] [error] |scid:f5d105d134ebe615|xqc_conn_close_with_error|conn:000056FB59F75A30|err:0x0|l-0.0.0.0-45016-662e5860442a6130 p-172.18.0.2-4443-497b6b5c|
+relay-1        | time=2026-11-27T00:21:13.221Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:13 306245] [report] |scid:f5d105d134ebe615|xqc_conn_destroy|000056FB59F75A30|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1287|first_send_delay:3957|conn_persist:193958|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-45016-662e5860442a6130 p-172.18.0.2-4443-497b6b5c|hsk_recv:814|close_recv:0|close_send:109336|last_recv:32931|last_send:109336|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,77,0,36,i0,4,1432,1441,3,13,32,0,4,22,31,8,11,32,0,4,22,31,8,12,32,0,4,16,4,17,32,4,16,4,18,32,4,23,40000,19,109,0-2,0-2,0-0,0-0,0-0,0-0,0-3101,0-7505,0-10,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | ok 3 - publish-namespace-done
+test-client-1  |   ---
+test-client-1  |   duration_ms: 324
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738873438.049}}}
+relay-1        | time=2026-11-27T00:21:13.438Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.082231,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.143731,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:13.438Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:21:13 438141] [error] |scid:57d5542077e96a82|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.563794,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["nonexistent","namespace"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{GROUP_ORDER: 1}"]}}}
+relay-1        | time=2026-11-27T00:21:13.440Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[nonexistent namespace]" track=test-track held=0s
+relay-1        | {"time":2.655079,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":16,"retry_interval":0,"error_reason":"unknown namespace"}}}
+test-client-1  | [2026/11/27 00:21:13 442995] [error] |scid:57d5542077e96a82|xqc_conn_close_with_error|conn:000056FB59EF0CA0|err:0x0|l-0.0.0.0-59632-c74d58205251f2a0 p-172.18.0.2-4443-f8b83fae|
+relay-1        | time=2026-11-27T00:21:13.445Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:13 529793] [report] |scid:57d5542077e96a82|xqc_conn_destroy|000056FB59EF0CA0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1304|first_send_delay:3972|conn_persist:93266|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-59632-c74d58205251f2a0 p-172.18.0.2-4443-f8b83fae|hsk_recv:839|close_recv:0|close_send:8554|last_recv:4371|last_send:89115|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,13,10,62,0,55,i0,4,26,35,404,9,4,0,4,43,52,80,7,4,0,4,21,30,80,8,4,0,4,23,40000,18,89,4,23,40000,15,8,4,23,40000,17,86,0-2,0-2,0-0,0-0,0-0,0-0,0-3047,0-4620,0-9,0-10,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | ok 4 - subscribe-error
+test-client-1  |   ---
+test-client-1  |   duration_ms: 223
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+test-client-1  | [2026/11/27 00:21:13 661628] [error] |scid:622807d12a6222f0|xqc_ssl_new_session_cb|early data is not enabled|
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738873661.5796}}}
+relay-1        | time=2026-11-27T00:21:13.661Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.077594,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":0.146284,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:13.661Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.727404,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["nonexistent","rendezvous"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 500}","{GROUP_ORDER: 1}"]}}}
+relay-1        | time=2026-11-27T00:21:14.164Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[nonexistent rendezvous]" track=test-track held=500ms
+relay-1        | {"time":503.309683,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 500ms"}}}
+test-client-1  | [2026/11/27 00:21:14 167303] [error] |scid:622807d12a6222f0|xqc_conn_close_with_error|conn:000056FB59F9AE10|err:0x0|l-0.0.0.0-60925-f5f748928b39915b p-172.18.0.2-4443-782345f3|
+relay-1        | time=2026-11-27T00:21:14.169Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:14 256076] [report] |scid:622807d12a6222f0|xqc_conn_destroy|000056FB59F9AE10|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1334|first_send_delay:4210|conn_persist:596093|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-60925-f5f748928b39915b p-172.18.0.2-4443-782345f3|hsk_recv:857|close_recv:0|close_send:509417|last_recv:505088|last_send:509417|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,13,10,66,0,63,i0,4,51,60,80,9,505,0,4,23,32,4,7,4,0,4,1432,1441,3,8,31,0,4,23,40000,17,509,4,15,4,15,58,4,13,80,16,505,0-2,0-2,0-0,0-0,0-0,0-0,0-3030,0-7430,0-9,0-10,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | ok 5 - rendezvous-timeout
+test-client-1  |   ---
+test-client-1  |   duration_ms: 724
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+test-client-1  | [2026/11/27 00:21:14 385933] [error] |scid:1ccce1f37de2b67e|xqc_ssl_new_session_cb|early data is not enabled|
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738874385.8176}}}
+relay-1        | time=2026-11-27T00:21:14.385Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.090252,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.135444,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:14.386Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738874389.5122}}}
+relay-1        | time=2026-11-27T00:21:14.389Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.040469,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.069873,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+test-client-1  | [2026/11/27 00:21:14 389567] [error] |scid:9ea1d4dc5b9b2e1d|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | time=2026-11-27T00:21:14.389Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":6.194806,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish_namespace","request_id":0,"track_namespace":["moq-test","interop","9a7fe5f961e37cf629e91b7dee22e716"]}}}
+relay-1        | time=2026-11-27T00:21:14.392Z level=INFO msg="registered announcement" namespace="[moq-test interop 9a7fe5f961e37cf629e91b7dee22e716]"
+relay-1        | {"time":6.256577,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_ok"}}}
+relay-1        | {"time":4.875559,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","9a7fe5f961e37cf629e91b7dee22e716"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{GROUP_ORDER: 1}"]}}}
+relay-1        | {"time":8.670842,"name":"moqt:control_message_created","data":{"stream_id":1,"message":{"type":"subscribe","request_id":1,"track_namespace":["moq-test","interop","9a7fe5f961e37cf629e91b7dee22e716"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"}}}}
+relay-1        | {"time":8.927619,"name":"moqt:control_message_parsed","data":{"stream_id":1,"message":{"type":"subscribe_ok","track_alias":0}}}
+relay-1        | time=2026-11-27T00:21:14.394Z level=INFO msg="subscribed upstream" namespace="[moq-test interop 9a7fe5f961e37cf629e91b7dee22e716]" track=test-track
+relay-1        | {"time":5.29824,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"subscribe_ok","track_alias":0}}}
+relay-1        | time=2026-11-27T00:21:14.394Z level=INFO msg="forwarding subscription" namespace="[moq-test interop 9a7fe5f961e37cf629e91b7dee22e716]" track=test-track backlogObjects=0
+test-client-1  | [2026/11/27 00:21:14 397035] [error] |scid:9ea1d4dc5b9b2e1d|xqc_conn_close_with_error|conn:000056FB59FE1650|err:0x0|l-0.0.0.0-57338-bd87c1a2271f151f p-172.18.0.2-4443-d554b9e0|
+test-client-1  | [2026/11/27 00:21:14 397043] [error] |scid:1ccce1f37de2b67e|xqc_conn_close_with_error|conn:000056FB59F5CDB0|err:0x0|l-0.0.0.0-57338-ea03d13f2abbc741 p-172.18.0.2-4443-1fe2df6a|
+relay-1        | time=2026-11-27T00:21:14.399Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:21:14.399Z level=INFO msg="announcement withdrawn" namespace="[moq-test interop 9a7fe5f961e37cf629e91b7dee22e716]"
+relay-1        | time=2026-11-27T00:21:14.399Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:14 481737] [report] |scid:9ea1d4dc5b9b2e1d|xqc_conn_destroy|000056FB59FE1650|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:898|first_send_delay:5884|conn_persist:93373|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-57338-bd87c1a2271f151f p-172.18.0.2-4443-d554b9e0|hsk_recv:568|close_recv:0|close_send:10790|last_recv:6569|last_send:85099|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,15,12,9,90,0,37,i0,4,23,32,4,6,6,0,4,1421,1430,3,7,6,0,4,25,34,80,8,6,0,4,14,4,8,6,4,23,40000,13,10,4,23,40000,14,85,0-2,0-2,0-0,0-0,0-0,0-0,0-3031,0-5963,0-8,0-9,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:8|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:21:14 483914] [report] |scid:1ccce1f37de2b67e|xqc_conn_destroy|000056FB59F5CDB0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1359|first_send_delay:7662|conn_persist:99674|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-57338-ea03d13f2abbc741 p-172.18.0.2-4443-1fe2df6a|hsk_recv:888|close_recv:0|close_send:14882|last_recv:10388|last_send:89148|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,13,10,82,0,103,i0,4,87,96,80,9,10,0,4,29,38,84,7,7,0,4,1421,1430,3,8,10,0,4,23,40000,17,89,4,18,80,15,10,4,23,40000,16,14,0-2,0-2,0-0,0-0,0-0,0-0,0-3053,0-6065,0-9,0-10,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:1|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:1|
+test-client-1  | ok 6 - announce-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 229
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738874615.6467}}}
+relay-1        | time=2026-11-27T00:21:14.615Z level=INFO msg="starting MoQ session" perspective=server
+test-client-1  | [2026/11/27 00:21:14 615706] [error] |scid:f681c562e225f072|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":0.079888,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.10524,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:14.615Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.622506,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","e630ce62e72ff2c407feb125434861a4"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{GROUP_ORDER: 1}"]}}}
+relay-1        | time=2026-11-27T00:21:14.618Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop e630ce62e72ff2c407feb125434861a4]" track=test-track held=0s
+relay-1        | {"time":2.698959,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":16,"retry_interval":0,"error_reason":"unknown namespace"}}}
+test-client-1  | [2026/11/27 00:21:15 121395] [error] |scid:eaf564cd64ea41b5|xqc_ssl_new_session_cb|early data is not enabled|
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738875121.3594}}}
+relay-1        | time=2026-11-27T00:21:15.121Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.082201,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.109672,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:15.121Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":2.592593,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish_namespace","request_id":0,"track_namespace":["moq-test","interop","e630ce62e72ff2c407feb125434861a4"]}}}
+relay-1        | time=2026-11-27T00:21:15.123Z level=INFO msg="registered announcement" namespace="[moq-test interop e630ce62e72ff2c407feb125434861a4]"
+relay-1        | {"time":2.660242,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_ok"}}}
+test-client-1  | [2026/11/27 00:21:15 126203] [error] |scid:eaf564cd64ea41b5|xqc_conn_close_with_error|conn:000056FB59FAF750|err:0x0|l-0.0.0.0-50290-83d9177e07474343 p-172.18.0.2-4443-5bab930d|
+test-client-1  | [2026/11/27 00:21:15 126211] [error] |scid:f681c562e225f072|xqc_conn_close_with_error|conn:000056FB59FCC780|err:0x0|l-0.0.0.0-50290-03987186aefe1a59 p-172.18.0.2-4443-3f8022ee|
+relay-1        | time=2026-11-27T00:21:15.128Z level=INFO msg="announcement withdrawn" namespace="[moq-test interop e630ce62e72ff2c407feb125434861a4]"
+relay-1        | time=2026-11-27T00:21:15.128Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:21:15.128Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:15 213008] [report] |scid:f681c562e225f072|xqc_conn_destroy|000056FB59FCC780|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1325|first_send_delay:4031|conn_persist:598945|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-50290-03987186aefe1a59 p-172.18.0.2-4443-3f8022ee|hsk_recv:837|close_recv:0|close_send:514238|last_recv:56040|last_send:514238|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,17,17,14,90,0,55,i0,4,21,30,400,13,56,0,4,1432,1441,3,14,56,0,4,21,30,400,12,55,0,4,16,4,17,56,4,23,40000,18,514,4,16,4,16,56,0-2,0-2,0-0,0-0,0-0,0-0,0-3087,0-7549,0-9,0-14,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:21:15 213119] [report] |scid:eaf564cd64ea41b5|xqc_conn_destroy|000056FB59FAF750|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1368|first_send_delay:4085|conn_persist:93378|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-50290-83d9177e07474343 p-172.18.0.2-4443-5bab930d|hsk_recv:927|close_recv:0|close_send:8594|last_recv:4339|last_send:86995|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,14,11,8,77,0,36,i0,4,23,32,4,6,4,0,4,24,33,80,7,4,0,4,1400,1409,3,5,4,0,4,23,40000,12,8,4,23,40000,18,86,4,14,4,11,4,0-2,0-2,0-0,0-0,0-0,0-0,0-2988,0-4534,0-8,0-8,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:8|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | ok 7 - subscribe-before-announce
+test-client-1  |   ---
+test-client-1  |   duration_ms: 729
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738875344.8198}}}
+relay-1        | time=2026-11-27T00:21:15.344Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.124303,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+test-client-1  | [2026/11/27 00:21:15 344881] [error] |scid:d232723661456075|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":0.152679,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:15.345Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738875348.3892}}}
+relay-1        | time=2026-11-27T00:21:15.348Z level=INFO msg="starting MoQ session" perspective=server
+test-client-1  | [2026/11/27 00:21:15 348455] [error] |scid:db6836abf21417a0|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":0.052667,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.063372,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:15.348Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":6.01308,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish_namespace","request_id":0,"track_namespace":["moq-test","data-subgroup-basic","d8953d46e016f2954de0f401e482a2f6"]}}}
+relay-1        | time=2026-11-27T00:21:15.350Z level=INFO msg="registered announcement" namespace="[moq-test data-subgroup-basic d8953d46e016f2954de0f401e482a2f6]"
+relay-1        | {"time":6.098095,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_ok"}}}
+relay-1        | {"time":4.915487,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","data-subgroup-basic","d8953d46e016f2954de0f401e482a2f6","moq-test-00","0","0","0","2","4","5","64","32","2","1","1","0","-1","-1","0"],"track_name":{"length":5,"payload_length":5,"data":"747261636b"},"parameters":["{GROUP_ORDER: 1}"]}}}
+relay-1        | {"time":8.584981,"name":"moqt:control_message_created","data":{"stream_id":1,"message":{"type":"subscribe","request_id":1,"track_namespace":["moq-test","data-subgroup-basic","d8953d46e016f2954de0f401e482a2f6","moq-test-00","0","0","0","2","4","5","64","32","2","1","1","0","-1","-1","0"],"track_name":{"length":5,"payload_length":5,"data":"747261636b"}}}}
+relay-1        | {"time":8.78181,"name":"moqt:control_message_parsed","data":{"stream_id":1,"message":{"type":"subscribe_ok","track_alias":0}}}
+relay-1        | time=2026-11-27T00:21:15.353Z level=INFO msg="subscribed upstream" namespace="[moq-test data-subgroup-basic d8953d46e016f2954de0f401e482a2f6 moq-test-00 0 0 0 2 4 5 64 32 2 1 1 0 -1 -1 0]" track=track
+relay-1        | {"time":5.27788,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"subscribe_ok","track_alias":0}}}
+relay-1        | time=2026-11-27T00:21:15.353Z level=INFO msg="forwarding subscription" namespace="[moq-test data-subgroup-basic d8953d46e016f2954de0f401e482a2f6 moq-test-00 0 0 0 2 4 5 64 32 2 1 1 0 -1 -1 0]" track=track backlogObjects=0
+relay-1        | {"time":11.182245,"name":"moqt:stream_type_set","data":{"owner":"remote","stream_id":6,"stream_type":"subgroup_header"}}
+relay-1        | {"time":11.224678,"name":"moqt:subgroup_object_parsed","data":{"stream_id":6,"group_id":0,"subgroup_id":0,"object_id":0,"extension_headers_length":0,"object_payload_length":64,"object_payload":{"length":64,"payload_length":64,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":7.68196,"name":"moqt:stream_type_set","data":{"owner":"local","stream_id":7,"stream_type":"subgroup_header"}}
+relay-1        | {"time":7.699626,"name":"moqt:subgroup_object_created","data":{"stream_id":7,"group_id":0,"subgroup_id":0,"object_id":0,"extension_headers_length":0,"object_payload_length":64,"object_payload":{"length":64,"payload_length":64,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":13.518946,"name":"moqt:subgroup_object_parsed","data":{"stream_id":6,"group_id":0,"subgroup_id":0,"object_id":1,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":9.967045,"name":"moqt:subgroup_object_created","data":{"stream_id":7,"group_id":0,"subgroup_id":0,"object_id":1,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":15.788218,"name":"moqt:subgroup_object_parsed","data":{"stream_id":6,"group_id":0,"subgroup_id":0,"object_id":2,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":12.255816,"name":"moqt:subgroup_object_created","data":{"stream_id":7,"group_id":0,"subgroup_id":0,"object_id":2,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":18.082002,"name":"moqt:subgroup_object_parsed","data":{"stream_id":6,"group_id":0,"subgroup_id":0,"object_id":3,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":14.533446,"name":"moqt:subgroup_object_created","data":{"stream_id":7,"group_id":0,"subgroup_id":0,"object_id":3,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":20.344489,"name":"moqt:subgroup_object_parsed","data":{"stream_id":6,"group_id":0,"subgroup_id":0,"object_id":4,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":16.797735,"name":"moqt:subgroup_object_created","data":{"stream_id":7,"group_id":0,"subgroup_id":0,"object_id":4,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":22.700949,"name":"moqt:stream_type_set","data":{"owner":"remote","stream_id":10,"stream_type":"subgroup_header"}}
+relay-1        | {"time":22.730142,"name":"moqt:subgroup_object_parsed","data":{"stream_id":10,"group_id":1,"subgroup_id":0,"object_id":0,"extension_headers_length":0,"object_payload_length":64,"object_payload":{"length":64,"payload_length":64,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":19.203118,"name":"moqt:stream_type_set","data":{"owner":"local","stream_id":11,"stream_type":"subgroup_header"}}
+relay-1        | {"time":19.212862,"name":"moqt:subgroup_object_created","data":{"stream_id":11,"group_id":1,"subgroup_id":0,"object_id":0,"extension_headers_length":0,"object_payload_length":64,"object_payload":{"length":64,"payload_length":64,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":25.012624,"name":"moqt:subgroup_object_parsed","data":{"stream_id":10,"group_id":1,"subgroup_id":0,"object_id":1,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":21.473782,"name":"moqt:subgroup_object_created","data":{"stream_id":11,"group_id":1,"subgroup_id":0,"object_id":1,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":27.32543,"name":"moqt:subgroup_object_parsed","data":{"stream_id":10,"group_id":1,"subgroup_id":0,"object_id":2,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":23.793708,"name":"moqt:subgroup_object_created","data":{"stream_id":11,"group_id":1,"subgroup_id":0,"object_id":2,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":29.595213,"name":"moqt:subgroup_object_parsed","data":{"stream_id":10,"group_id":1,"subgroup_id":0,"object_id":3,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":26.046757,"name":"moqt:subgroup_object_created","data":{"stream_id":11,"group_id":1,"subgroup_id":0,"object_id":3,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":31.899596,"name":"moqt:subgroup_object_parsed","data":{"stream_id":10,"group_id":1,"subgroup_id":0,"object_id":4,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":28.353183,"name":"moqt:subgroup_object_created","data":{"stream_id":11,"group_id":1,"subgroup_id":0,"object_id":4,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":34.265851,"name":"moqt:stream_type_set","data":{"owner":"remote","stream_id":14,"stream_type":"subgroup_header"}}
+relay-1        | {"time":34.290778,"name":"moqt:subgroup_object_parsed","data":{"stream_id":14,"group_id":2,"subgroup_id":0,"object_id":0,"extension_headers_length":0,"object_payload_length":64,"object_payload":{"length":64,"payload_length":64,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":30.741661,"name":"moqt:stream_type_set","data":{"owner":"local","stream_id":15,"stream_type":"subgroup_header"}}
+relay-1        | {"time":30.74796,"name":"moqt:subgroup_object_created","data":{"stream_id":15,"group_id":2,"subgroup_id":0,"object_id":0,"extension_headers_length":0,"object_payload_length":64,"object_payload":{"length":64,"payload_length":64,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":36.598045,"name":"moqt:subgroup_object_parsed","data":{"stream_id":14,"group_id":2,"subgroup_id":0,"object_id":1,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":33.049159,"name":"moqt:subgroup_object_created","data":{"stream_id":15,"group_id":2,"subgroup_id":0,"object_id":1,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":38.843964,"name":"moqt:subgroup_object_parsed","data":{"stream_id":14,"group_id":2,"subgroup_id":0,"object_id":2,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":35.294195,"name":"moqt:subgroup_object_created","data":{"stream_id":15,"group_id":2,"subgroup_id":0,"object_id":2,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":41.139525,"name":"moqt:subgroup_object_parsed","data":{"stream_id":14,"group_id":2,"subgroup_id":0,"object_id":3,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":37.596677,"name":"moqt:subgroup_object_created","data":{"stream_id":15,"group_id":2,"subgroup_id":0,"object_id":3,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":43.458259,"name":"moqt:subgroup_object_parsed","data":{"stream_id":14,"group_id":2,"subgroup_id":0,"object_id":4,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":39.910925,"name":"moqt:subgroup_object_created","data":{"stream_id":15,"group_id":2,"subgroup_id":0,"object_id":4,"extension_headers_length":0,"object_payload_length":32,"object_payload":{"length":32,"payload_length":32,"data":"7474747474747474747474747474747474747474"}}}
+relay-1        | {"time":45.775963,"name":"moqt:control_message_parsed","data":{"stream_id":1,"message":{"type":"publish_done","status_code":2,"stream_count":3}}}
+relay-1        | time=2026-11-27T00:21:15.390Z level=INFO msg="upstream subscription ended" namespace="[moq-test data-subgroup-basic d8953d46e016f2954de0f401e482a2f6 moq-test-00 0 0 0 2 4 5 64 32 2 1 1 0 -1 -1 0]" track=track code=TRACK_ENDED reason=""
+relay-1        | {"time":42.279703,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"publish_done","status_code":2,"stream_count":3}}}
+test-client-1  | [2026/11/27 00:21:25 356119] [error] |scid:db6836abf21417a0|xqc_conn_close_with_error|conn:000056FB59FAF750|err:0x0|l-0.0.0.0-45905-db50d518468d2022 p-172.18.0.2-4443-13292b53|
+test-client-1  | [2026/11/27 00:21:25 356140] [error] |scid:d232723661456075|xqc_conn_close_with_error|conn:000056FB59F5F190|err:0x0|l-0.0.0.0-45905-d54badc6d8b6220d p-172.18.0.2-4443-ba81a873|
+relay-1        | time=2026-11-27T00:21:25.358Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:21:25.358Z level=INFO msg="announcement withdrawn" namespace="[moq-test data-subgroup-basic d8953d46e016f2954de0f401e482a2f6]"
+relay-1        | time=2026-11-27T00:21:25.358Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:25 440814] [report] |scid:db6836abf21417a0|xqc_conn_destroy|000056FB59FAF750|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:848|first_send_delay:5781|conn_persist:10093433|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-45905-db50d518468d2022 p-172.18.0.2-4443-13292b53|hsk_recv:514|close_recv:0|close_send:10010865|last_recv:69974|last_send:10010865|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,27,34,31,143,0,664,i0,4,21,30,400,31,69,0,4,21,30,400,28,43,0,4,21,30,400,30,69,0,4,16,4,23,69,4,17,4,28,96,4,23,40000,29,10010,0-2,0-2,0-0,0-0,0-0,0-0,0-3438,0-8685,0-10,0-31,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:3|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:21:25 440946] [report] |scid:d232723661456075|xqc_conn_destroy|000056FB59F5F190|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1292|first_send_delay:7457|conn_persist:10097681|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-45905-d54badc6d8b6220d p-172.18.0.2-4443-ba81a873|hsk_recv:835|close_recv:0|close_send:10015048|last_recv:47435|last_send:10015048|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,40,29,26,736,0,156,i0,4,23,32,4,24,47,0,4,23,32,8,25,47,0,4,21,30,400,23,45,0,4,23,40000,38,10015,4,13,80,36,47,4,14,4,37,47,0-2,0-2,0-0,0-0,0-0,0-0,0-4430,0-8045,0-32,0-26,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:32|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:3|cli_bidi_s:0|svr_bidi_s:1|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:1|
+test-client-1  | not ok 8 - data-subgroup-basic
+test-client-1  |   ---
+test-client-1  |   duration_ms: 10229
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738885574.6787}}}
+relay-1        | time=2026-11-27T00:21:25.574Z level=INFO msg="starting MoQ session" perspective=server
+test-client-1  | [2026/11/27 00:21:25 574742] [error] |scid:933dab5c04cd7829|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":0.086527,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.120868,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:25.574Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738885578.433}}}
+relay-1        | time=2026-11-27T00:21:25.578Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.04753,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.067114,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:25.578Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:21:25 578477] [error] |scid:88000d840a94600c|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.56692,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe_namespace","request_id":0,"track_namespace_prefix":["moq-test","interop","a6efbfa12ee174ffa11f3601d407c6df"]}}}
+relay-1        | {"time":2.613268,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_ok"}}}
+relay-1        | time=2026-11-27T00:21:25.581Z level=INFO msg="namespace subscription" prefix="[moq-test interop a6efbfa12ee174ffa11f3601d407c6df]"
+relay-1        | {"time":8.68197,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish_namespace","request_id":0,"track_namespace":["moq-test","interop","a6efbfa12ee174ffa11f3601d407c6df"]}}}
+relay-1        | time=2026-11-27T00:21:25.583Z level=INFO msg="registered announcement" namespace="[moq-test interop a6efbfa12ee174ffa11f3601d407c6df]"
+relay-1        | {"time":8.737071,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_ok"}}}
+relay-1        | {"time":5.008,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"namespace","track_namespace_suffix":[]}}}
+relay-1        | time=2026-11-27T00:21:25.585Z level=INFO msg="announcement withdrawn" namespace="[moq-test interop a6efbfa12ee174ffa11f3601d407c6df]"
+relay-1        | {"time":7.344471,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"namespace_done","track_namespace_suffix":[]}}}
+test-client-1  | [2026/11/27 00:21:25 587946] [error] |scid:88000d840a94600c|xqc_conn_close_with_error|conn:000056FB59F3AAD0|err:0x0|l-0.0.0.0-60342-6538630e554d089a p-172.18.0.2-4443-3708588e|
+test-client-1  | [2026/11/27 00:21:25 587954] [error] |scid:933dab5c04cd7829|xqc_conn_close_with_error|conn:000056FB59F5BDA0|err:0x0|l-0.0.0.0-60342-c0100bff90e12d99 p-172.18.0.2-4443-b37374c9|
+relay-1        | time=2026-11-27T00:21:25.590Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:21:25.590Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:25 672685] [report] |scid:88000d840a94600c|xqc_conn_destroy|000056FB59F3AAD0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:901|first_send_delay:3610|conn_persist:95397|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-60342-6538630e554d089a p-172.18.0.2-4443-3708588e|hsk_recv:550|close_recv:0|close_send:12770|last_recv:8537|last_send:85033|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,15,12,77,0,44,i0,4,25,34,80,9,6,0,4,1432,1441,3,10,8,0,4,25,34,80,11,8,0,4,23,40000,12,85,4,14,4,10,8,4,23,40000,11,12,0-2,0-2,0-0,0-0,0-0,0-0,0-3048,0-7478,0-8,0-12,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:8|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:21:25 674860] [report] |scid:933dab5c04cd7829|xqc_conn_destroy|000056FB59F5BDA0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1311|first_send_delay:10080|conn_persist:101682|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-60342-c0100bff90e12d99 p-172.18.0.2-4443-b37374c9|hsk_recv:841|close_recv:0|close_send:16853|last_recv:12588|last_send:97418|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,19,14,11,77,0,36,i0,4,1432,1441,3,9,12,0,4,27,36,c,10,12,0,4,24,33,80,8,10,0,4,23,40000,20,97,4,23,40000,18,16,4,23,40000,19,87,0-2,0-2,0-0,0-0,0-0,0-0,0-3145,0-7439,0-10,0-11,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | ok 9 - subscribe-namespace-lifecycle
+test-client-1  |   ---
+test-client-1  |   duration_ms: 231
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738885806.6282}}}
+relay-1        | time=2026-11-27T00:21:25.806Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.087568,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.125444,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:25.806Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:21:25 806682] [error] |scid:b659e257fb58fb3e|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":2.625806,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","71a5cbd19aa13b8d7b5f79eceeb1da97"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.677021,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+test-client-1  | [2026/11/27 00:21:30 810440] [error] |scid:b659e257fb58fb3e|xqc_conn_close_with_error|conn:000056FB59EECC60|err:0x0|l-0.0.0.0-57004-a08aa4c88ff59462 p-172.18.0.2-4443-58fe983b|
+relay-1        | time=2026-11-27T00:21:30.812Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:30 899269] [report] |scid:b659e257fb58fb3e|xqc_conn_destroy|000056FB59EECC60|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1363|first_send_delay:4157|conn_persist:5094284|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-57004-a08aa4c88ff59462 p-172.18.0.2-4443-58fe983b|hsk_recv:890|close_recv:0|close_send:5007585|last_recv:30994|last_send:5007585|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,89,0,62,i0,4,1421,1430,3,13,30,0,4,21,30,400,11,30,0,4,21,30,400,12,30,0,4,16,4,17,30,4,16,4,18,31,4,23,40000,19,5007,0-2,0-2,0-0,0-0,0-0,0-0,0-3114,0-6121,0-10,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 10 - publish-track-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5222
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738891028.9663}}}
+relay-1        | time=2026-11-27T00:21:31.029Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.072977,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.116842,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:31.029Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:21:31 029081] [error] |scid:8c59075f9353853d|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738891032.577}}}
+relay-1        | time=2026-11-27T00:21:31.032Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.071195,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.0751,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+test-client-1  | [2026/11/27 00:21:31 032653] [error] |scid:94180547cab78515|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | time=2026-11-27T00:21:31.032Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":6.190981,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","733d407352822c45946fcea6b48f6d3d"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":6.230119,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+test-client-1  | [2026/11/27 00:21:36 037147] [error] |scid:94180547cab78515|xqc_conn_close_with_error|conn:000056FB59F71720|err:0x0|l-0.0.0.0-56020-6eea20a0f26d50a6 p-172.18.0.2-4443-670680da|
+test-client-1  | [2026/11/27 00:21:36 037171] [error] |scid:8c59075f9353853d|xqc_conn_close_with_error|conn:000056FB59EEC6C0|err:0x0|l-0.0.0.0-56020-a6d65f58c933b47b p-172.18.0.2-4443-a4112f1c|
+relay-1        | time=2026-11-27T00:21:36.039Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:21:36.039Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:36 123970] [report] |scid:8c59075f9353853d|xqc_conn_destroy|000056FB59EEC6C0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1320|first_send_delay:7665|conn_persist:5096579|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-56020-a6d65f58c933b47b p-172.18.0.2-4443-a4112f1c|hsk_recv:844|close_recv:0|close_send:5011889|last_recv:62221|last_send:5011889|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,20,17,14,89,0,62,i0,4,1421,1430,3,13,35,0,4,1432,1441,3,14,62,0,4,21,30,400,12,35,0,4,17,4,19,89,4,23,40000,20,5011,4,17,4,18,62,0-2,0-2,0-0,0-0,0-0,0-0,0-3179,0-7562,0-10,0-14,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:21:36 206679] [report] |scid:94180547cab78515|xqc_conn_destroy|000056FB59F71720|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:891|first_send_delay:0|conn_persist:5175221|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-56020-6eea20a0f26d50a6 p-172.18.0.2-4443-670680da|hsk_recv:560|close_recv:0|close_send:5007888|last_recv:80976|last_send:5007888|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,15,12,9,21,0,32,i0,4,25,34,4,6,26,0,4,1421,1430,3,7,53,0,4,1432,1441,3,8,80,0,4,15,4,13,80,4,15,4,14,107,4,23,40000,15,5007,0-2,0-2,0-0,0-0,0-0,0-3,0-2958,0-7372,0-7,0-9,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:7|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 11 - publish-track-subscribe
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5226
+test-client-1  |   sessions:
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738896255.9958}}}
+relay-1        | time=2026-11-27T00:21:36.256Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.077353,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.094619,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:36.256Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:21:36 256049] [error] |scid:8a2c5d9bf32b2146|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.513982,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","c7bf5c4400db0330023cfffe82b9ac22","moq-test-00","0","0","0","2","5","5","64","32","2","1","1","1","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+test-client-1  | [2026/11/27 00:21:36 460660] [error] |scid:fea449aea7245dc5|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738896460.6099}}}
+relay-1        | time=2026-11-27T00:21:36.460Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.104183,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.102951,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:36.460Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.528723,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","c7bf5c4400db0330023cfffe82b9ac22","moq-test-00","0","0","0","2","5","5","64","32","2","1","1","1","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.591675,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:21:41.262Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop c7bf5c4400db0330023cfffe82b9ac22 moq-test-00 0 0 0 2 5 5 64 32 2 1 1 1 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5006.841519,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:21:41 463587] [error] |scid:fea449aea7245dc5|xqc_conn_close_with_error|conn:000056FB59EEB2F0|err:0x0|l-0.0.0.0-55699-3b47e4685be97541 p-172.18.0.2-4443-6a428b10|
+test-client-1  | [2026/11/27 00:21:41 463608] [error] |scid:8a2c5d9bf32b2146|xqc_conn_close_with_error|conn:000056FB59FCD470|err:0x0|l-0.0.0.0-55699-24c82f04c29da785 p-172.18.0.2-4443-1f931e36|
+relay-1        | time=2026-11-27T00:21:41.465Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:21:41.465Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:41 550345] [report] |scid:fea449aea7245dc5|xqc_conn_destroy|000056FB59EEB2F0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1308|first_send_delay:4002|conn_persist:5091315|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-55699-3b47e4685be97541 p-172.18.0.2-4443-6a428b10|hsk_recv:889|close_recv:0|close_send:5006679|last_recv:30847|last_send:5006679|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,135,0,62,i0,4,1421,1430,3,13,30,0,4,21,30,400,11,30,0,4,21,30,400,12,30,0,4,16,4,14,30,4,16,4,15,30,4,23,40000,16,5006,0-2,0-2,0-0,0-0,0-0,0-0,0-3159,0-6121,0-10,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:21:41 552540] [report] |scid:8a2c5d9bf32b2146|xqc_conn_destroy|000056FB59FCD470|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1335|first_send_delay:4019|conn_persist:5298178|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-55699-24c82f04c29da785 p-172.18.0.2-4443-1f931e36|hsk_recv:858|close_recv:0|close_send:5211410|last_recv:5033850|last_send:5211410|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,15,12,139,0,60,i0,4,48,57,80,9,5008,0,4,23,32,4,10,5008,0,4,21,30,400,11,5033,0,4,15,4,12,5033,4,15,4,13,5060,4,23,40000,17,5211,0-2,0-2,0-0,0-0,0-0,0-0,0-3167,0-7489,0-9,0-12,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 12 - moq-test-subgroup-per-group-eog
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5426
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738901682.2407}}}
+relay-1        | time=2026-11-27T00:21:41.682Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.094278,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.119986,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:41.682Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:21:41 682301] [error] |scid:88d78c8998a5571d|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.773402,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","56c18d64f2fb4db9375bbc0b2608b8d4","moq-test-00","0","0","0","2","5","5","64","32","2","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738901886.7458}}}
+relay-1        | time=2026-11-27T00:21:41.886Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.082291,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.14005,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:41.886Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:21:41 886804] [error] |scid:5f378530ff16705c|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":2.62579,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","56c18d64f2fb4db9375bbc0b2608b8d4","moq-test-00","0","0","0","2","5","5","64","32","2","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.671397,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:21:46.689Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop 56c18d64f2fb4db9375bbc0b2608b8d4 moq-test-00 0 0 0 2 5 5 64 32 2 1 1 0 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5007.515683,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:21:46 889879] [error] |scid:5f378530ff16705c|xqc_conn_close_with_error|conn:000056FB59F60EE0|err:0x0|l-0.0.0.0-40688-b0c103dcc8aea8b3 p-172.18.0.2-4443-86ea1556|
+test-client-1  | [2026/11/27 00:21:46 889901] [error] |scid:88d78c8998a5571d|xqc_conn_close_with_error|conn:000056FB59FA9C50|err:0x0|l-0.0.0.0-40688-72bdf8e57d1666c0 p-172.18.0.2-4443-415c300f|
+relay-1        | time=2026-11-27T00:21:46.892Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:21:46.892Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:46 978691] [report] |scid:5f378530ff16705c|xqc_conn_destroy|000056FB59F60EE0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1377|first_send_delay:4164|conn_persist:5093586|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-40688-b0c103dcc8aea8b3 p-172.18.0.2-4443-86ea1556|hsk_recv:951|close_recv:0|close_send:5006907|last_recv:4582|last_send:5006907|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,15,14,11,135,0,62,i0,4,21,30,10,9,4,0,4,26,35,404,10,4,0,4,21,30,80,8,4,0,4,19,c,12,4,4,14,4,13,4,4,23,40000,14,5006,0-2,0-2,0-0,0-0,0-0,0-0,0-3072,0-4653,0-9,0-11,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:21:46 978823] [report] |scid:88d78c8998a5571d|xqc_conn_destroy|000056FB59FA9C50|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1379|first_send_delay:4071|conn_persist:5298198|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-40688-72bdf8e57d1666c0 p-172.18.0.2-4443-415c300f|hsk_recv:882|close_recv:0|close_send:5211453|last_recv:5035989|last_send:5211453|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,16,13,139,0,60,i0,4,1432,1441,3,13,5035,0,4,21,30,400,11,5035,0,4,21,30,400,12,5035,0,4,23,40000,11,5211,4,16,4,9,5035,4,16,4,10,5036,0-2,0-2,0-0,0-0,0-0,0-0,0-3111,0-7522,0-9,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 13 - moq-test-subgroup-per-group-no-eog
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5426
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738907108.3684}}}
+relay-1        | time=2026-11-27T00:21:47.108Z level=INFO msg="starting MoQ session" perspective=server
+test-client-1  | [2026/11/27 00:21:47 108405] [error] |scid:7123de2e20046f9b|xqc_ssl_new_session_cb|early data is not enabled|
+relay-1        | {"time":0.082,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.110016,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:47.108Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.522995,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","5131e1d672204dec7c7a4d8b24c52cd0","moq-test-00","0","6","3","8","5","5","64","32","2","1","1","1","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+test-client-1  | [2026/11/27 00:21:47 312515] [error] |scid:a600dedf9bab31b6|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738907312.4277}}}
+relay-1        | time=2026-11-27T00:21:47.312Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.106637,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.12564,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:47.312Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.58092,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","5131e1d672204dec7c7a4d8b24c52cd0","moq-test-00","0","6","3","8","5","5","64","32","2","1","1","1","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.622721,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:21:52.114Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop 5131e1d672204dec7c7a4d8b24c52cd0 moq-test-00 0 6 3 8 5 5 64 32 2 1 1 1 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5006.515549,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:21:52 314940] [error] |scid:a600dedf9bab31b6|xqc_conn_close_with_error|conn:000056FB59FE2BF0|err:0x0|l-0.0.0.0-39374-fd0c0bc869070cda p-172.18.0.2-4443-b2864c36|
+test-client-1  | [2026/11/27 00:21:52 314962] [error] |scid:7123de2e20046f9b|xqc_conn_close_with_error|conn:000056FB59FA6CB0|err:0x0|l-0.0.0.0-39374-ca40b6c8c5e18c66 p-172.18.0.2-4443-f69a5e63|
+relay-1        | time=2026-11-27T00:21:52.317Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:21:52.317Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:52 401741] [report] |scid:a600dedf9bab31b6|xqc_conn_destroy|000056FB59FE2BF0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1230|first_send_delay:3906|conn_persist:5090757|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-39374-fd0c0bc869070cda p-172.18.0.2-4443-b2864c36|hsk_recv:783|close_recv:0|close_send:5006081|last_recv:30832|last_send:5006081|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,135,0,62,i0,4,1421,1430,3,13,30,0,4,21,30,400,11,30,0,4,21,30,400,12,30,0,4,16,4,14,30,4,16,4,15,30,4,23,40000,16,5006,0-2,0-2,0-0,0-0,0-0,0-0,0-3159,0-6126,0-10,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:21:52 401882] [report] |scid:7123de2e20046f9b|xqc_conn_destroy|000056FB59FA6CB0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1260|first_send_delay:3877|conn_persist:5295025|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-39374-ca40b6c8c5e18c66 p-172.18.0.2-4443-f69a5e63|hsk_recv:768|close_recv:0|close_send:5210272|last_recv:5034745|last_send:5210272|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,17,14,139,0,60,i0,4,21,30,400,13,5034,0,4,1432,1441,3,14,5034,0,4,21,30,400,12,5034,0,4,23,40000,19,5210,4,16,4,17,5034,4,16,4,18,5034,0-2,0-2,0-0,0-0,0-0,0-0,0-3111,0-7553,0-9,0-14,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 14 - moq-test-subgroup-per-group-nonzero-start
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5425
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738912533.6304}}}
+relay-1        | time=2026-11-27T00:21:52.533Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.080578,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.162208,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+test-client-1  | [2026/11/27 00:21:52 533720] [error] |scid:a069ffb24b5f4568|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | time=2026-11-27T00:21:52.533Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.69034,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","64322f89cc76e9511f8e38d7b233223a","moq-test-00","1","0","0","1","3","4","64","32","2","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+test-client-1  | [2026/11/27 00:21:52 738871] [error] |scid:043b3c4d56454c8d|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738912738.8005}}}
+relay-1        | time=2026-11-27T00:21:52.738Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.110181,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.168157,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:52.739Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.756477,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","64322f89cc76e9511f8e38d7b233223a","moq-test-00","1","0","0","1","3","4","64","32","2","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.807342,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:21:57.541Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop 64322f89cc76e9511f8e38d7b233223a moq-test-00 1 0 0 1 3 4 64 32 2 1 1 0 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5007.553397,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:21:57 742338] [error] |scid:043b3c4d56454c8d|xqc_conn_close_with_error|conn:000056FB59FDE010|err:0x0|l-0.0.0.0-35700-c03483dbc7dcd535 p-172.18.0.2-4443-9044da72|
+test-client-1  | [2026/11/27 00:21:57 742358] [error] |scid:a069ffb24b5f4568|xqc_conn_close_with_error|conn:000056FB59FAE380|err:0x0|l-0.0.0.0-35700-7a95bf5075c78983 p-172.18.0.2-4443-85ae4c1a|
+relay-1        | time=2026-11-27T00:21:57.744Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:21:57.744Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:21:57 829107] [report] |scid:043b3c4d56454c8d|xqc_conn_destroy|000056FB59FDE010|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1246|first_send_delay:4054|conn_persist:5091744|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-35700-c03483dbc7dcd535 p-172.18.0.2-4443-9044da72|hsk_recv:821|close_recv:0|close_send:5007096|last_recv:57063|last_send:5007096|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,20,19,16,135,0,62,i0,4,21,30,400,17,57,0,4,21,30,400,14,30,0,4,21,30,400,16,57,0,4,19,4,16,83,4,23,40000,17,5007,4,18,4,15,57,0-2,0-2,0-0,0-0,0-0,0-0,0-3228,0-7624,0-10,0-16,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:21:57 829234] [report] |scid:a069ffb24b5f4568|xqc_conn_destroy|000056FB59FAE380|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1255|first_send_delay:4038|conn_persist:5297065|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-35700-7a95bf5075c78983 p-172.18.0.2-4443-85ae4c1a|hsk_recv:784|close_recv:0|close_send:5212351|last_recv:5034777|last_send:5212351|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,139,0,60,i0,4,21,30,400,12,5034,0,4,48,57,80,10,5009,0,4,24,33,4,11,5034,0,4,15,4,13,5034,4,15,4,14,5061,4,23,40000,15,5212,0-2,0-2,0-0,0-0,0-0,0-0,0-3166,0-7525,0-9,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 15 - moq-test-subgroup-per-object
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5427
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738917961.0032}}}
+relay-1        | time=2026-11-27T00:21:57.961Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.078375,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.124342,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:57.961Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:21:57 961095] [error] |scid:5f0c02204e8a2599|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.497377,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","691ac1f6eea1d341cb7e63516df660ff","moq-test-00","1","4","2","4","8","5","64","32","2","1","3","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+test-client-1  | [2026/11/27 00:21:58 165053] [error] |scid:7aa65cd20cd5f75e|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738918165.0142}}}
+relay-1        | time=2026-11-27T00:21:58.165Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.086948,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.174982,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:21:58.165Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.675454,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","691ac1f6eea1d341cb7e63516df660ff","moq-test-00","1","4","2","4","8","5","64","32","2","1","3","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.717856,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:22:02.964Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop 691ac1f6eea1d341cb7e63516df660ff moq-test-00 1 4 2 4 8 5 64 32 2 1 3 0 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5003.58379,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:22:03 168729] [error] |scid:7aa65cd20cd5f75e|xqc_conn_close_with_error|conn:000056FB59F7F340|err:0x0|l-0.0.0.0-42556-ac0b2161814cdbcf p-172.18.0.2-4443-43be3f5f|
+test-client-1  | [2026/11/27 00:22:03 168750] [error] |scid:5f0c02204e8a2599|xqc_conn_close_with_error|conn:000056FB59FEF9A0|err:0x0|l-0.0.0.0-42556-5b35c33a551c02e9 p-172.18.0.2-4443-ed406c87|
+relay-1        | time=2026-11-27T00:22:03.171Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:22:03.171Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:22:03 255521] [report] |scid:7aa65cd20cd5f75e|xqc_conn_destroy|000056FB59F7F340|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1197|first_send_delay:4048|conn_persist:5091986|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-42556-ac0b2161814cdbcf p-172.18.0.2-4443-43be3f5f|hsk_recv:771|close_recv:0|close_send:5007327|last_recv:30871|last_send:5007327|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,19,17,14,135,0,62,i0,4,1432,1441,3,13,30,0,4,21,30,400,14,30,0,4,22,31,8,12,30,0,4,23,40000,20,5007,4,16,4,18,30,4,17,4,19,57,0-2,0-2,0-0,0-0,0-0,0-0,0-3192,0-7567,0-10,0-14,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:22:03 255649] [report] |scid:5f0c02204e8a2599|xqc_conn_destroy|000056FB59FEF9A0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1245|first_send_delay:3926|conn_persist:5296195|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-42556-5b35c33a551c02e9 p-172.18.0.2-4443-ed406c87|hsk_recv:768|close_recv:0|close_send:5211474|last_recv:5031921|last_send:5211474|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,16,13,139,0,60,i0,4,1432,1441,3,13,5031,0,4,21,30,400,11,5031,0,4,21,30,400,12,5031,0,4,23,40000,11,5211,4,16,4,9,5031,4,16,4,10,5031,0-2,0-2,0-0,0-0,0-0,0-0,0-3111,0-7522,0-9,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 16 - moq-test-subgroup-per-object-sparse-ids
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5426
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738923387.3438}}}
+relay-1        | time=2026-11-27T00:22:03.387Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.083382,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.107383,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:03.387Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:22:03 387443] [error] |scid:3d8b223711202afb|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.602081,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","0d5396e9860eed758a94f547d4059c6b","moq-test-00","2","0","0","2","6","6","64","32","2","1","1","1","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+test-client-1  | [2026/11/27 00:22:03 591638] [error] |scid:29ef1ed91627b1cc|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738923591.6003}}}
+relay-1        | time=2026-11-27T00:22:03.591Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.082431,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.138083,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:03.591Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.527191,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","0d5396e9860eed758a94f547d4059c6b","moq-test-00","2","0","0","2","6","6","64","32","2","1","1","1","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.572458,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:22:08.392Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop 0d5396e9860eed758a94f547d4059c6b moq-test-00 2 0 0 2 6 6 64 32 2 1 1 1 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5005.659067,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:22:08 595254] [error] |scid:29ef1ed91627b1cc|xqc_conn_close_with_error|conn:000056FB59EEA2E0|err:0x0|l-0.0.0.0-37156-27625bb428740250 p-172.18.0.2-4443-2fda963c|
+test-client-1  | [2026/11/27 00:22:08 595276] [error] |scid:3d8b223711202afb|xqc_conn_close_with_error|conn:000056FB59FCB520|err:0x0|l-0.0.0.0-37156-379f4430a1583839 p-172.18.0.2-4443-ee838f34|
+relay-1        | time=2026-11-27T00:22:08.597Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:22:08.597Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:22:08 682030] [report] |scid:29ef1ed91627b1cc|xqc_conn_destroy|000056FB59EEA2E0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1288|first_send_delay:3908|conn_persist:5091962|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-37156-27625bb428740250 p-172.18.0.2-4443-2fda963c|hsk_recv:863|close_recv:0|close_send:5007314|last_recv:30842|last_send:5007314|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,135,0,62,i0,4,1421,1430,3,13,30,0,4,21,30,400,11,30,0,4,21,30,400,12,30,0,4,16,4,16,30,4,16,4,17,30,4,23,40000,18,5007,0-2,0-2,0-0,0-0,0-0,0-0,0-3159,0-6119,0-10,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:22:08 682168] [report] |scid:3d8b223711202afb|xqc_conn_destroy|000056FB59FCB520|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1319|first_send_delay:4011|conn_persist:5296356|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-37156-379f4430a1583839 p-172.18.0.2-4443-ee838f34|hsk_recv:820|close_recv:0|close_send:5211637|last_recv:5034047|last_send:5211637|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,16,13,139,0,60,i0,4,1432,1441,3,13,5034,0,4,21,30,400,11,5033,0,4,21,30,400,12,5034,0,4,23,40000,18,5211,4,16,4,16,5033,4,16,4,17,5034,0-2,0-2,0-0,0-0,0-0,0-0,0-3111,0-7526,0-9,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 17 - moq-test-two-subgroups-eog
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5426
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738928813.9065}}}
+relay-1        | time=2026-11-27T00:22:08.813Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.088801,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.168488,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:08.814Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:22:08 813938] [error] |scid:9383e3a140be5312|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.541062,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","2bc11e4389f076d9dd2dd2f5da33d1a5","moq-test-00","2","0","0","2","6","6","64","32","2","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738929018.115}}}
+relay-1        | time=2026-11-27T00:22:09.018Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.085275,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+test-client-1  | [2026/11/27 00:22:09 018169] [error] |scid:cffad82fe35fbc48|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":0.105229,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:09.018Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.547776,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","2bc11e4389f076d9dd2dd2f5da33d1a5","moq-test-00","2","0","0","2","6","6","64","32","2","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.589928,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:22:13.819Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop 2bc11e4389f076d9dd2dd2f5da33d1a5 moq-test-00 2 0 0 2 6 6 64 32 2 1 1 0 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5005.859283,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:22:14 021926] [error] |scid:cffad82fe35fbc48|xqc_conn_close_with_error|conn:000056FB59FC8E30|err:0x0|l-0.0.0.0-59104-b5685882623b0a22 p-172.18.0.2-4443-850d8c7c|
+test-client-1  | [2026/11/27 00:22:14 021945] [error] |scid:9383e3a140be5312|xqc_conn_close_with_error|conn:000056FB59FB09D0|err:0x0|l-0.0.0.0-59104-8f66630808edabb9 p-172.18.0.2-4443-feaba52d|
+relay-1        | time=2026-11-27T00:22:14.024Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:22:14.024Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:22:14 108725] [report] |scid:cffad82fe35fbc48|xqc_conn_destroy|000056FB59FC8E30|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1317|first_send_delay:3949|conn_persist:5092163|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-59104-b5685882623b0a22 p-172.18.0.2-4443-850d8c7c|hsk_recv:870|close_recv:0|close_send:5007487|last_recv:30947|last_send:5007487|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,135,0,62,i0,4,1421,1430,3,13,30,0,4,21,30,400,11,30,0,4,21,30,400,12,30,0,4,16,4,14,30,4,16,4,15,30,4,23,40000,16,5007,0-2,0-2,0-0,0-0,0-0,0-0,0-3159,0-6121,0-10,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:22:14 108861] [report] |scid:9383e3a140be5312|xqc_conn_destroy|000056FB59FB09D0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1306|first_send_delay:3942|conn_persist:5296484|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-59104-8f66630808edabb9 p-172.18.0.2-4443-feaba52d|hsk_recv:832|close_recv:0|close_send:5211741|last_recv:5034213|last_send:5211741|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,16,13,139,0,60,i0,4,1432,1441,3,13,5034,0,4,21,30,400,11,5034,0,4,21,30,400,12,5034,0,4,23,40000,15,5211,4,16,4,13,5034,4,16,4,14,5034,0-2,0-2,0-0,0-0,0-0,0-0,0-3111,0-7522,0-9,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 18 - moq-test-two-subgroups-no-eog
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5426
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+test-client-1  | [2026/11/27 00:22:14 240527] [error] |scid:0abdc115d4c2e304|xqc_ssl_new_session_cb|early data is not enabled|
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738934240.4976}}}
+relay-1        | time=2026-11-27T00:22:14.240Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.072887,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.096165,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:14.240Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.531742,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","2247c1a397d0a057179cd5a26897f7ef","moq-test-00","3","0","0","2","4","5","64","32","20","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+test-client-1  | [2026/11/27 00:22:14 445186] [error] |scid:a0a45797cadb9997|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738934445.1443}}}
+relay-1        | time=2026-11-27T00:22:14.445Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.078225,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.097838,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:14.445Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.554501,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","2247c1a397d0a057179cd5a26897f7ef","moq-test-00","3","0","0","2","4","5","64","32","20","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.595081,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:22:19.247Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop 2247c1a397d0a057179cd5a26897f7ef moq-test-00 3 0 0 2 4 5 64 32 20 1 1 0 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5007.121047,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:22:19 448746] [error] |scid:a0a45797cadb9997|xqc_conn_close_with_error|conn:000056FB59F5BDA0|err:0x0|l-0.0.0.0-44147-9bac3376fb670e65 p-172.18.0.2-4443-3f71b2a1|
+test-client-1  | [2026/11/27 00:22:19 448766] [error] |scid:0abdc115d4c2e304|xqc_conn_close_with_error|conn:000056FB59F75D20|err:0x0|l-0.0.0.0-44147-7c698c3ab2779cc3 p-172.18.0.2-4443-7513f21e|
+relay-1        | time=2026-11-27T00:22:19.451Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:22:19.451Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:22:19 535548] [report] |scid:a0a45797cadb9997|xqc_conn_destroy|000056FB59F5BDA0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1278|first_send_delay:3996|conn_persist:5091987|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-44147-9bac3376fb670e65 p-172.18.0.2-4443-3f71b2a1|hsk_recv:848|close_recv:0|close_send:5007326|last_recv:31048|last_send:5007326|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,136,0,62,i0,4,1421,1430,3,13,31,0,4,21,30,400,11,30,0,4,21,30,400,12,31,0,4,16,4,15,31,4,16,4,16,31,4,23,40000,19,5007,0-2,0-2,0-0,0-0,0-0,0-0,0-3160,0-6121,0-10,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:22:19 535672] [report] |scid:0abdc115d4c2e304|xqc_conn_destroy|000056FB59F75D20|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1228|first_send_delay:3942|conn_persist:5296684|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-44147-7c698c3ab2779cc3 p-172.18.0.2-4443-7513f21e|hsk_recv:739|close_recv:0|close_send:5211963|last_recv:5034369|last_send:5211963|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,15,12,140,0,60,i0,4,48,57,80,9,5008,0,4,24,33,4,10,5034,0,4,21,30,400,11,5034,0,4,15,4,15,5034,4,15,4,16,5061,4,23,40000,17,5211,0-2,0-2,0-0,0-0,0-0,0-0,0-3168,0-7490,0-9,0-12,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 19 - moq-test-datagram
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5426
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738939667.4097}}}
+relay-1        | time=2026-11-27T00:22:19.667Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.080888,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.116435,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:19.667Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:22:19 667466] [error] |scid:a38f629b8e8a5467|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.553204,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","55425d1c7d1e84666c48330fcf48927d","moq-test-00","3","6","3","8","5","5","64","32","20","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+test-client-1  | [2026/11/27 00:22:19 871651] [error] |scid:818246e9cf583a52|xqc_ssl_new_session_cb|early data is not enabled|
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738939871.6018}}}
+relay-1        | time=2026-11-27T00:22:19.871Z level=INFO msg="starting MoQ session" perspective=server
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":0.08846,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.123331,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:19.871Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.53648,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","55425d1c7d1e84666c48330fcf48927d","moq-test-00","3","6","3","8","5","5","64","32","20","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.578792,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:22:24.671Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop 55425d1c7d1e84666c48330fcf48927d moq-test-00 3 6 3 8 5 5 64 32 20 1 1 0 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5004.017552,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:22:24 875606] [error] |scid:818246e9cf583a52|xqc_conn_close_with_error|conn:000056FB59F766E0|err:0x0|l-0.0.0.0-54685-ce6e750c2b3434f8 p-172.18.0.2-4443-302a4f5e|
+test-client-1  | [2026/11/27 00:22:24 875626] [error] |scid:a38f629b8e8a5467|xqc_conn_close_with_error|conn:000056FB59F5E180|err:0x0|l-0.0.0.0-54685-a4e72132d7116e0a p-172.18.0.2-4443-1e132da2|
+relay-1        | time=2026-11-27T00:22:24.877Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:22:24.877Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:22:24 962348] [report] |scid:818246e9cf583a52|xqc_conn_destroy|000056FB59F766E0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1218|first_send_delay:3893|conn_persist:5092229|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-54685-ce6e750c2b3434f8 p-172.18.0.2-4443-302a4f5e|hsk_recv:797|close_recv:0|close_send:5007609|last_recv:57737|last_send:5007609|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,19,17,14,136,0,62,i0,4,21,30,400,13,30,0,4,1432,1441,3,14,57,0,4,1421,1430,3,12,30,0,4,23,40000,19,5007,4,17,4,17,57,4,17,4,18,84,0-2,0-2,0-0,0-0,0-0,0-0,0-3196,0-7562,0-10,0-14,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:22:24 962487] [report] |scid:a38f629b8e8a5467|xqc_conn_destroy|000056FB59F5E180|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1326|first_send_delay:4002|conn_persist:5296634|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-54685-a4e72132d7116e0a p-172.18.0.2-4443-1e132da2|hsk_recv:837|close_recv:0|close_send:5211945|last_recv:5032388|last_send:5211945|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,16,13,140,0,60,i0,4,1432,1441,3,13,5032,0,4,21,30,400,11,5032,0,4,21,30,400,12,5032,0,4,23,40000,17,5211,4,16,4,15,5032,4,16,4,16,5032,0-2,0-2,0-0,0-0,0-0,0-0,0-3112,0-7526,0-9,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 20 - moq-test-datagram-nonzero-start
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5426
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738945094.1614}}}
+relay-1        | time=2026-11-27T00:22:25.094Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.089792,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.16333,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:25.094Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:22:25 094216] [error] |scid:a21bf964c1289326|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.60114,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","a504e293dab2a0e00165d1eb6ab879aa","moq-test-00","3","10","3","24","7","5","64","32","20","7","2","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738945298.4167}}}
+relay-1        | time=2026-11-27T00:22:25.298Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.08168,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.155763,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:25.298Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:22:25 298511] [error] |scid:7136d80067dc0af1|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":2.535638,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","a504e293dab2a0e00165d1eb6ab879aa","moq-test-00","3","10","3","24","7","5","64","32","20","7","2","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.571561,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:22:30.100Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop a504e293dab2a0e00165d1eb6ab879aa moq-test-00 3 10 3 24 7 5 64 32 20 7 2 0 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5006.615542,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:22:30 300946] [error] |scid:7136d80067dc0af1|xqc_conn_close_with_error|conn:000056FB59F81720|err:0x0|l-0.0.0.0-45089-bdb2fd5fc17b458c p-172.18.0.2-4443-c410b869|
+test-client-1  | [2026/11/27 00:22:30 300970] [error] |scid:a21bf964c1289326|xqc_conn_close_with_error|conn:000056FB59FB0E40|err:0x0|l-0.0.0.0-45089-e359582e64157a11 p-172.18.0.2-4443-500dada3|
+relay-1        | time=2026-11-27T00:22:30.303Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:22:30.303Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:22:30 387763] [report] |scid:7136d80067dc0af1|xqc_conn_destroy|000056FB59F81720|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1217|first_send_delay:3821|conn_persist:5090778|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-45089-bdb2fd5fc17b458c p-172.18.0.2-4443-c410b869|hsk_recv:777|close_recv:0|close_send:5006091|last_recv:30773|last_send:5006091|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,138,0,62,i0,4,1421,1430,3,13,30,0,4,21,30,400,11,30,0,4,21,30,400,12,30,0,4,16,4,13,30,4,16,4,14,30,4,23,40000,16,5006,0-2,0-2,0-0,0-0,0-0,0-0,0-3162,0-6119,0-10,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:22:30 387914] [report] |scid:a21bf964c1289326|xqc_conn_destroy|000056FB59FB0E40|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1251|first_send_delay:3959|conn_persist:5295271|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-45089-e359582e64157a11 p-172.18.0.2-4443-500dada3|hsk_recv:758|close_recv:0|close_send:5210506|last_recv:5035007|last_send:5210506|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,16,13,142,0,60,i0,4,1432,1441,3,13,5035,0,4,21,30,400,11,5034,0,4,21,30,400,12,5034,0,4,23,40000,14,5210,4,16,4,12,5034,4,16,4,13,5035,0-2,0-2,0-0,0-0,0-0,0-0,0-3114,0-7526,0-9,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 21 - moq-test-datagram-sparse-ids
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5425
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738950519.573}}}
+relay-1        | time=2026-11-27T00:22:30.519Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.089902,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.119681,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:30.519Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:22:30 519628] [error] |scid:c39f0fa010579899|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.452181,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","0a8331b8249b3c779bbb47813f799827","moq-test-00","3","0","0","2","5","5","64","32","20","1","1","1","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738950723.7788}}}
+relay-1        | time=2026-11-27T00:22:30.723Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.08878,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.157461,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:30.723Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:22:30 723809] [error] |scid:9d3a0fcf8290510b|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":2.531257,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","0a8331b8249b3c779bbb47813f799827","moq-test-00","3","0","0","2","5","5","64","32","20","1","1","1","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.575912,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:22:35.525Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop 0a8331b8249b3c779bbb47813f799827 moq-test-00 3 0 0 2 5 5 64 32 20 1 1 1 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5006.390934,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:22:35 728070] [error] |scid:9d3a0fcf8290510b|xqc_conn_close_with_error|conn:000056FB59F836F0|err:0x0|l-0.0.0.0-47095-14af30d2996b394c p-172.18.0.2-4443-4f165fb0|
+test-client-1  | [2026/11/27 00:22:35 728096] [error] |scid:c39f0fa010579899|xqc_conn_close_with_error|conn:000056FB59F1ED20|err:0x0|l-0.0.0.0-47095-542b107a709e6d36 p-172.18.0.2-4443-3cad5a26|
+relay-1        | time=2026-11-27T00:22:35.730Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:22:35.730Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:22:35 814885] [report] |scid:9d3a0fcf8290510b|xqc_conn_destroy|000056FB59F836F0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1318|first_send_delay:3975|conn_persist:5092687|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-47095-14af30d2996b394c p-172.18.0.2-4443-4f165fb0|hsk_recv:886|close_recv:0|close_send:5008003|last_recv:30911|last_send:5008003|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,136,0,62,i0,4,1421,1430,3,13,30,0,4,21,30,400,11,30,0,4,21,30,400,12,30,0,4,16,4,13,30,4,16,4,14,30,4,23,40000,15,5008,0-2,0-2,0-0,0-0,0-0,0-0,0-3160,0-6117,0-10,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:22:35 815018] [report] |scid:c39f0fa010579899|xqc_conn_destroy|000056FB59F1ED20|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1256|first_send_delay:3834|conn_persist:5296937|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-47095-542b107a709e6d36 p-172.18.0.2-4443-3cad5a26|hsk_recv:790|close_recv:0|close_send:5212184|last_recv:5034609|last_send:5212184|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,16,13,140,0,60,i0,4,1432,1441,3,13,5034,0,4,21,30,400,11,5034,0,4,21,30,400,12,5034,0,4,23,40000,19,5212,4,16,4,17,5034,4,16,4,18,5034,0-2,0-2,0-0,0-0,0-0,0-0,0-3112,0-7526,0-9,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 22 - moq-test-datagram-eog
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5427
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738955946.752}}}
+relay-1        | time=2026-11-27T00:22:35.946Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.10193,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.1357,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:35.946Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:22:35 946806] [error] |scid:497fee06c8b0027a|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.706094,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","d8fd763ac101e9cd64b7ed3fa692b4ad","moq-test-00","0","0","0","2","5","5","64","32","2","1","1","1","1","2","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738956151.3926}}}
+relay-1        | time=2026-11-27T00:22:36.151Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.07498,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.103702,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:36.151Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:22:36 151455] [error] |scid:b27b105b4da42909|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":2.677071,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","d8fd763ac101e9cd64b7ed3fa692b4ad","moq-test-00","0","0","0","2","5","5","64","32","2","1","1","1","1","2","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.713324,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:22:40.953Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop d8fd763ac101e9cd64b7ed3fa692b4ad moq-test-00 0 0 0 2 5 5 64 32 2 1 1 1 1 2 0]" track=test-track held=5s
+relay-1        | {"time":5007.175311,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:22:41 155063] [error] |scid:b27b105b4da42909|xqc_conn_close_with_error|conn:000056FB59EEEC10|err:0x0|l-0.0.0.0-57662-10dd3f2121d1a870 p-172.18.0.2-4443-c2de6a38|
+test-client-1  | [2026/11/27 00:22:41 155083] [error] |scid:497fee06c8b0027a|xqc_conn_close_with_error|conn:000056FB59FAD370|err:0x0|l-0.0.0.0-57662-a96619f1b74fdac1 p-172.18.0.2-4443-0a33c6c6|
+relay-1        | time=2026-11-27T00:22:41.157Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:22:41.157Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:22:41 241831] [report] |scid:b27b105b4da42909|xqc_conn_destroy|000056FB59EEEC10|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1301|first_send_delay:4150|conn_persist:5092008|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-57662-10dd3f2121d1a870 p-172.18.0.2-4443-c2de6a38|hsk_recv:846|close_recv:0|close_send:5007360|last_recv:30983|last_send:5007360|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,17,14,133,0,62,i0,4,21,30,400,13,30,0,4,1432,1441,3,14,30,0,4,21,30,400,12,30,0,4,16,4,16,30,4,16,4,17,30,4,23,40000,18,5007,0-2,0-2,0-0,0-0,0-0,0-0,0-3157,0-7569,0-10,0-14,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:22:41 324457] [report] |scid:497fee06c8b0027a|xqc_conn_destroy|000056FB59FAD370|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1330|first_send_delay:4094|conn_persist:5379219|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-57662-a96619f1b74fdac1 p-172.18.0.2-4443-0a33c6c6|hsk_recv:849|close_recv:0|close_send:5212009|last_recv:5034420|last_send:5212009|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,15,12,137,0,60,i0,4,48,57,80,9,5008,0,4,24,33,4,10,5034,0,4,21,30,400,11,5034,0,4,15,4,15,5034,4,15,4,16,5061,4,23,40000,17,5212,0-2,0-2,0-0,0-0,0-0,0-3,0-3164,0-7492,0-9,0-12,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 23 - moq-test-extensions
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5426
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738961373.7349}}}
+relay-1        | time=2026-11-27T00:22:41.373Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.078175,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.246141,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+test-client-1  | [2026/11/27 00:22:41 373793] [error] |scid:c2c8cd89352a1ffb|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | time=2026-11-27T00:22:41.374Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.480252,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","8c90f7b1340e1116e6c2372154157766","moq-test-00","0","0","0","2","5","5","64","32","2","1","1","1","1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+test-client-1  | [2026/11/27 00:22:41 578538] [error] |scid:7a26539891fbd551|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738961578.4966}}}
+relay-1        | time=2026-11-27T00:22:41.578Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.091364,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.148759,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:41.578Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":0.463822,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","8c90f7b1340e1116e6c2372154157766","moq-test-00","0","0","0","2","5","5","64","32","2","1","1","1","1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":0.505603,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:22:46.380Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop 8c90f7b1340e1116e6c2372154157766 moq-test-00 0 0 0 2 5 5 64 32 2 1 1 1 1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5006.826443,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:22:46 579305] [error] |scid:7a26539891fbd551|xqc_conn_close_with_error|conn:000056FB59F556D0|err:0x0|l-0.0.0.0-50068-c9057a8d453e79eb p-172.18.0.2-4443-92b37c16|
+test-client-1  | [2026/11/27 00:22:46 579330] [error] |scid:c2c8cd89352a1ffb|xqc_conn_close_with_error|conn:000056FB59FAE380|err:0x0|l-0.0.0.0-50068-bf248d7ef12941e8 p-172.18.0.2-4443-8d06116e|
+relay-1        | time=2026-11-27T00:22:46.581Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:22:46.581Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:22:46 666961] [report] |scid:c2c8cd89352a1ffb|xqc_conn_destroy|000056FB59FAE380|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1351|first_send_delay:3957|conn_persist:5294822|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-50068-bf248d7ef12941e8 p-172.18.0.2-4443-8d06116e|hsk_recv:884|close_recv:0|close_send:5209358|last_recv:5035873|last_send:5209358|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,15,12,138,0,60,i0,4,25,34,4,9,5008,0,4,21,30,400,10,5008,0,4,1432,1441,3,11,5035,0,4,23,40000,18,5209,4,15,4,16,5035,4,15,4,17,5062,0-2,0-2,0-0,0-0,0-0,0-0,0-3108,0-7491,0-9,0-12,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:22:46 671233] [report] |scid:7a26539891fbd551|xqc_conn_destroy|000056FB59F556D0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1760|first_send_delay:2326|conn_persist:5094740|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-50068-c9057a8d453e79eb p-172.18.0.2-4443-92b37c16|hsk_recv:1321|close_recv:0|close_send:5004942|last_recv:56249|last_send:5004942|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,20,18,15,134,0,62,i0,4,1421,1430,3,13,29,0,4,21,30,400,14,29,0,4,1432,1441,3,15,56,0,4,17,4,16,83,4,23,40000,17,5004,4,17,4,15,56,0-2,0-2,0-0,0-0,0-0,0-0,0-3224,0-7592,0-10,0-15,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 24 - moq-test-extensions-integer-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5423
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738966796.874}}}
+relay-1        | time=2026-11-27T00:22:46.796Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.086467,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.182238,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:46.797Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:22:46 796974] [error] |scid:7b76b5355eeddd40|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.588311,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","6602d36db57410cb44310c188e9c065c","moq-test-00","0","0","0","2","5","5","64","32","2","1","1","1","-1","2","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738967001.3535}}}
+relay-1        | time=2026-11-27T00:22:47.001Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.082061,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.11933,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:47.001Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:22:47 001559] [error] |scid:dc10f5e63c5b4f68|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":2.758405,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","6602d36db57410cb44310c188e9c065c","moq-test-00","0","0","0","2","5","5","64","32","2","1","1","1","-1","2","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.815279,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:22:51.804Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop 6602d36db57410cb44310c188e9c065c moq-test-00 0 0 0 2 5 5 64 32 2 1 1 1 -1 2 0]" track=test-track held=5s
+relay-1        | {"time":5007.40553,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:22:52 004381] [error] |scid:dc10f5e63c5b4f68|xqc_conn_close_with_error|conn:000056FB59F5BDA0|err:0x0|l-0.0.0.0-43205-2dc69841bdca61ca p-172.18.0.2-4443-47168ec1|
+test-client-1  | [2026/11/27 00:22:52 004402] [error] |scid:7b76b5355eeddd40|xqc_conn_close_with_error|conn:000056FB59FC6A50|err:0x0|l-0.0.0.0-43205-54dc0f6eaef4f900 p-172.18.0.2-4443-21a34613|
+relay-1        | time=2026-11-27T00:22:52.006Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:22:52.006Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:22:52 091146] [report] |scid:dc10f5e63c5b4f68|xqc_conn_destroy|000056FB59F5BDA0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1343|first_send_delay:4193|conn_persist:5091349|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-43205-2dc69841bdca61ca p-172.18.0.2-4443-47168ec1|hsk_recv:901|close_recv:0|close_send:5006711|last_recv:31552|last_send:5006711|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,17,14,11,134,0,62,i0,4,1421,1430,3,9,31,0,4,21,30,400,10,31,0,4,27,36,c,8,4,0,4,14,4,18,31,4,23,40000,21,5006,4,15,4,17,31,0-2,0-2,0-0,0-0,0-0,0-0,0-3125,0-6064,0-10,0-11,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:22:52 093342] [report] |scid:7b76b5355eeddd40|xqc_conn_destroy|000056FB59FC6A50|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1387|first_send_delay:4093|conn_persist:5298084|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-43205-54dc0f6eaef4f900 p-172.18.0.2-4443-21a34613|hsk_recv:913|close_recv:0|close_send:5211319|last_recv:5035803|last_send:5211319|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,16,13,138,0,60,i0,4,1432,1441,3,13,5035,0,4,21,30,400,11,5035,0,4,21,30,400,12,5035,0,4,23,40000,17,5211,4,16,4,15,5035,4,16,4,16,5035,0-2,0-2,0-0,0-0,0-0,0-0,0-3110,0-7526,0-9,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 25 - moq-test-extensions-variable-only
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5426
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+test-client-1  | [2026/11/27 00:22:52 223174] [error] |scid:d0ff54cef864aa43|xqc_ssl_new_session_cb|early data is not enabled|
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738972223.1323}}}
+relay-1        | time=2026-11-27T00:22:52.223Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.09489,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.195037,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | time=2026-11-27T00:22:52.223Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.570415,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","dd90ad67833cf94fc2ec32c2cc83df9e","moq-test-00","4","0","0","0","0","5","96","96","2","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+test-client-1  | [2026/11/27 00:22:52 427483] [error] |scid:5115e5c6f16a0879|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738972427.4197}}}
+relay-1        | time=2026-11-27T00:22:52.427Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.08174,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.110457,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:52.427Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.469857,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","dd90ad67833cf94fc2ec32c2cc83df9e","moq-test-00","4","0","0","0","0","5","96","96","2","1","1","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.511298,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:22:57.229Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop dd90ad67833cf94fc2ec32c2cc83df9e moq-test-00 4 0 0 0 0 5 96 96 2 1 1 0 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5006.527467,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:22:57 431812] [error] |scid:5115e5c6f16a0879|xqc_conn_close_with_error|conn:000056FB59F82260|err:0x0|l-0.0.0.0-37500-8f088241953e8de5 p-172.18.0.2-4443-3252897f|
+test-client-1  | [2026/11/27 00:22:57 431834] [error] |scid:d0ff54cef864aa43|xqc_conn_close_with_error|conn:000056FB59F66860|err:0x0|l-0.0.0.0-37500-932b4b702e2ac3c4 p-172.18.0.2-4443-7d6c7ffd|
+relay-1        | time=2026-11-27T00:22:57.434Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:22:57.434Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:22:57 518588] [report] |scid:5115e5c6f16a0879|xqc_conn_destroy|000056FB59F82260|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1365|first_send_delay:3956|conn_persist:5092778|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-37500-8f088241953e8de5 p-172.18.0.2-4443-3252897f|hsk_recv:919|close_recv:0|close_send:5008128|last_recv:30858|last_send:5008128|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,135,0,62,i0,4,1421,1430,3,13,30,0,4,21,30,400,11,30,0,4,21,30,400,12,30,0,4,16,4,14,30,4,16,4,15,30,4,23,40000,19,5008,0-2,0-2,0-0,0-0,0-0,0-0,0-3159,0-6117,0-10,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:22:57 518719] [report] |scid:d0ff54cef864aa43|xqc_conn_destroy|000056FB59F66860|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1353|first_send_delay:4035|conn_persist:5297196|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-37500-932b4b702e2ac3c4 p-172.18.0.2-4443-7d6c7ffd|hsk_recv:859|close_recv:0|close_send:5212487|last_recv:5034929|last_send:5212487|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,16,16,13,139,0,60,i0,4,1432,1441,3,13,5034,0,4,21,30,400,11,5034,0,4,21,30,400,12,5034,0,4,23,40000,17,5212,4,16,4,9,5034,4,16,4,16,5034,0-2,0-2,0-0,0-0,0-0,0-0,0-3111,0-7522,0-9,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 26 - moq-test-object-fragmentation
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5427
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+test-client-1  | [2026/11/27 00:22:57 650507] [error] |scid:266a6118e2ce0ab8|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738977650.4678}}}
+relay-1        | time=2026-11-27T00:22:57.650Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.084133,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.115099,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:57.650Z level=INFO msg="MoQ session established" version=moqt-22
+relay-1        | {"time":2.581416,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","ba3b4c20d80c99913d7271973c165d92","moq-test-00","0","1099511627776","1099511627781","1099511627777","1099511627785","5","64","32","2","1","2","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+test-client-1  | [2026/11/27 00:22:57 855327] [error] |scid:56c8bf16706e06eb|xqc_ssl_new_session_cb|early data is not enabled|
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738977855.2856}}}
+relay-1        | time=2026-11-27T00:22:57.855Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.080217,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.100346,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:22:57.855Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":2.488053,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","ba3b4c20d80c99913d7271973c165d92","moq-test-00","0","1099511627776","1099511627781","1099511627777","1099511627785","5","64","32","2","1","2","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.532478,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+relay-1        | time=2026-11-27T00:23:02.657Z level=INFO msg="rejecting subscription to unknown namespace" namespace="[moq-test interop ba3b4c20d80c99913d7271973c165d92 moq-test-00 0 1099511627776 1099511627781 1099511627777 1099511627785 5 64 32 2 1 2 0 -1 -1 0]" track=test-track held=5s
+relay-1        | {"time":5007.034995,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":2,"retry_interval":0,"error_reason":"no publisher within 5s"}}}
+test-client-1  | [2026/11/27 00:23:02 858631] [error] |scid:56c8bf16706e06eb|xqc_conn_close_with_error|conn:000056FB59FE3E20|err:0x0|l-0.0.0.0-35711-404185c886625189 p-172.18.0.2-4443-952452bb|
+test-client-1  | [2026/11/27 00:23:02 858651] [error] |scid:266a6118e2ce0ab8|xqc_conn_close_with_error|conn:000056FB59FB77C0|err:0x0|l-0.0.0.0-35711-b936cf05abca22f4 p-172.18.0.2-4443-8e5f72e7|
+relay-1        | time=2026-11-27T00:23:02.860Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+relay-1        | time=2026-11-27T00:23:02.860Z level=INFO msg="MoQ session ended" reason="connection closed: Application error 0x0 (remote): local error"
+test-client-1  | [2026/11/27 00:23:02 945462] [report] |scid:56c8bf16706e06eb|xqc_conn_destroy|000056FB59FE3E20|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1316|first_send_delay:3993|conn_persist:5091783|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-35711-404185c886625189 p-172.18.0.2-4443-952452bb|hsk_recv:866|close_recv:0|close_send:5007079|last_recv:30889|last_send:5007079|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,16,13,183,0,62,i0,4,1421,1430,3,13,30,0,4,21,30,400,11,30,0,4,21,30,400,12,30,0,4,16,4,14,30,4,16,4,15,30,4,23,40000,18,5007,0-2,0-2,0-0,0-0,0-0,0-0,0-3207,0-6121,0-10,0-13,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:10|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:0|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | [2026/11/27 00:23:02 945587] [report] |scid:266a6118e2ce0ab8|xqc_conn_destroy|000056FB59FB77C0|has_0rtt:0|0rtt_accept:0|token_ok:-1|handshake_time:1333|first_send_delay:4011|conn_persist:5296701|keyupdate_cnt:0|err:0x0|close_msg:local error|l-0.0.0.0-35711-b936cf05abca22f4 p-172.18.0.2-4443-8e5f72e7|hsk_recv:842|close_recv:0|close_send:5211935|last_recv:5034360|last_send:5211935|mp_enable:0|create:1|validated:1|active:1|path_info:0/0/0/a/0,1,1,1,0,0,0,0,0,0,0,18,15,12,187,0,60,i0,4,48,57,80,9,5008,0,4,24,33,4,10,5034,0,4,21,30,400,11,5034,0,4,15,4,15,5034,4,15,4,20,5061,4,23,40000,21,5211,0-2,0-2,0-0,0-0,0-0,0-0,0-3215,0-7492,0-9,0-12,0-0,0-0,0-0,0-0,0-0,0-0,0-0,0-0|alpn:moqt-22|rebind_count:0|rebind_valid:0|rtx_pkt:0|tlp_pkt:0|snd_pkt:9|spurious_loss:0|detected_loss:0|max_pto:0|finished_streams:1|cli_bidi_s:0|svr_bidi_s:0|fec_exist:0|fec_ensch:NO_FEC|fec_desch:NO_FEC|fec_neg_fail:0|fec_mp_mode:NO_FEC|send_fec_pkts:0|recovered_fec_num:0|max_po_size:1200|max_probing_size:1420|ppo_size:1420|ext_conn_info:{"common": "0,0,0,0,0",}|max_acked_po_size:1200|enable_pmtud:0|avg_closed_time:0|passive_bidi_s_max:0|
+test-client-1  | not ok 27 - moq-test-object-large-id
+test-client-1  |   ---
+test-client-1  |   duration_ms: 5426
+test-client-1  |   sessions:
+test-client-1  |     publisher:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |     subscriber:
+test-client-1  |       transport: quic
+test-client-1  |       moqt_version: moqt-22
+test-client-1  |   ...
+test-client-1  | [2026/11/27 00:23:03 077353] [error] |scid:fa08685fbc3411f2|xqc_ssl_new_session_cb|early data is not enabled|
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738983077.296}}}
+relay-1        | time=2026-11-27T00:23:03.077Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.125935,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.14663,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:23:03.077Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=subscriber
+relay-1        | {"time":2.690645,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"subscribe","request_id":0,"track_namespace":["moq-test","interop","c0aaa7176adf84142f8713f72235174d","moq-test-00","0","10","3","24","7","3","40","24","2","7","2","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"parameters":["{RENDEZVOUS_TIMEOUT: 5000}","{GROUP_ORDER: 1}"]}}}
+relay-1        | {"file_schema":"urn:ietf:params:qlog:file:sequential","serialization_format":"application/qlog+json-seq","title":"MoQ QLOG","description":"MoQ QLOG","event_schemas":["urn:ietf:params:qlog:events:moqt-00"],"trace":{"vantage_point":{"type":"server"},"common_fields":{"time_format":"relative","reference_time":1795738983282.4185}}}
+relay-1        | time=2026-11-27T00:23:03.282Z level=INFO msg="starting MoQ session" perspective=server
+relay-1        | {"time":0.08159,"name":"moqt:control_message_created","data":{"stream_id":3,"message":{"type":"setup","options":["{key: 7, value: '[69 121 101 118 105 110 110 47 109 111 113 108 105 118 101 109 111 99 107 47 109 108 109 114 101 108]'}"]}}}
+relay-1        | {"time":0.155288,"name":"moqt:control_message_parsed","data":{"stream_id":2,"message":{"type":"setup","options":["{key: 1, value: '[47]'}","{key: 5, value: '[114 101 108 97 121 58 52 52 52 51]'}","{key: 8, value: 16}"]}}}
+relay-1        | time=2026-11-27T00:23:03.282Z level=INFO msg="MoQ session established" version=moqt-22
+test-client-1  | [2026/11/27 00:23:03 282525] [error] |scid:4f7359b8d8c3c3c9|xqc_ssl_new_session_cb|early data is not enabled|
+test-client-1  | SETUP ready alpn=moqt-22 protocol=moqt-22 transport=quic role=publisher
+relay-1        | {"time":2.594099,"name":"moqt:control_message_parsed","data":{"stream_id":0,"message":{"type":"publish","request_id":0,"track_namespace":["moq-test","interop","c0aaa7176adf84142f8713f72235174d","moq-test-00","0","10","3","24","7","3","40","24","2","7","2","0","-1","-1","0"],"track_name":{"length":10,"payload_length":10,"data":"746573742d747261636b"},"track_alias":0}}}
+relay-1        | {"time":2.639756,"name":"moqt:control_message_created","data":{"stream_id":0,"message":{"type":"request_error","error_code":3,"retry_interval":0,"error_reason":"PUBLISH is not supported"}}}
+ Compose Stopping Gracefully Stopping... press Ctrl+C again to force
+ Container main-test-client-1 Stopping 
+ Container main-test-client-1 Stopped 
+ Container main-relay-1 Stopping 
+ Container main-relay-1 Stopped 
+
+make: *** [Makefile:86: test] Error 130
