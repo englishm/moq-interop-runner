@@ -1,0 +1,618 @@
+Running tests against moqt://lminiero.it:9000...
+  Client: ghcr.io/gmarzot/aiomoqt:interop
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=moqt://lminiero.it:9000 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/gmarzot/aiomoqt:interop
+TAP version 14
+# date: 2026-11-28T00:21:32Z
+# target: moqt://lminiero.it:9000
+# version: aiomoqt/0.15.0rc2
+# note: preference probe pinned draft-22
+1..37
+ok 1 - setup-only
+  ---
+  duration_ms: 471
+  implementation_version: "0.15.0rc2"
+  sessions:
+    client:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "0fe822c3b27d7130"
+  message: "SERVER_SETUP received with compatible version"
+  ...
+  [PASS] setup-only: SERVER_SETUP received with compatible version
+  [PASS] announce-only: PUBLISH_NAMESPACE_OK received
+ok 2 - announce-only
+  ---
+  duration_ms: 591
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "c8f6cd077697ae90"
+  message: "PUBLISH_NAMESPACE_OK received"
+  ...
+  [PASS] publish-namespace-done: PUBLISH_NAMESPACE_OK received, announce stream reset
+ok 3 - publish-namespace-done
+  ---
+  duration_ms: 893
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "813fe755a9e0189f"
+  message: "PUBLISH_NAMESPACE_OK received, announce stream reset"
+  ...
+  [PASS] subscribe-error: Error received (expected): code=16
+ok 4 - subscribe-error
+  ---
+  duration_ms: 578
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "4d30114bc0c2ecbd"
+  message: "Error received (expected): code=16"
+  expected: "SUBSCRIBE_ERROR code=TRACK_DOES_NOT_EXIST"
+  ...
+  [PASS] rendezvous-timeout: REQUEST_ERROR TIMEOUT received
+ok 5 - rendezvous-timeout
+  ---
+  duration_ms: 600
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "3fe9f38fac3dbfe9"
+  message: "REQUEST_ERROR TIMEOUT received"
+  expected: "REQUEST_ERROR TIMEOUT"
+  ...
+ok 6 - announce-subscribe
+  ---
+  duration_ms: 1550
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "819dcb22de27d3e8"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "80bf5819c6ba7ad0"
+  message: "SUBSCRIBE_OK received — relay routed subscription"
+  ...
+  [PASS] announce-subscribe: SUBSCRIBE_OK received — relay routed subscription
+  [PASS] subscribe-before-announce: Error received (valid: relay didn't buffer): code=16
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 1566
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "41a6a8f2f0e8cacf"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "01d31c87890f4262"
+  message: "Error received (valid: relay didn't buffer): code=16"
+  ...
+  [PASS] data-subgroup-basic: 15 objects received; Stream Count upstream 3, downstream 3
+ok 8 - data-subgroup-basic
+  ---
+  duration_ms: 1580
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 2
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "ac56837800d58416"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "877459e3505118ad"
+  message: "15 objects received; Stream Count upstream 3, downstream 3"
+  ...
+  [PASS] subscribe-namespace-lifecycle: NAMESPACE then NAMESPACE_DONE received
+ok 9 - subscribe-namespace-lifecycle
+  ---
+  duration_ms: 1949
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 1
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "116d818f42c0d1d8"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "667b2d573ef6fbd0"
+  message: "NAMESPACE then NAMESPACE_DONE received"
+  ...
+2026-11-28 00:21:47.053 WARNING: MOQT: peer closed: 0x303 from 212.227.213.68:9000; reason: Unexpected Message
+  [FAIL] namespace-discovery: Failed: TimeoutError: no PUBLISH for 'track-1e8c'; offered: track.2d1e8c
+not ok 10 - namespace-discovery
+  ---
+  duration_ms: 8597
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "55fed007705abbff"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "61cd7999e571549a"
+  message: "Failed: TimeoutError: no PUBLISH for 'track-1e8c'; offered: track.2d1e8c"
+  expected: "PUBLISH announcing 'track-1e8c'"
+  received: "TimeoutError: no PUBLISH for 'track-1e8c'; offered: track.2d1e8c"
+  ...
+ok 11 - publish-track-only
+  ---
+  duration_ms: 898
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "57dee6add0afe643"
+  message: "PUBLISH_OK received, PUBLISH_DONE sent"
+  ...
+  [PASS] publish-track-only: PUBLISH_OK received, PUBLISH_DONE sent
+2026-11-28 00:21:56.592 WARNING: MOQT: peer closed: 0x303 from 212.227.213.68:9000; reason: Unexpected Message
+not ok 12 - publish-track-subscribe
+  ---
+  duration_ms: 11511
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "52fc9efc55104394"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "d44e2e2e5cee6769"
+  message: "1 of 5 objects within 10s"
+  expected: "5 objects"
+  received: "1 objects"
+  ...
+  [FAIL] publish-track-subscribe: 1 of 5 objects within 10s
+  [PASS] publish-namespace-done-track: objects 1/1, Stream Count 1/1; observer saw NAMESPACE, PUBLISH_DONE, NAMESPACE_DONE
+ok 13 - publish-namespace-done-track
+  ---
+  duration_ms: 1869
+  implementation_version: "0.15.0rc2"
+  sessions:
+    observer:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "286d2ba03f0b6199"
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "500cea94e3b174e1"
+  message: "objects 1/1, Stream Count 1/1; observer saw NAMESPACE, PUBLISH_DONE, NAMESPACE_DONE"
+  ...
+  [PASS] subscribe-cancel-live: 2 objects before the cancel, 0 after it, 6 in flight within 212 ms
+ok 14 - subscribe-cancel-live
+  ---
+  duration_ms: 2319
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "92cf1215670e4ee7"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "6a2c5ebc99a93ed0"
+  message: "2 objects before the cancel, 0 after it, 6 in flight within 212 ms"
+  ...
+not ok 15 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 2267
+  implementation_version: "0.15.0rc2"
+  test_spec_revision: 1
+  sessions:
+    observer:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "d78e6de6846013a8"
+    publisher_1:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "2e9a8c860f7bdb63"
+    publisher_2:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "218af310761ea15c"
+  message: "publisher_2 PUBLISH_NAMESPACE refused: code=0 Namespace already published"
+  expected: "shared retained until publisher_1 withdraws"
+  received: "observer: NAMESPACE shared"
+  ...
+  [FAIL] publish-namespace-multi-publisher-retention: publisher_2 PUBLISH_NAMESPACE refused: code=0 Namespace already published
+
+  Sent: 52 objects, 11 groups, 50/s, 30Kbps (1.0s)
+not ok 16 - fetch
+  ---
+  duration_ms: 2209
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "b5d63937421dfd71"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "c837288c391b3502"
+    fetcher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "6dd80929073e0edf"
+  message: "unexpected object 1.5 (1 problem(s)); 6 objects of group 1 received by the FETCH"
+  expected: "5 objects of group 1"
+  received: "6 objects"
+  ...
+  [FAIL] fetch: unexpected object 1.5 (1 problem(s)); 6 objects of group 1 received by the FETCH
+
+  Sent: 62 objects, 13 groups, 50/s, 30Kbps (1.2s)
+not ok 17 - fetch-descending
+  ---
+  duration_ms: 2311
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "3020c02c4f1bde1e"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "435e8548c9cf20fd"
+    fetcher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "d6a4d8f272eba3e2"
+  message: "unexpected object 2.5 (2 problem(s)); 12 objects of groups 1-2 received by the FETCH in descending order"
+  expected: "10 objects of groups 1-2"
+  received: "12 objects"
+  ...
+  [FAIL] fetch-descending: unexpected object 2.5 (2 problem(s)); 12 objects of groups 1-2 received by the FETCH in descending order
+  [FAIL] fetch-error-recovery: unexpected object 1.5 (1 problem(s)); 6 objects of group 1 received by the FETCH after INVALID_RANGE
+
+  Sent: 61 objects, 13 groups, 50/s, 30Kbps (1.2s)
+not ok 18 - fetch-error-recovery
+  ---
+  duration_ms: 2293
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "611c3f3ed086159e"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "16c8a299cc531b4b"
+    fetcher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "f124913ddfa5e28a"
+  message: "unexpected object 1.5 (1 problem(s)); 6 objects of group 1 received by the FETCH after INVALID_RANGE"
+  expected: "5 objects of group 1"
+  received: "6 objects"
+  ...
+2026-11-28 00:22:21.960 ERROR: MOQT stream(11): FetchObject: group id past 2^64-1
+2026-11-28 00:22:21.960 ERROR: MOQT: closing: PROTOCOL_VIOLATION (0x3) to 212.227.213.68:9000; reason: FetchObject: group id past 2^64-1
+  [PASS] join: 6 objects received by the joining FETCH
+
+  Sent: 52 objects, 11 groups, 50/s, 30Kbps (1.0s)
+ok 19 - join
+  ---
+  duration_ms: 2307
+  implementation_version: "0.15.0rc2"
+  sessions:
+    publisher:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "a4eca0bf17d0e90a"
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "45ca630925ef7208"
+    joiner:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "8a5fbd636bbe00d8"
+  message: "6 objects received by the joining FETCH"
+  ...
+not ok 20 - moq-test-subgroup-per-group-eog
+  ---
+  duration_ms: 601
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "7884741a69efc600"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-subgroup-per-group-eog: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+  [FAIL] moq-test-subgroup-per-group-no-eog: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 21 - moq-test-subgroup-per-group-no-eog
+  ---
+  duration_ms: 832
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "87f4021ad8cddb8a"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+not ok 22 - moq-test-subgroup-per-group-nonzero-start
+  ---
+  duration_ms: 600
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "8bcf6462124cb7ac"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-subgroup-per-group-nonzero-start: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+  [FAIL] moq-test-subgroup-per-object: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 23 - moq-test-subgroup-per-object
+  ---
+  duration_ms: 601
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "89677784da2050c4"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+not ok 24 - moq-test-subgroup-per-object-sparse-ids
+  ---
+  duration_ms: 592
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "0d3f0e03b60d0c00"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-subgroup-per-object-sparse-ids: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 25 - moq-test-two-subgroups-eog
+  ---
+  duration_ms: 837
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "29ff4f18a75329f1"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-two-subgroups-eog: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 26 - moq-test-two-subgroups-no-eog
+  ---
+  duration_ms: 598
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "f8f2fc9c22568aff"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-two-subgroups-no-eog: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 27 - moq-test-datagram
+  ---
+  duration_ms: 1064
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "0897f5ff2cf40b56"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-datagram: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 28 - moq-test-datagram-nonzero-start
+  ---
+  duration_ms: 589
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "e8115a9caa3beca9"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-datagram-nonzero-start: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+  [FAIL] moq-test-datagram-sparse-ids: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 29 - moq-test-datagram-sparse-ids
+  ---
+  duration_ms: 584
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "2f0267ad032e81fd"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-datagram-eog: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 30 - moq-test-datagram-eog
+  ---
+  duration_ms: 590
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "55f5a3886c224469"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-extensions: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 31 - moq-test-extensions
+  ---
+  duration_ms: 592
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "3b586cdb19df9464"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+not ok 32 - moq-test-extensions-integer-only
+  ---
+  duration_ms: 597
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "388fb6ce151c3622"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-extensions-integer-only: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 33 - moq-test-extensions-variable-only
+  ---
+  duration_ms: 591
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "4d62d57cb0d38b3a"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-extensions-variable-only: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 34 - moq-test-object-fragmentation
+  ---
+  duration_ms: 699
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "1a4aa727a5959e85"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-object-fragmentation: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+  [FAIL] moq-test-object-large-id: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 35 - moq-test-object-large-id
+  ---
+  duration_ms: 601
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "4ccd20ae030f65ba"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-increments: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 36 - moq-test-increments
+  ---
+  duration_ms: 693
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "3e9682bd3bfa732a"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+  [FAIL] moq-test-forward-zero: SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported
+not ok 37 - moq-test-forward-zero
+  ---
+  duration_ms: 601
+  implementation_version: "0.15.0rc2"
+  sessions:
+    subscriber:
+      transport: "quic"
+      moqt_version: "moqt-22"
+      alpn: "moqt-22"
+      quic_initial_destination_connection_id: "fd5f94bfb0155e81"
+  message: "SUBSCRIBE refused: code=2 Namespace not found, and rendezvous timeout not supported"
+  ...
+# ended: 2026-11-28T00:22:34Z
+make: *** [Makefile:122: test-external] Error 1

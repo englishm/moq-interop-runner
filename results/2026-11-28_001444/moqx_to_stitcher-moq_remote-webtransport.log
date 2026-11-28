@@ -1,0 +1,69 @@
+Running tests against https://34-72-6-160.sslip.io:443...
+  Client: ghcr.io/openmoq/moqx-interop-client:latest
+docker run --rm --init \
+	 \
+	--network host \
+	-e RELAY_URL=https://34-72-6-160.sslip.io:443 \
+	 \
+	 \
+	-e TLS_DISABLE_VERIFY=false \
+	ghcr.io/openmoq/moqx-interop-client:latest
+TAP version 14
+# moxygen interop test client
+# Relay: https://34-72-6-160.sslip.io:443
+# Transport: WebTransport
+# Offered ALPNs: moqt-22, moqt-18, moqt-16 (from MOQT_VERSIONS)
+1..7
+ok 1 - setup-only
+  ---
+  duration_ms: 109
+  negotiated_version: draft-22
+  info: SETUP exchange completed successfully
+  ...
+E20261128 00:16:48.103227     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=98b0d34be69d06d8, local=10.0.143.152:53041, 34.72.6.160:443=upstream, drain=done
+ok 2 - announce-only
+  ---
+  duration_ms: 124
+  negotiated_version: draft-22
+  info: PUBLISH_NAMESPACE completed successfully
+  ...
+E1128 00:16:48.199607     7 MoQRelaySession.cpp:1014] PublishNamespaceDone for unknown publishNamespace, sess=0x59df7876cfc0
+E20261128 00:16:48.228560     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=a2cfd0a8521604ee, local=10.0.143.152:40558, 34.72.6.160:443=upstream, drain=done
+ok 3 - subscribe-error
+  ---
+  duration_ms: 119
+  negotiated_version: draft-22
+  info: Subscribe correctly returned error: unroutable
+  ...
+E20261128 00:16:48.347553     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=8189edc60f52c24d, local=10.0.143.152:47461, 34.72.6.160:443=upstream, drain=done
+ok 4 - announce-subscribe
+  ---
+  duration_ms: 265
+  negotiated_version: draft-22
+  info: Publisher announced, subscriber subscribed successfully
+  ...
+E20261128 00:16:48.611711     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=e9eeba001e456bf5, local=10.0.143.152:34654, 34.72.6.160:443=upstream, drain=done
+ok 5 - publish-namespace-done
+  ---
+  duration_ms: 121
+  negotiated_version: draft-22
+  info: PUBLISH_NAMESPACE_OK received, PUBLISH_NAMESPACE_DONE sent
+  ...
+E20261128 00:16:48.735071     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=0d622a3c9c38e5b3, local=10.0.143.152:34096, 34.72.6.160:443=upstream, drain=done
+ok 6 - publish-namespace-multi-publisher-retention
+  ---
+  duration_ms: 682
+  negotiated_version: draft-22
+  info: Retained namespace and withdrawal reached both subscribers
+  ...
+E20261128 00:16:49.416714     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=507be6098099e882, local=10.0.143.152:55775, 34.72.6.160:443=upstream, drain=done
+E20261128 00:16:49.416918     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=90fdae924c3d79a8, local=10.0.143.152:35109, 34.72.6.160:443=upstream, drain=done
+E20261128 00:16:49.417114     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=711843e8180b1230, local=10.0.143.152:35277, 34.72.6.160:443=upstream, drain=done
+ok 7 - subscribe-before-announce
+  ---
+  duration_ms: 716
+  negotiated_version: draft-22
+  info: Subscribe returned error (relay doesn't buffer pending subscriptions): unroutable
+  ...
+E20261128 00:16:50.134776     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=c705ef8e22847f40, local=10.0.143.152:56700, 34.72.6.160:443=upstream, drain=done
+E20261128 00:16:50.135010     7 HQSession.cpp:610] Connection closed with error err=91141958510811 msg=Client closed by peer reason= proto=h3, client CID=, server CID=b153f8a5caf6e816, local=10.0.143.152:39145, 34.72.6.160:443=upstream, drain=done
